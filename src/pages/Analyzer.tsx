@@ -1,11 +1,10 @@
-
 import React from "react";
 import Layout from "@/components/layout/Layout";
 import VideoSection from "@/components/analyzer/VideoSection";
 import GameDataSection from "@/components/analyzer/GameDataSection";
 import MarkersList from "@/components/analyzer/MarkersList";
 import ClipLibrary from "@/components/analyzer/ClipLibrary";
-import { useAnalyzer } from "@/hooks/use-analyzer";
+import { useAnalyzer } from "@/hooks/analyzer/use-analyzer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BookmarkIcon, Library } from "lucide-react";
 

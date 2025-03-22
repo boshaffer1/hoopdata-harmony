@@ -47,17 +47,19 @@ const GameDataSection: React.FC<GameDataSectionProps> = ({
               {selectedClip.Players && (
                 <div className="mt-1 flex gap-1 flex-wrap">
                   <span className="font-medium">Players: </span>
-                  {try {
-                    const players = JSON.parse(selectedClip.Players);
-                    return players.map((player: any, idx: number) => (
-                      <Badge key={idx} variant="outline" className="text-xs">
-                        <User className="h-3 w-3 mr-1" /> 
-                        {player.playerName}: {player.action}
-                      </Badge>
-                    ));
-                  } catch (e) {
-                    return null;
-                  }}
+                  {(() => {
+                    try {
+                      const players = JSON.parse(selectedClip.Players);
+                      return players.map((player: any, idx: number) => (
+                        <Badge key={idx} variant="outline" className="text-xs">
+                          <User className="h-3 w-3 mr-1" /> 
+                          {player.playerName}: {player.action}
+                        </Badge>
+                      ));
+                    } catch (e) {
+                      return null;
+                    }
+                  })()}
                 </div>
               )}
             </div>
@@ -108,20 +110,22 @@ const GameDataSection: React.FC<GameDataSectionProps> = ({
                   <td className="px-4 py-2">{formatVideoTime(parseFloat(item["Duration"] || "0"))}</td>
                   <td className="px-4 py-2">{item.Notes || '-'}</td>
                   <td className="px-4 py-2">
-                    {item.Players && (
+                    {item.Players ? (
                       <div className="flex gap-1 flex-wrap">
-                        {try {
-                          const players = JSON.parse(item.Players);
-                          return players.map((player: any, idx: number) => (
-                            <Badge key={idx} variant="outline" className="text-xs">
-                              {player.playerName}: {player.action}
-                            </Badge>
-                          ));
-                        } catch (e) {
-                          return '-';
-                        }}
+                        {(() => {
+                          try {
+                            const players = JSON.parse(item.Players);
+                            return players.map((player: any, idx: number) => (
+                              <Badge key={idx} variant="outline" className="text-xs">
+                                {player.playerName}: {player.action}
+                              </Badge>
+                            ));
+                          } catch (e) {
+                            return '-';
+                          }
+                        })()}
                       </div>
-                    ) || '-'}
+                    ) : '-'}
                   </td>
                 </tr>
               ))}
