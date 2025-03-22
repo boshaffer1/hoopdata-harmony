@@ -45,6 +45,11 @@ const ClipAssistant: React.FC<ClipAssistantProps> = ({
     scrollToBottom();
   }, [messages]);
 
+  // Debug the saved clips when they change
+  useEffect(() => {
+    console.log("ClipAssistant: savedClips changed", savedClips);
+  }, [savedClips]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!query.trim()) return;
@@ -64,7 +69,9 @@ const ClipAssistant: React.FC<ClipAssistantProps> = ({
     
     // Process the query
     setTimeout(() => {
+      console.log("Searching for clips with query:", query);
       const matchedClips = searchClips(query);
+      console.log("Found matched clips:", matchedClips);
       
       // Create assistant message
       let assistantMessage: Message;
@@ -97,29 +104,45 @@ const ClipAssistant: React.FC<ClipAssistantProps> = ({
   const searchClips = (query: string): SavedClip[] => {
     // If there are no saved clips, return empty array
     if (!savedClips || savedClips.length === 0) {
+      console.log("No saved clips available for search");
       return [];
     }
 
+    console.log(`Searching through ${savedClips.length} clips for "${query}"`);
+    
     const searchTerms = query.toLowerCase().split(" ");
     
-    // Using a more permissive search approach - match if any term is present
+    // Using a more permissive search approach with debug logging
     return savedClips.filter(clip => {
       // Guard against undefined or null values
-      const clipLabel = clip.label?.toLowerCase() || "";
-      const clipNotes = clip.notes?.toLowerCase() || "";
-      const clipSituation = clip.situation?.toLowerCase() || "";
+      const clipLabel = (clip.label || "").toLowerCase();
+      const clipNotes = (clip.notes || "").toLowerCase();
+      const clipSituation = (clip.situation || "").toLowerCase();
+      
+      // Map through players carefully to avoid errors
+      let playerNames: string[] = [];
+      if (clip.players && Array.isArray(clip.players)) {
+        playerNames = clip.players
+          .filter(p => p && p.playerName) // Filter out null/undefined players
+          .map(p => p.playerName.toLowerCase());
+      }
       
       // Collect all text to search within
       const clipText = [
         clipLabel,
         clipNotes,
         clipSituation,
-        // Safely map player names or use empty array if players is undefined
-        ...(clip.players?.map(p => p.playerName?.toLowerCase() || "") || [])
+        ...playerNames
       ].join(" ");
       
-      // Match if ANY search term is found (more permissive search)
-      return searchTerms.some(term => clipText.includes(term));
+      // Check if ANY search term is found
+      const matches = searchTerms.some(term => clipText.includes(term));
+      
+      if (matches) {
+        console.log(`Match found in clip: "${clip.label}" for query: "${query}"`);
+      }
+      
+      return matches;
     });
   };
 

@@ -1,11 +1,32 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import ClipAssistant from "@/components/analyzer/ai/ClipAssistant";
 import { useAnalyzer } from "@/hooks/analyzer/use-analyzer";
+import { Button } from "@/components/ui/button";
+import { PlusCircle } from "lucide-react";
+import { toast } from "sonner";
 
 const Assistant = () => {
-  const { savedClips, handlePlaySavedClip } = useAnalyzer();
+  const { 
+    savedClips, 
+    handlePlaySavedClip,
+    addDemoClipsIfNeeded
+  } = useAnalyzer();
+
+  // Check if we have clips available
+  useEffect(() => {
+    console.log("Assistant page loaded with", savedClips.length, "clips");
+  }, [savedClips]);
+
+  const handleAddDemoClips = () => {
+    const added = addDemoClipsIfNeeded();
+    if (added.length > 0) {
+      toast.success(`Added ${added.length} demo clips to your library`);
+    } else {
+      toast.info("Demo clips are already in your library");
+    }
+  };
 
   return (
     <Layout className="py-6">
@@ -22,6 +43,18 @@ const Assistant = () => {
             savedClips={savedClips}
             onPlayClip={handlePlaySavedClip}
           />
+          
+          {savedClips.length === 0 && (
+            <div className="mt-4">
+              <Button onClick={handleAddDemoClips} variant="outline" className="w-full">
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Add Demo Clips
+              </Button>
+              <p className="text-xs text-muted-foreground mt-2">
+                Add some sample clips to try out the assistant
+              </p>
+            </div>
+          )}
         </div>
         <div className="col-span-1">
           <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">

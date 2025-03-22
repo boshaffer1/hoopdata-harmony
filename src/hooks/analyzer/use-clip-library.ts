@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { GameData, SavedClip, PlayerAction, GameSituation } from "@/types/analyzer";
 import { toast } from "sonner";
 import { downloadJSON, extractVideoClip } from "@/components/video/utils";
@@ -7,6 +7,11 @@ import { downloadJSON, extractVideoClip } from "@/components/video/utils";
 export const useClipLibrary = (videoUrl: string | undefined) => {
   const [savedClips, setSavedClips] = useState<SavedClip[]>([]);
   const [playLabel, setPlayLabel] = useState("");
+
+  // Debug when savedClips changes
+  useEffect(() => {
+    console.log("Clip library currently has", savedClips.length, "clips");
+  }, [savedClips]);
 
   const saveClipToLibrary = (clip: GameData) => {
     if (!playLabel.trim()) {
@@ -112,6 +117,8 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
       newClips.push(newClip);
     });
     
+    console.log(`Generated ${newClips.length} new clips from data`);
+    
     setSavedClips(prev => {
       // Filter out duplicates by checking startTime and label
       const filteredNewClips = newClips.filter(newClip => 
@@ -127,6 +134,60 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
     
     return newClips;
   };
+  
+  // Add some demo clips for testing if no clips exist
+  const addDemoClips = () => {
+    if (savedClips.length === 0) {
+      const demoClips: SavedClip[] = [
+        {
+          id: "demo-1",
+          startTime: 10,
+          duration: 15,
+          label: "Fast break layup",
+          notes: "Quick transition play with a finish at the rim",
+          saved: new Date().toISOString(),
+          players: [
+            { playerId: "demo-p1", playerName: "John Smith", action: "scored" }
+          ],
+          situation: "fast_break"
+        },
+        {
+          id: "demo-2",
+          startTime: 45,
+          duration: 20,
+          label: "Corner three attempt",
+          notes: "Open shot from the corner after ball movement",
+          saved: new Date().toISOString(),
+          players: [
+            { playerId: "demo-p2", playerName: "Mike Johnson", action: "missed" }
+          ],
+          situation: "half_court"
+        },
+        {
+          id: "demo-3",
+          startTime: 120,
+          duration: 12,
+          label: "Post-up play",
+          notes: "Back to the basket move with a hook shot",
+          saved: new Date().toISOString(),
+          players: [
+            { playerId: "demo-p3", playerName: "David Williams", action: "scored" }
+          ],
+          situation: "post_up"
+        }
+      ];
+      
+      console.log("Adding demo clips for testing");
+      setSavedClips(demoClips);
+      return demoClips;
+    }
+    return [];
+  };
+  
+  // Initialize with demo clips if needed
+  useEffect(() => {
+    addDemoClips();
+  }, []);
   
   const removeSavedClip = (id: string) => {
     setSavedClips(savedClips.filter(clip => clip.id !== id));
@@ -189,6 +250,7 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
     saveClipsFromData,
     removeSavedClip,
     exportClip,
-    exportLibrary
+    exportLibrary,
+    addDemoClips
   };
 };
