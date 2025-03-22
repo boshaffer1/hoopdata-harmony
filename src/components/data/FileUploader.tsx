@@ -81,14 +81,42 @@ const FileUploader: React.FC<FileUploaderProps> = ({
       try {
         const csv = e.target?.result as string;
         
-        // Very basic CSV parsing - in a real app, use a proper CSV parser
+        // CSV parsing logic
         const lines = csv.split("\n");
         const headers = lines[0].split(",").map(header => header.trim());
         
         const data = lines.slice(1).map(line => {
           if (!line.trim()) return null;
           
-          const values = line.split(",").map(value => value.trim());
+          // Handle quoted values with commas inside
+          let values: string[] = [];
+          let inQuotes = false;
+          let currentValue = "";
+          
+          for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            
+            if (char === '"' && (i === 0 || line[i-1] !== '\\')) {
+              inQuotes = !inQuotes;
+            } else if (char === ',' && !inQuotes) {
+              values.push(currentValue);
+              currentValue = "";
+            } else {
+              currentValue += char;
+            }
+          }
+          
+          // Add the last value
+          values.push(currentValue);
+          
+          // Clean up values (remove quotes)
+          values = values.map(value => {
+            if (value.startsWith('"') && value.endsWith('"')) {
+              return value.slice(1, -1);
+            }
+            return value.trim();
+          });
+          
           const row: Record<string, string> = {};
           
           headers.forEach((header, i) => {

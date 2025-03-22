@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { GameData, GameSituation, PlayerActionType } from "@/types/analyzer";
+import { GameData } from "@/types/analyzer";
 import { toast } from "sonner";
 
 export const useGameData = (videoPlayerRef: React.RefObject<any>) => {
@@ -23,7 +23,8 @@ export const useGameData = (videoPlayerRef: React.RefObject<any>) => {
           "Situation": item["Situation"] || "other",
           "Outcome": item["Outcome"] || "other",
           "Players": item["Players"] || "[]",
-          "Notes": item["Notes"] || ""
+          "Notes": item["Notes"] || "",
+          "Timeline": item["Timeline"] || ""
         };
 
         // Validate Players JSON format

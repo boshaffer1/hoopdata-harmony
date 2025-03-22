@@ -1,3 +1,4 @@
+
 export interface Marker {
   time: number;
   label: string;
@@ -14,6 +15,7 @@ export interface GameData {
   "Outcome": PlayerActionType;
   "Players": string; // JSON string of PlayerAction[]
   "Notes"?: string;
+  "Timeline"?: string;
 }
 
 export interface SavedClip {

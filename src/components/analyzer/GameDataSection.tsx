@@ -93,7 +93,7 @@ const GameDataSection: React.FC<GameDataSectionProps> = ({
                       </Button>
                     </div>
                   </TableCell>
-                  <TableCell>{item["Play Name"]}</TableCell>
+                  <TableCell>{item["Play Name"] || ""}</TableCell>
                   <TableCell>{formatVideoTime(parseFloat(item["Start time"] || "0"))}</TableCell>
                   <TableCell>{formatVideoTime(parseFloat(item["Duration"] || "0"))}</TableCell>
                   <TableCell>
@@ -111,12 +111,22 @@ const GameDataSection: React.FC<GameDataSectionProps> = ({
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
-                      {item.Players && JSON.parse(item.Players).map((player: PlayerAction, idx: number) => (
-                        <Badge key={idx} variant="outline" className="text-xs">
-                          <User className="h-3 w-3 mr-1" />
-                          {player.playerName}
-                        </Badge>
-                      ))}
+                      {item.Players && typeof item.Players === 'string' && item.Players.trim() !== "" && 
+                        (() => {
+                          try {
+                            const players = JSON.parse(item.Players);
+                            return Array.isArray(players) ? players.map((player: PlayerAction, idx: number) => (
+                              <Badge key={idx} variant="outline" className="text-xs">
+                                <User className="h-3 w-3 mr-1" />
+                                {player.playerName}
+                              </Badge>
+                            )) : null;
+                          } catch (e) {
+                            console.error("Error parsing players JSON:", e);
+                            return null;
+                          }
+                        })()
+                      }
                     </div>
                   </TableCell>
                   <TableCell className="max-w-[200px] truncate">

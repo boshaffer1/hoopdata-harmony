@@ -69,12 +69,14 @@ export const useAnalyzer = () => {
   const handlePlaySavedClip = (clip: SavedClip) => {
     // Convert SavedClip to GameData format for playClip
     const gameDataClip: GameData = {
+      "Play Name": clip.label,
       "Start time": clip.startTime.toString(),
       "Duration": clip.duration.toString(),
-      Notes: clip.label,
-      Timeline: clip.timeline,
-      Players: clip.players ? JSON.stringify(clip.players) : "",
-      Situation: clip.situation
+      "Notes": clip.notes,
+      "Timeline": clip.timeline,
+      "Players": clip.players ? JSON.stringify(clip.players) : "",
+      "Situation": clip.situation || "other",
+      "Outcome": "other"
     };
     
     playSelectedClip(gameDataClip);
