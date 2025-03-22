@@ -1,3 +1,4 @@
+
 export interface GameData {
   "Play Name": string;
   "Start time": string;
@@ -19,6 +20,13 @@ export interface SavedClip {
   saved: string;
   players: PlayerAction[];
   situation: GameSituation;
+}
+
+export interface Marker {
+  time: number;
+  label: string;
+  color: string;
+  notes: string;
 }
 
 export type PlayerActionType = 
@@ -50,3 +58,36 @@ export type GameSituation =
   | 'fast_break'
   | 'defense'
   | 'other';
+
+export interface Player {
+  id: string;
+  name: string;
+  number: string;
+  position: string;
+  height: string;
+  year: string;
+  hometown: string;
+  image?: string;
+  stats?: PlayerStats;
+}
+
+export interface TeamRoster {
+  id: string;
+  name: string;
+  logo?: string;
+  primaryColor?: string;
+  secondaryColor?: string;
+  players: Player[];
+}
+
+export interface PlayerStats {
+  ppg?: number;
+  rpg?: number;
+  apg?: number;
+  spg?: number;
+  bpg?: number;
+  mpg?: number;
+  fg_pct?: number;
+  fg3_pct?: number;
+  ft_pct?: number;
+}
