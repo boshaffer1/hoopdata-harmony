@@ -73,7 +73,8 @@ export const useAnalyzer = () => {
       "Duration": clip.duration.toString(),
       Notes: clip.label,
       Timeline: clip.timeline,
-      Players: clip.players ? JSON.stringify(clip.players) : ""
+      Players: clip.players ? JSON.stringify(clip.players) : "",
+      Situation: clip.situation
     };
     
     playSelectedClip(gameDataClip);

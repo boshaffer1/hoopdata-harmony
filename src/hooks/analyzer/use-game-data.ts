@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { GameData } from "@/types/analyzer";
+import { GameData, GameSituation } from "@/types/analyzer";
 
 export const useGameData = (videoPlayerRef: React.RefObject<any>) => {
   const [data, setData] = useState<GameData[]>([]);
@@ -8,11 +8,30 @@ export const useGameData = (videoPlayerRef: React.RefObject<any>) => {
 
   const handleFileLoaded = (loadedData: any) => {
     const processedData = loadedData.map((item: any) => {
-      return {
+      // Process required fields with defaults
+      const processedItem = {
         ...item,
         "Start time": item["Start time"] || "0",
         "Duration": item["Duration"] || "0",
       };
+      
+      // Handle potential situation data
+      if (item.Situation) {
+        processedItem.Situation = item.Situation;
+      }
+      
+      // Handle players data if present
+      if (item.Players) {
+        try {
+          // Validate JSON format for players
+          JSON.parse(item.Players);
+        } catch (e) {
+          console.warn("Invalid Players JSON format:", item.Players);
+          processedItem.Players = "[]";
+        }
+      }
+      
+      return processedItem;
     });
     
     setData(processedData);

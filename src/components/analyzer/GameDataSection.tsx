@@ -2,9 +2,9 @@
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Play, Download, User } from "lucide-react";
+import { Play, Download, User, Flag } from "lucide-react";
 import FileUploader from "@/components/data/FileUploader";
-import { GameData } from "@/types/analyzer";
+import { GameData, GameSituation, PlayerAction } from "@/types/analyzer";
 import { formatVideoTime } from "@/components/video/utils";
 import { Badge } from "@/components/ui/badge";
 
@@ -25,6 +25,23 @@ const GameDataSection: React.FC<GameDataSectionProps> = ({
   onPlayClip,
   onExportClip,
 }) => {
+  const getSituationLabel = (situation: GameSituation): string => {
+    const labels: Record<GameSituation, string> = {
+      transition: "Transition",
+      half_court: "Half Court",
+      ato: "After Timeout (ATO)",
+      slob: "Sideline Out of Bounds (SLOB)",
+      blob: "Baseline Out of Bounds (BLOB)",
+      press_break: "Press Break",
+      zone_offense: "Zone Offense",
+      man_offense: "Man Offense",
+      fast_break: "Fast Break",
+      other: "Other"
+    };
+    
+    return labels[situation] || situation;
+  };
+
   const renderDataTable = () => {
     if (data.length === 0) {
       return <FileUploader onFileLoaded={onFileLoaded} />;
@@ -44,13 +61,23 @@ const GameDataSection: React.FC<GameDataSectionProps> = ({
               (Start: {formatVideoTime(parseFloat(selectedClip["Start time"] || "0"))}, 
               Duration: {formatVideoTime(parseFloat(selectedClip["Duration"] || "0"))})
               
+              {selectedClip.Situation && (
+                <div className="mt-1">
+                  <span className="font-medium">Situation: </span>
+                  <Badge variant="outline" className="text-xs">
+                    <Flag className="h-3 w-3 mr-1" />
+                    {getSituationLabel(selectedClip.Situation as GameSituation)}
+                  </Badge>
+                </div>
+              )}
+              
               {selectedClip.Players && (
                 <div className="mt-1 flex gap-1 flex-wrap">
                   <span className="font-medium">Players: </span>
                   {(() => {
                     try {
                       const players = JSON.parse(selectedClip.Players);
-                      return players.map((player: any, idx: number) => (
+                      return players.map((player: PlayerAction, idx: number) => (
                         <Badge key={idx} variant="outline" className="text-xs">
                           <User className="h-3 w-3 mr-1" /> 
                           {player.playerName}: {player.action}
@@ -74,6 +101,7 @@ const GameDataSection: React.FC<GameDataSectionProps> = ({
                 <th className="px-4 py-2">Start Time</th>
                 <th className="px-4 py-2">Duration</th>
                 <th className="px-4 py-2">Notes</th>
+                <th className="px-4 py-2">Situation</th>
                 <th className="px-4 py-2">Players</th>
               </tr>
             </thead>
@@ -110,12 +138,20 @@ const GameDataSection: React.FC<GameDataSectionProps> = ({
                   <td className="px-4 py-2">{formatVideoTime(parseFloat(item["Duration"] || "0"))}</td>
                   <td className="px-4 py-2">{item.Notes || '-'}</td>
                   <td className="px-4 py-2">
+                    {item.Situation ? (
+                      <Badge variant="outline" className="text-xs">
+                        <Flag className="h-3 w-3 mr-1" />
+                        {getSituationLabel(item.Situation as GameSituation)}
+                      </Badge>
+                    ) : '-'}
+                  </td>
+                  <td className="px-4 py-2">
                     {item.Players ? (
                       <div className="flex gap-1 flex-wrap">
                         {(() => {
                           try {
                             const players = JSON.parse(item.Players);
-                            return players.map((player: any, idx: number) => (
+                            return players.map((player: PlayerAction, idx: number) => (
                               <Badge key={idx} variant="outline" className="text-xs">
                                 {player.playerName}: {player.action}
                               </Badge>

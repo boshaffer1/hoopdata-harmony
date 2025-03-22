@@ -1,3 +1,4 @@
+
 import React from "react";
 import Layout from "@/components/layout/Layout";
 import VideoSection from "@/components/analyzer/VideoSection";
@@ -6,7 +7,8 @@ import MarkersList from "@/components/analyzer/MarkersList";
 import ClipLibrary from "@/components/analyzer/ClipLibrary";
 import { useAnalyzer } from "@/hooks/analyzer/use-analyzer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BookmarkIcon, Library } from "lucide-react";
+import { BookmarkIcon, Library, Flag } from "lucide-react";
+import { SavedClip, GameData } from "@/types/analyzer";
 
 const Analyzer = () => {
   const {
@@ -33,19 +35,9 @@ const Analyzer = () => {
     removeSavedClip,
     exportClip,
     exportLibrary,
-    exportAllMarkers
+    exportAllMarkers,
+    handlePlaySavedClip
   } = useAnalyzer();
-
-  const handlePlaySavedClip = (clip: any) => {
-    // Convert SavedClip to GameData format for playClip
-    const gameDataClip = {
-      "Start time": clip.startTime.toString(),
-      "Duration": clip.duration.toString(),
-      Notes: clip.label,
-      Timeline: clip.timeline
-    };
-    playClip(gameDataClip);
-  };
 
   return (
     <Layout className="py-6">

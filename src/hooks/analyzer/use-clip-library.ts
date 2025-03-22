@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { GameData, SavedClip, PlayerAction } from "@/types/analyzer";
+import { GameData, SavedClip, PlayerAction, GameSituation } from "@/types/analyzer";
 import { toast } from "sonner";
 import { downloadJSON, extractVideoClip } from "@/components/video/utils";
 
@@ -26,6 +26,11 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
       console.error("Error parsing player data:", error);
     }
     
+    let situation: GameSituation | undefined;
+    if (clip.Situation) {
+      situation = clip.Situation as GameSituation;
+    }
+    
     const savedClip: SavedClip = {
       id: Date.now().toString(),
       startTime,
@@ -34,7 +39,8 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
       notes: clip.Notes || "",
       timeline: clip.Timeline || "",
       saved: new Date().toISOString(),
-      players
+      players,
+      situation
     };
     
     setSavedClips([...savedClips, savedClip]);

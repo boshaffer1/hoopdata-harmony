@@ -4,10 +4,43 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BookmarkIcon, Trash2, Download, List, PlayCircle, PlusCircle, User, XCircle } from "lucide-react";
-import { SavedClip, GameData, PlayerAction, PlayerActionType, PLAYER_ACTIONS } from "@/types/analyzer";
+import { 
+  BookmarkIcon, 
+  Trash2, 
+  Download, 
+  List, 
+  PlayCircle, 
+  PlusCircle, 
+  User, 
+  XCircle,
+  Target,
+  X as XIcon,
+  RotateCcw,
+  Hand,
+  UserPlus,
+  ArrowDown,
+  Flag
+} from "lucide-react";
+import { 
+  SavedClip, 
+  GameData, 
+  PlayerAction, 
+  PlayerActionType, 
+  PLAYER_ACTIONS,
+  GameSituation,
+  GAME_SITUATIONS
+} from "@/types/analyzer";
 import { formatVideoTime } from "@/components/video/utils";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { 
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel
+} from "@/components/ui/form";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface ClipLibraryProps {
   savedClips: SavedClip[];
@@ -35,6 +68,7 @@ const ClipLibrary: React.FC<ClipLibraryProps> = ({
   const [playerName, setPlayerName] = useState("");
   const [playerAction, setPlayerAction] = useState<PlayerActionType>("scored");
   const [activePlayers, setActivePlayers] = useState<PlayerAction[]>([]);
+  const [situation, setSituation] = useState<GameSituation | "">("");
 
   const addPlayer = () => {
     if (!playerName.trim()) return;
@@ -55,12 +89,14 @@ const ClipLibrary: React.FC<ClipLibraryProps> = ({
 
   const playSelectedClip = () => {
     if (selectedClip) {
-      const clipWithPlayers = {
+      const clipWithMetadata = {
         ...selectedClip,
-        Players: JSON.stringify(activePlayers)
+        Players: JSON.stringify(activePlayers),
+        Situation: situation
       };
-      onSaveClip(clipWithPlayers);
+      onSaveClip(clipWithMetadata);
       setActivePlayers([]);
+      setSituation("");
     }
   };
 
@@ -84,6 +120,39 @@ const ClipLibrary: React.FC<ClipLibraryProps> = ({
     return colors[action] || "bg-gray-500";
   };
 
+  const getActionIcon = (action: PlayerActionType) => {
+    const icons: Record<PlayerActionType, React.ReactNode> = {
+      scored: <Target className="h-3 w-3" />,
+      missed: <XIcon className="h-3 w-3" />,
+      assist: <UserPlus className="h-3 w-3" />,
+      rebound: <ArrowDown className="h-3 w-3" />,
+      block: <Hand className="h-3 w-3" />,
+      steal: <Hand className="h-3 w-3" />,
+      turnover: <RotateCcw className="h-3 w-3" />,
+      foul: <XIcon className="h-3 w-3" />,
+      other: <List className="h-3 w-3" />
+    };
+    
+    return icons[action] || <User className="h-3 w-3" />;
+  };
+
+  const getSituationLabel = (situation: GameSituation): string => {
+    const labels: Record<GameSituation, string> = {
+      transition: "Transition",
+      half_court: "Half Court",
+      ato: "After Timeout (ATO)",
+      slob: "Sideline Out of Bounds (SLOB)",
+      blob: "Baseline Out of Bounds (BLOB)",
+      press_break: "Press Break",
+      zone_offense: "Zone Offense",
+      man_offense: "Man Offense",
+      fast_break: "Fast Break",
+      other: "Other"
+    };
+    
+    return labels[situation] || situation;
+  };
+
   return (
     <Card className="h-full">
       <CardHeader>
@@ -99,8 +168,10 @@ const ClipLibrary: React.FC<ClipLibraryProps> = ({
           {selectedClip ? (
             <>
               <div className="text-xs mb-3 bg-primary/10 p-2 rounded">
-                Selected: {selectedClip.Notes || "Unnamed clip"} ({formatVideoTime(parseFloat(selectedClip["Start time"] || "0"))})
+                <span className="font-medium">Selected: </span>
+                {selectedClip.Notes || "Unnamed clip"} ({formatVideoTime(parseFloat(selectedClip["Start time"] || "0"))})
               </div>
+              
               <div className="flex space-x-2 mb-3">
                 <Input
                   value={playLabel}
@@ -110,8 +181,27 @@ const ClipLibrary: React.FC<ClipLibraryProps> = ({
                 />
               </div>
               
+              {/* Game Situation dropdown */}
+              <div className="mb-3">
+                <label className="text-sm font-medium mb-2 block">Game Situation</label>
+                <Select value={situation} onValueChange={(value) => setSituation(value as GameSituation)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a situation" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {GAME_SITUATIONS.map(situation => (
+                      <SelectItem key={situation} value={situation}>
+                        {getSituationLabel(situation)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <Separator className="my-3" />
+              
               {/* Player tracking section */}
-              <div className="mt-4 mb-3 border-t pt-3">
+              <div className="mt-4 mb-3">
                 <h4 className="text-sm font-medium mb-2">Player Actions</h4>
                 
                 <div className="flex items-center gap-2 mb-2">
@@ -128,7 +218,10 @@ const ClipLibrary: React.FC<ClipLibraryProps> = ({
                     <SelectContent>
                       {PLAYER_ACTIONS.map(action => (
                         <SelectItem key={action} value={action}>
-                          {action.charAt(0).toUpperCase() + action.slice(1)}
+                          {getActionIcon(action)}
+                          <span className="ml-2">
+                            {action.charAt(0).toUpperCase() + action.slice(1)}
+                          </span>
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -143,8 +236,8 @@ const ClipLibrary: React.FC<ClipLibraryProps> = ({
                   <div className="flex flex-wrap gap-2 mt-2 mb-3">
                     {activePlayers.map(player => (
                       <Badge key={player.playerId} variant="outline" className="flex items-center gap-1 px-2 py-1">
-                        <User className="h-3 w-3" />
-                        <span>{player.playerName}</span>
+                        {getActionIcon(player.action)}
+                        <span className="ml-1">{player.playerName}</span>
                         <span className={`w-2 h-2 rounded-full ${getActionColor(player.action)}`} />
                         <span className="text-xs">{player.action}</span>
                         <button onClick={() => removePlayer(player.playerId)} className="ml-1">
@@ -195,8 +288,16 @@ const ClipLibrary: React.FC<ClipLibraryProps> = ({
                   className="border rounded-lg p-3 hover:bg-muted/50"
                 >
                   <div className="flex justify-between items-start">
-                    <div>
-                      <h4 className="font-medium">{clip.label}</h4>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-medium">{clip.label}</h4>
+                        {clip.situation && (
+                          <Badge variant="secondary" className="text-xs">
+                            <Flag className="h-3 w-3 mr-1" />
+                            {getSituationLabel(clip.situation)}
+                          </Badge>
+                        )}
+                      </div>
                       <p className="text-xs text-muted-foreground">
                         {clip.timeline} • {formatVideoTime(clip.startTime)} ({formatVideoTime(clip.duration)})
                       </p>
@@ -208,19 +309,21 @@ const ClipLibrary: React.FC<ClipLibraryProps> = ({
                       {clip.players && clip.players.length > 0 && (
                         <div className="flex flex-wrap gap-1 mt-2">
                           {clip.players.map((player, idx) => (
-                            <Badge key={idx} variant="outline" className="text-xs px-1.5 py-0.5">
-                              <span className={`inline-block w-2 h-2 rounded-full ${getActionColor(player.action)} mr-1`} />
-                              {player.playerName}: {player.action}
+                            <Badge key={idx} variant="outline" className="text-xs px-1.5 py-0.5 flex items-center">
+                              {getActionIcon(player.action)}
+                              <span className="ml-1">{player.playerName}</span>
+                              <span className={`ml-1 inline-block w-2 h-2 rounded-full ${getActionColor(player.action)}`} />
                             </Badge>
                           ))}
                         </div>
                       )}
                     </div>
-                    <div className="flex">
+                    <div className="flex shrink-0">
                       <Button 
                         variant="ghost" 
                         size="icon"
                         onClick={() => handlePlayClip(clip)}
+                        title="Play clip"
                       >
                         <PlayCircle className="h-4 w-4" />
                       </Button>
@@ -228,6 +331,7 @@ const ClipLibrary: React.FC<ClipLibraryProps> = ({
                         variant="ghost" 
                         size="icon"
                         onClick={() => onExportClip(clip)}
+                        title="Export clip"
                       >
                         <Download className="h-4 w-4" />
                       </Button>
@@ -235,6 +339,7 @@ const ClipLibrary: React.FC<ClipLibraryProps> = ({
                         variant="ghost" 
                         size="icon"
                         onClick={() => onRemoveClip(clip.id)}
+                        title="Remove clip"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>

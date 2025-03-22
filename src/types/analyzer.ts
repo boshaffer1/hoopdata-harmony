@@ -13,6 +13,7 @@ export interface GameData {
   Timeline?: string;
   Notes?: string;
   Players?: string;
+  Situation?: string;
 }
 
 export interface SavedClip {
@@ -24,6 +25,7 @@ export interface SavedClip {
   timeline: string;
   saved: string;
   players?: PlayerAction[];
+  situation?: GameSituation;
 }
 
 export interface PlayerAction {
@@ -52,5 +54,30 @@ export const PLAYER_ACTIONS: PlayerActionType[] = [
   "steal", 
   "turnover", 
   "foul", 
+  "other"
+];
+
+export type GameSituation = 
+  | "transition" 
+  | "half_court" 
+  | "ato" // After timeout
+  | "slob" // Sideline out of bounds
+  | "blob" // Baseline out of bounds
+  | "press_break" 
+  | "zone_offense" 
+  | "man_offense"
+  | "fast_break"
+  | "other";
+
+export const GAME_SITUATIONS: GameSituation[] = [
+  "transition",
+  "half_court",
+  "ato",
+  "slob",
+  "blob",
+  "press_break",
+  "zone_offense",
+  "man_offense",
+  "fast_break",
   "other"
 ];
