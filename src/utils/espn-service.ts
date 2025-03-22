@@ -41,31 +41,50 @@ interface ESPNAthlete {
 
 export const ESPNService = {
   /**
-   * Fetch teams from ESPN
+   * Fetch teams from ESPN for a specific sport and league
    */
-  async fetchNBATeams(): Promise<ESPNTeam[]> {
+  async fetchTeams(sport: string, league: string): Promise<ESPNTeam[]> {
     try {
-      const response = await fetch('https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams');
+      const response = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/teams`);
       
       if (!response.ok) {
-        throw new Error('Failed to fetch teams');
+        throw new Error(`Failed to fetch ${league} teams`);
       }
       
       const data = await response.json();
-      return data.sports[0].leagues[0].teams.map((team: any) => team.team);
+      
+      // Handle different response structures based on the league
+      if (sport === 'basketball') {
+        if (league === 'mens-college-basketball' || league === 'womens-college-basketball') {
+          // College basketball has a different structure
+          return data.sports[0].leagues[0].teams;
+        } else {
+          // NBA and WNBA have the same structure
+          return data.sports[0].leagues[0].teams.map((team: any) => team.team);
+        }
+      }
+      
+      return [];
     } catch (error) {
-      console.error('Error fetching ESPN teams:', error);
-      toast.error('Failed to fetch teams from ESPN');
+      console.error(`Error fetching ESPN ${league} teams:`, error);
+      toast.error(`Failed to fetch teams from ESPN (${league})`);
       return [];
     }
   },
   
   /**
+   * Fetch NBA teams (legacy method, kept for backward compatibility)
+   */
+  async fetchNBATeams(): Promise<ESPNTeam[]> {
+    return this.fetchTeams('basketball', 'nba');
+  },
+  
+  /**
    * Fetch roster for a specific team
    */
-  async fetchTeamRoster(teamId: string): Promise<ESPNAthlete[]> {
+  async fetchTeamRoster(sport: string, league: string, teamId: string): Promise<ESPNAthlete[]> {
     try {
-      const response = await fetch(`https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams/${teamId}/roster`);
+      const response = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/teams/${teamId}/roster`);
       
       if (!response.ok) {
         throw new Error('Failed to fetch team roster');
@@ -74,8 +93,8 @@ export const ESPNService = {
       const data = await response.json();
       return data.athletes;
     } catch (error) {
-      console.error('Error fetching team roster:', error);
-      toast.error('Failed to fetch team roster from ESPN');
+      console.error("Error fetching team roster:", error);
+      toast.error("Failed to fetch team roster from ESPN");
       return [];
     }
   },
@@ -88,8 +107,8 @@ export const ESPNService = {
       id: `player-${athlete.id}`,
       name: athlete.displayName,
       number: athlete.jersey || "0",
-      position: athlete.position.abbreviation,
-      notes: `${athlete.position.displayName}`,
+      position: athlete.position?.abbreviation || "N/A",
+      notes: `${athlete.position?.displayName || "Player"}`,
     }));
     
     return {

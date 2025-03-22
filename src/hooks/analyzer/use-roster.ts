@@ -92,6 +92,28 @@ export const useRoster = () => {
     toast.success("Player removed");
   };
   
+  const updatePlayerNotes = (teamId: string, playerId: string, notes: string) => {
+    setRosters(prev => 
+      prev.map(team => {
+        if (team.id === teamId) {
+          return {
+            ...team,
+            players: team.players.map(player => {
+              if (player.id === playerId) {
+                return {
+                  ...player,
+                  notes
+                };
+              }
+              return player;
+            })
+          };
+        }
+        return team;
+      })
+    );
+  };
+  
   const importRosters = (rostersData: TeamRoster[]) => {
     setRosters(rostersData);
     toast.success(`Imported ${rostersData.length} teams`);
@@ -107,6 +129,7 @@ export const useRoster = () => {
     removeTeam,
     addPlayer,
     removePlayer,
+    updatePlayerNotes,
     importRosters,
     exportRosters
   };
