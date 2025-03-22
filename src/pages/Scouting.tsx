@@ -32,8 +32,9 @@ const Scouting = () => {
   }, [activeTab]);
 
   const filteredTeams = Object.entries(teamsData).reduce((acc, [conference, teams]) => {
+    // Add null checks to prevent "toLowerCase is not a function" errors
     const filtered = teams.filter(team => 
-      team.displayName.toLowerCase().includes(searchQuery.toLowerCase())
+      team.displayName && team.displayName.toLowerCase().includes(searchQuery.toLowerCase())
     );
     
     if (filtered.length > 0) {
@@ -119,14 +120,14 @@ const Scouting = () => {
                               {team.logo && (
                                 <img 
                                   src={team.logo} 
-                                  alt={team.displayName} 
+                                  alt={team.displayName || "Team logo"} 
                                   className="w-10 h-10 object-contain"
                                 />
                               )}
                               <div>
-                                <h3 className="font-semibold">{team.displayName}</h3>
+                                <h3 className="font-semibold">{team.displayName || "Unknown Team"}</h3>
                                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                  <span>{team.record}</span>
+                                  <span>{team.record || "N/A"}</span>
                                   <span>•</span>
                                   <span>{team.division || "Division"}</span>
                                 </div>
