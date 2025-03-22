@@ -6,6 +6,7 @@ import { Trash2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BookmarkIcon } from "lucide-react";
 import { Marker } from "@/types/analyzer";
+import { formatVideoTime } from "@/components/video/utils";
 
 interface MarkersListProps {
   markers: Marker[];
@@ -20,14 +21,6 @@ const MarkersList: React.FC<MarkersListProps> = ({
   onRemoveMarker,
   onMarkerNotesChange,
 }) => {
-  const formatTime = (timeInSeconds: number) => {
-    if (isNaN(timeInSeconds)) return "00:00";
-    
-    const minutes = Math.floor(timeInSeconds / 60);
-    const seconds = Math.floor(timeInSeconds % 60);
-    return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
-  };
-
   return (
     <Card className="h-full">
       <CardHeader>
@@ -61,7 +54,7 @@ const MarkersList: React.FC<MarkersListProps> = ({
                     <div>
                       <p className="font-medium">{marker.label}</p>
                       <p className="text-sm text-muted-foreground">
-                        {formatTime(marker.time)}
+                        {formatVideoTime(marker.time)}
                       </p>
                     </div>
                   </div>

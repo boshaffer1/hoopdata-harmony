@@ -8,6 +8,7 @@ import { BookmarkIcon } from "lucide-react";
 import VideoPlayer from "@/components/video/VideoPlayer";
 import { toast } from "sonner";
 import { Marker } from "@/types/analyzer";
+import { formatVideoTime } from "@/components/video/utils";
 
 interface VideoSectionProps {
   videoUrl?: string;
@@ -32,14 +33,6 @@ const VideoSection: React.FC<VideoSectionProps> = ({
   onNewMarkerLabelChange,
   onAddMarker,
 }) => {
-  const formatTime = (timeInSeconds: number) => {
-    if (isNaN(timeInSeconds)) return "00:00";
-    
-    const minutes = Math.floor(timeInSeconds / 60);
-    const seconds = Math.floor(timeInSeconds % 60);
-    return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
-  };
-
   return (
     <>
       {/* Video Player */}
@@ -74,7 +67,7 @@ const VideoSection: React.FC<VideoSectionProps> = ({
         <Card className="flex-1">
           <CardContent className="pt-6">
             <h3 className="text-sm font-medium mb-2">Current Time</h3>
-            <div className="text-2xl font-mono">{formatTime(currentTime)}</div>
+            <div className="text-2xl font-mono">{formatVideoTime(currentTime)}</div>
           </CardContent>
         </Card>
         
