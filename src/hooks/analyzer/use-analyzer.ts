@@ -31,7 +31,8 @@ export const useAnalyzer = () => {
     data,
     selectedClip,
     handleFileLoaded: originalHandleFileLoaded,
-    playClip
+    playClip,
+    setSelectedClip
   } = useGameData(videoPlayerRef);
 
   const {
@@ -48,10 +49,18 @@ export const useAnalyzer = () => {
   // Combined handlers
   const handleFileLoaded = (loadedData: any) => {
     const processedData = originalHandleFileLoaded(loadedData);
+    
     if (processedData && processedData.length > 0) {
+      // Explicitly create markers from data
       addMarkersFromData(processedData);
+      
+      // Explicitly save clips to library
       saveClipsFromData(processedData);
+      
+      toast.success(`Created markers and clips from ${processedData.length} plays`);
     }
+    
+    return processedData;
   };
 
   const playSelectedClip = (item: GameData) => {
@@ -76,9 +85,9 @@ export const useAnalyzer = () => {
       "Play Name": clip.label,
       "Start time": clip.startTime.toString(),
       "Duration": clip.duration.toString(),
-      "Notes": clip.notes,
-      "Timeline": clip.timeline,
-      "Players": clip.players ? JSON.stringify(clip.players) : "",
+      "Notes": clip.notes || "",
+      "Timeline": clip.timeline || "",
+      "Players": clip.players ? JSON.stringify(clip.players) : "[]",
       "Situation": clip.situation || "other",
       "Outcome": "other"
     };
@@ -111,6 +120,7 @@ export const useAnalyzer = () => {
     exportClip,
     exportLibrary,
     exportAllMarkers,
-    handlePlaySavedClip
+    handlePlaySavedClip,
+    setSelectedClip
   };
 };

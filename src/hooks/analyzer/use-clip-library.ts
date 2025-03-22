@@ -19,17 +19,14 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
     
     let players: PlayerAction[] = [];
     try {
-      if (clip.Players) {
+      if (clip.Players && clip.Players !== "[]") {
         players = JSON.parse(clip.Players);
       }
     } catch (error) {
       console.error("Error parsing player data:", error);
     }
     
-    let situation: GameSituation | undefined;
-    if (clip.Situation) {
-      situation = clip.Situation as GameSituation;
-    }
+    let situation: GameSituation = clip.Situation || "other";
     
     const savedClip: SavedClip = {
       id: Date.now().toString(),
@@ -82,10 +79,10 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
       }
       
       return {
-        id: `auto-${Date.now()}-${startTime}`,
+        id: `auto-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
         startTime,
         duration,
-        label: item["Play Name"] || item.Notes || `Clip at ${startTime}`,
+        label: item["Play Name"] || `Clip at ${startTime.toFixed(1)}s`,
         notes: item.Notes || "",
         timeline: item.Timeline || "",
         saved: new Date().toISOString(),
@@ -95,16 +92,15 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
     });
     
     setSavedClips(prev => {
-      // Filter out duplicates by checking startTime
+      // Filter out duplicates by checking startTime and label to prevent duplicates
       const filteredNewClips = newClips.filter(newClip => 
-        !prev.some(existingClip => Math.abs(existingClip.startTime - newClip.startTime) < 0.1)
+        !prev.some(existingClip => 
+          Math.abs(existingClip.startTime - newClip.startTime) < 0.1 && 
+          existingClip.label === newClip.label
+        )
       );
       
-      if (filteredNewClips.length > 0) {
-        toast.success(`Added ${filteredNewClips.length} clips from CSV data`);
-        return [...prev, ...filteredNewClips];
-      }
-      return prev;
+      return [...prev, ...filteredNewClips];
     });
   };
   
@@ -128,7 +124,7 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
     } else {
       startTime = parseFloat(clip["Start time"] || "0");
       duration = parseFloat(clip["Duration"] || "0");
-      label = clip.Notes || "clip";
+      label = clip["Play Name"] || "clip";
     }
     
     toast.loading("Exporting clip...");

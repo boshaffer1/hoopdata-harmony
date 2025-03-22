@@ -79,6 +79,7 @@ export const useGameData = (videoPlayerRef: React.RefObject<any>) => {
     data,
     selectedClip,
     handleFileLoaded,
-    playClip
+    playClip,
+    setSelectedClip
   };
 };

@@ -62,32 +62,32 @@ export const useMarkers = (currentTime: number) => {
   const addMarkersFromData = (processedData: any[]) => {
     if (!processedData || processedData.length === 0) return [];
     
+    const colors = ["#3b82f6", "#ef4444", "#22c55e", "#f59e0b", "#8b5cf6"];
+    
     const newMarkers = processedData.map((item: any, index: number) => {
       const startTime = parseFloat(item["Start time"] || "0");
-      const colors = ["#3b82f6", "#ef4444", "#22c55e", "#f59e0b", "#8b5cf6"];
       const randomColor = colors[index % colors.length];
       
-      const label = item["Play Name"] || item.Notes || `Clip ${index + 1}`;
+      const label = item["Play Name"] || `Clip ${index + 1}`;
       
       return {
         time: startTime,
         label: label,
         color: randomColor,
-        notes: `${item.Timeline || ""} - ${item.Notes || ""}`
+        notes: item.Notes || ""
       };
     });
     
     setMarkers(prev => {
       // Filter out duplicates by checking if a marker already exists at approximately the same time
       const filteredNewMarkers = newMarkers.filter(newMarker => 
-        !prev.some(existingMarker => Math.abs(existingMarker.time - newMarker.time) < 0.1)
+        !prev.some(existingMarker => 
+          Math.abs(existingMarker.time - newMarker.time) < 0.1 && 
+          existingMarker.label === newMarker.label
+        )
       );
       
-      if (filteredNewMarkers.length > 0) {
-        toast.success(`Created ${filteredNewMarkers.length} markers from CSV data`);
-        return [...prev, ...filteredNewMarkers];
-      }
-      return prev;
+      return [...prev, ...filteredNewMarkers];
     });
     
     return newMarkers;
