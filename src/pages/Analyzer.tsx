@@ -1,13 +1,18 @@
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import VideoSection from "@/components/analyzer/VideoSection";
 import GameDataSection from "@/components/analyzer/GameDataSection";
 import MarkersList from "@/components/analyzer/MarkersList";
 import ClipLibrary from "@/components/analyzer/ClipLibrary";
+import AnalyticsOverview from "@/components/analyzer/stats/AnalyticsOverview";
+import ClipAssistant from "@/components/analyzer/ai/ClipAssistant";
+import RosterView from "@/components/analyzer/teams/RosterView";
 import { useAnalyzer } from "@/hooks/analyzer/use-analyzer";
+import { useRoster } from "@/hooks/analyzer/use-roster";
+import { calculateStats } from "@/utils/analyzer-stats";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BookmarkIcon, Library } from "lucide-react";
+import { BookmarkIcon, Library, BarChart3, Bot, Users } from "lucide-react";
 
 const Analyzer = () => {
   const {
@@ -37,6 +42,26 @@ const Analyzer = () => {
     exportAllMarkers,
     handlePlaySavedClip
   } = useAnalyzer();
+
+  const {
+    rosters,
+    addTeam,
+    removeTeam,
+    addPlayer,
+    removePlayer
+  } = useRoster();
+
+  // Calculate analytics on clips change
+  const [analyticsData, setAnalyticsData] = useState(null);
+  
+  useEffect(() => {
+    if (savedClips.length > 0) {
+      const stats = calculateStats(savedClips);
+      setAnalyticsData(stats);
+    } else {
+      setAnalyticsData(null);
+    }
+  }, [savedClips]);
 
   return (
     <Layout className="py-6">
@@ -73,17 +98,29 @@ const Analyzer = () => {
           />
         </div>
         
-        {/* Markers and Library Tabs */}
+        {/* Tabs for various tools */}
         <div className="lg:col-span-1">
           <Tabs defaultValue="markers">
-            <TabsList className="grid grid-cols-2 mb-6">
+            <TabsList className="grid grid-cols-5 mb-6">
               <TabsTrigger value="markers" className="flex items-center gap-2">
                 <BookmarkIcon className="h-4 w-4" />
-                Markers
+                <span className="hidden sm:inline">Markers</span>
               </TabsTrigger>
               <TabsTrigger value="library" className="flex items-center gap-2">
                 <Library className="h-4 w-4" />
-                Clip Library
+                <span className="hidden sm:inline">Library</span>
+              </TabsTrigger>
+              <TabsTrigger value="analytics" className="flex items-center gap-2">
+                <BarChart3 className="h-4 w-4" />
+                <span className="hidden sm:inline">Stats</span>
+              </TabsTrigger>
+              <TabsTrigger value="assistant" className="flex items-center gap-2">
+                <Bot className="h-4 w-4" />
+                <span className="hidden sm:inline">Assistant</span>
+              </TabsTrigger>
+              <TabsTrigger value="roster" className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                <span className="hidden sm:inline">Rosters</span>
               </TabsTrigger>
             </TabsList>
             
@@ -108,6 +145,27 @@ const Analyzer = () => {
                 onExportClip={exportClip}
                 onExportLibrary={exportLibrary}
                 onPlayClip={handlePlaySavedClip}
+              />
+            </TabsContent>
+            
+            <TabsContent value="analytics" className="mt-0">
+              <AnalyticsOverview data={analyticsData} />
+            </TabsContent>
+            
+            <TabsContent value="assistant" className="mt-0">
+              <ClipAssistant 
+                savedClips={savedClips}
+                onPlayClip={handlePlaySavedClip}
+              />
+            </TabsContent>
+            
+            <TabsContent value="roster" className="mt-0">
+              <RosterView 
+                rosters={rosters}
+                onAddTeam={addTeam}
+                onRemoveTeam={removeTeam}
+                onAddPlayer={addPlayer}
+                onRemovePlayer={removePlayer}
               />
             </TabsContent>
           </Tabs>

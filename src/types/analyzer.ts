@@ -83,3 +83,19 @@ export const GAME_SITUATIONS: GameSituation[] = [
   "fast_break",
   "other"
 ];
+
+// New Team Roster related types
+export interface Player {
+  id: string;
+  name: string;
+  number: string;
+  position: string;
+  notes?: string;
+  stats?: Record<string, number>;
+}
+
+export interface TeamRoster {
+  id: string;
+  name: string;
+  players: Player[];
+}
