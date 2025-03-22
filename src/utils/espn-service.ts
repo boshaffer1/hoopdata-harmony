@@ -105,26 +105,40 @@ export const ESPNService = {
       if (sport === 'basketball') {
         if (league === 'mens-college-basketball' || league === 'womens-college-basketball') {
           // College basketball has a different structure
+          if (!data.sports || !data.sports[0] || !data.sports[0].leagues || !data.sports[0].leagues[0] || !data.sports[0].leagues[0].teams) {
+            console.error('Unexpected college basketball data structure:', data);
+            return [];
+          }
+          
           // Map the college teams to match our ESPNTeam structure
-          return data.sports[0].leagues[0].teams.map((team: any) => {
-            const teamData = team.team || {};
-            return {
-              id: teamData.id || "",
-              uid: teamData.uid || "",
-              slug: teamData.slug || "",
-              location: teamData.location || "",
-              name: teamData.name || "",
-              abbreviation: teamData.abbreviation || "",
-              displayName: teamData.displayName || teamData.name || "",
-              shortDisplayName: teamData.shortDisplayName || "",
-              color: teamData.color || "",
-              alternateColor: teamData.alternateColor || "",
-              logo: teamData.logos && teamData.logos.length > 0 ? teamData.logos[0].href : ""
-            };
-          });
-        } else {
+          return data.sports[0].leagues[0].teams
+            .filter((team: any) => team && team.team) // Filter out any null/undefined teams
+            .map((team: any) => {
+              const teamData = team.team || {};
+              return {
+                id: teamData.id || "",
+                uid: teamData.uid || "",
+                slug: teamData.slug || "",
+                location: teamData.location || "",
+                name: teamData.name || "",
+                abbreviation: teamData.abbreviation || "",
+                displayName: teamData.displayName || teamData.name || "",
+                shortDisplayName: teamData.shortDisplayName || "",
+                color: teamData.color || "",
+                alternateColor: teamData.alternateColor || "",
+                logo: teamData.logos && teamData.logos.length > 0 ? teamData.logos[0].href : ""
+              };
+            });
+        } else if (league === 'nba' || league === 'wnba') {
           // NBA and WNBA have the same structure
-          return data.sports[0].leagues[0].teams.map((team: any) => team.team);
+          if (!data.sports || !data.sports[0] || !data.sports[0].leagues || !data.sports[0].leagues[0] || !data.sports[0].leagues[0].teams) {
+            console.error('Unexpected NBA/WNBA data structure:', data);
+            return [];
+          }
+          
+          return data.sports[0].leagues[0].teams
+            .filter((team: any) => team && team.team) // Filter out any null/undefined teams
+            .map((team: any) => team.team);
         }
       }
       
@@ -157,28 +171,25 @@ export const ESPNService = {
       const data = await response.json();
       
       // Handle potential different data structures for college vs pro
-      if (league === 'mens-college-basketball' || league === 'womens-college-basketball') {
-        // If the response structure is different for college, handle it here
-        if (data.athletes) {
-          return data.athletes.map((athlete: any) => ({
-            id: athlete.id || "",
-            uid: athlete.uid || "",
-            guid: athlete.guid || "",
-            firstName: athlete.firstName || "",
-            lastName: athlete.lastName || "",
-            fullName: athlete.fullName || `${athlete.firstName} ${athlete.lastName}`,
-            displayName: athlete.displayName || athlete.fullName || "",
-            shortName: athlete.shortName || "",
-            weight: athlete.weight || 0,
-            height: athlete.height || 0,
-            jersey: athlete.jersey || "",
-            position: athlete.position || { abbreviation: "", displayName: "", name: "" },
-            headshot: athlete.headshot || null
-          }));
-        }
+      if (data && data.athletes && Array.isArray(data.athletes)) {
+        return data.athletes.map((athlete: any) => ({
+          id: athlete.id || "",
+          uid: athlete.uid || "",
+          guid: athlete.guid || "",
+          firstName: athlete.firstName || "",
+          lastName: athlete.lastName || "",
+          fullName: athlete.fullName || `${athlete.firstName || ""} ${athlete.lastName || ""}`.trim() || "Unknown Player",
+          displayName: athlete.displayName || athlete.fullName || "Unknown Player",
+          shortName: athlete.shortName || "",
+          weight: athlete.weight || 0,
+          height: athlete.height || 0,
+          jersey: athlete.jersey || "",
+          position: athlete.position || { abbreviation: "", displayName: "", name: "" },
+          headshot: athlete.headshot || null
+        }));
       }
       
-      return data.athletes || [];
+      return [];
     } catch (error) {
       console.error("Error fetching team roster:", error);
       toast.error("Failed to fetch team roster from ESPN");
@@ -312,6 +323,12 @@ export const ESPNService = {
     try {
       const teams = await this.fetchTeams(sport, league);
       
+      // If no teams were found, return empty object
+      if (!teams || teams.length === 0) {
+        console.warn(`No teams found for ${league}`);
+        return {};
+      }
+      
       let conferences: Record<string, TeamWithConference[]> = {};
       let divisions: Record<string, string[]> = {};
       
@@ -327,6 +344,8 @@ export const ESPNService = {
         const powerConferences = ["ACC", "Big 12", "Big East", "Big Ten", "Pac-12", "SEC"];
         
         teams.forEach((team, index) => {
+          if (!team) return; // Skip undefined teams
+          
           // Generate a mock conference for demo purposes
           const confIndex = index % 12;
           const conferenceNames = [
@@ -367,6 +386,8 @@ export const ESPNService = {
         
         // Assign teams to conferences and divisions with mock records
         teams.forEach((team, index) => {
+          if (!team) return; // Skip undefined teams
+          
           const conference = index % 2 === 0 ? "Eastern Conference" : "Western Conference";
           const divisionIndex = Math.floor(index / 5) % 3;
           const division = divisions[conference][divisionIndex];

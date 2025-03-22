@@ -8,6 +8,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Link } from "react-router-dom";
 import { ChevronRight, FileText, Search } from "lucide-react";
 import { ESPNService, TeamWithConference } from "@/utils/espn-service";
+import { toast } from "sonner";
 
 const Scouting = () => {
   const [teamsData, setTeamsData] = useState<Record<string, TeamWithConference[]>>({});
@@ -21,8 +22,12 @@ const Scouting = () => {
       try {
         const data = await ESPNService.getTeamsByConference('basketball', activeTab);
         setTeamsData(data);
+        // Log the number of teams fetched for debugging
+        const totalTeams = Object.values(data).reduce((sum, teams) => sum + teams.length, 0);
+        console.log(`Fetched ${totalTeams} teams for ${activeTab}`);
       } catch (error) {
         console.error("Error fetching teams:", error);
+        toast.error(`Failed to load ${activeTab} teams`);
       } finally {
         setLoading(false);
       }
@@ -32,9 +37,9 @@ const Scouting = () => {
   }, [activeTab]);
 
   const filteredTeams = Object.entries(teamsData).reduce((acc, [conference, teams]) => {
-    // Add null checks to prevent "toLowerCase is not a function" errors
+    // Filter teams, ensuring proper null checks
     const filtered = teams.filter(team => 
-      team.displayName && team.displayName.toLowerCase().includes(searchQuery.toLowerCase())
+      team && team.displayName && team.displayName.toLowerCase().includes(searchQuery.toLowerCase())
     );
     
     if (filtered.length > 0) {
