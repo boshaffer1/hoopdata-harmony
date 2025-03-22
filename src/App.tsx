@@ -7,6 +7,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Analyzer from "./pages/Analyzer";
+import Stats from "./pages/Stats";
+import Assistant from "./pages/Assistant";
 import Insights from "./pages/Insights";
 import NotFound from "./pages/NotFound";
 
@@ -22,6 +24,8 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/analyzer" element={<Analyzer />} />
+          <Route path="/stats" element={<Stats />} />
+          <Route path="/assistant" element={<Assistant />} />
           <Route path="/insights" element={<Insights />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
