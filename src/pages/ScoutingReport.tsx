@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, FileText, ChevronUp, ChevronDown, Minus } from "lucide-react";
+import { ArrowLeft, FileText, ChevronUp, ChevronDown, Minus, CheckCircle, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -35,11 +35,12 @@ const ScoutingReportPage = () => {
     fetchReport();
   }, [teamId]);
   
-  const generateReport = async () => {
+  const generateReport = () => {
     if (!teamId) return;
     
     try {
-      await ESPNService.generateScoutingReportPDF(teamId);
+      ESPNService.generateScoutingReportPDF(teamId);
+      toast.success("Scouting report PDF generated successfully!");
     } catch (error) {
       console.error("Error generating report:", error);
       toast.error("Failed to generate PDF report");
@@ -159,7 +160,7 @@ const ScoutingReportPage = () => {
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center text-green-600">
-                    <span className="inline-block mr-2 w-4 h-4 rounded-full bg-green-600"></span>
+                    <CheckCircle className="mr-2 h-5 w-5" />
                     Team Strengths
                   </CardTitle>
                 </CardHeader>
@@ -179,7 +180,7 @@ const ScoutingReportPage = () => {
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center text-red-600">
-                    <span className="inline-block mr-2 w-4 h-4 rounded-full bg-red-600"></span>
+                    <XCircle className="mr-2 h-5 w-5" />
                     Team Weaknesses
                   </CardTitle>
                 </CardHeader>
