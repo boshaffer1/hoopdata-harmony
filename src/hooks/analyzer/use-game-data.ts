@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { GameData } from "@/types/analyzer";
+import { GameData, GameSituation } from "@/types/analyzer";
 import { toast } from "sonner";
 
 export const useGameData = (videoPlayerRef: React.RefObject<any>) => {
@@ -20,7 +20,7 @@ export const useGameData = (videoPlayerRef: React.RefObject<any>) => {
           "Play Name": item["Play Name"],
           "Start time": item["Start time"] || "0",
           "Duration": item["Duration"] || "0",
-          "Situation": item["Situation"] || "other",
+          "Situation": (item["Situation"] as GameSituation) || "other",
           "Outcome": item["Outcome"] || "other",
           "Players": item["Players"] || "[]",
           "Notes": item["Notes"] || "",

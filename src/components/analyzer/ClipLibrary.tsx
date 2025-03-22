@@ -68,7 +68,7 @@ const ClipLibrary: React.FC<ClipLibraryProps> = ({
   const [playerName, setPlayerName] = useState("");
   const [playerAction, setPlayerAction] = useState<PlayerActionType>("scored");
   const [activePlayers, setActivePlayers] = useState<PlayerAction[]>([]);
-  const [situation, setSituation] = useState<GameSituation | "">("");
+  const [situation, setSituation] = useState<GameSituation>("other");
 
   const addPlayer = () => {
     if (!playerName.trim()) return;
@@ -89,14 +89,16 @@ const ClipLibrary: React.FC<ClipLibraryProps> = ({
 
   const playSelectedClip = () => {
     if (selectedClip) {
+      // Create a copy of selectedClip with the updated data
       const clipWithMetadata = {
         ...selectedClip,
         Players: JSON.stringify(activePlayers),
-        Situation: situation
+        Situation: situation // This is now always a valid GameSituation
       };
+      
       onSaveClip(clipWithMetadata);
       setActivePlayers([]);
-      setSituation("");
+      setSituation("other"); // Reset to a default valid value
     }
   };
 
