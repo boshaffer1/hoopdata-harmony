@@ -2,11 +2,11 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { BookmarkIcon, Flag } from "lucide-react";
-import { PlayerAction, GameData, GameSituation, GAME_SITUATIONS } from "@/types/analyzer";
+import { BookmarkIcon } from "lucide-react";
+import { PlayerAction, GameData, GameSituation } from "@/types/analyzer";
 import PlayerActionsForm from "./PlayerActionsForm";
+import SituationSelect from "./SituationSelect";
 import { formatVideoTime } from "@/components/video/utils";
 
 interface ClipFormProps {
@@ -46,23 +46,6 @@ const ClipForm: React.FC<ClipFormProps> = ({
     }
   };
 
-  const getSituationLabel = (situation: GameSituation): string => {
-    const labels: Record<GameSituation, string> = {
-      transition: "Transition",
-      half_court: "Half Court",
-      ato: "After Timeout (ATO)",
-      slob: "Sideline Out of Bounds (SLOB)",
-      blob: "Baseline Out of Bounds (BLOB)",
-      press_break: "Press Break",
-      zone_offense: "Zone Offense",
-      man_offense: "Man Offense",
-      fast_break: "Fast Break",
-      other: "Other"
-    };
-    
-    return labels[situation] || situation;
-  };
-
   if (!selectedClip) {
     return (
       <p className="text-muted-foreground text-sm">
@@ -87,22 +70,11 @@ const ClipForm: React.FC<ClipFormProps> = ({
         />
       </div>
       
-      {/* Game Situation dropdown */}
-      <div className="mb-3">
-        <label className="text-sm font-medium mb-2 block">Game Situation</label>
-        <Select value={situation} onValueChange={(value) => setSituation(value as GameSituation)}>
-          <SelectTrigger>
-            <SelectValue placeholder="Select a situation" />
-          </SelectTrigger>
-          <SelectContent>
-            {GAME_SITUATIONS.map(situation => (
-              <SelectItem key={situation} value={situation}>
-                {getSituationLabel(situation)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      {/* Use the new SituationSelect component */}
+      <SituationSelect 
+        value={situation} 
+        onValueChange={(value) => setSituation(value)} 
+      />
       
       <Separator className="my-3" />
       
