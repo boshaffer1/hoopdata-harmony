@@ -68,7 +68,14 @@ export const useMarkers = (currentTime: number) => {
       const startTime = parseFloat(item["Start time"] || "0");
       const randomColor = colors[index % colors.length];
       
-      const label = item["Play Name"] || `Clip ${index + 1}`;
+      // Create meaningful labels from the data
+      let label = item["Play Name"] || "";
+      if (!label && item["Notes"]) {
+        label = item["Notes"];
+      }
+      if (!label) {
+        label = `Clip ${index + 1}`;
+      }
       
       return {
         time: startTime,
@@ -77,6 +84,8 @@ export const useMarkers = (currentTime: number) => {
         notes: item.Notes || ""
       };
     });
+    
+    console.log("Adding", newMarkers.length, "markers from data");
     
     setMarkers(prev => {
       // Filter out duplicates by checking if a marker already exists at approximately the same time

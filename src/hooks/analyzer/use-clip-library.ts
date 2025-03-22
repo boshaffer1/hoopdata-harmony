@@ -60,14 +60,24 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
     });
     
     setPlayLabel("");
+    return savedClip;
   };
   
   const saveClipsFromData = (data: GameData[]) => {
-    if (!data || data.length === 0) return;
+    if (!data || data.length === 0) return [];
     
-    const newClips: SavedClip[] = data.map(item => {
+    console.log("Creating clips from", data.length, "plays");
+    const newClips: SavedClip[] = [];
+    
+    data.forEach(item => {
       const startTime = parseFloat(item["Start time"] || "0");
       const duration = parseFloat(item["Duration"] || "0");
+      
+      // Skip if missing essential data
+      if (isNaN(startTime)) {
+        console.warn("Skipping clip with invalid start time:", item);
+        return;
+      }
       
       let players: PlayerAction[] = [];
       try {
@@ -78,21 +88,32 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
         console.error("Error parsing player data:", error);
       }
       
-      return {
+      // Create a meaningful label
+      let label = item["Play Name"] || "";
+      if (!label && item["Notes"]) {
+        label = item["Notes"];
+      }
+      if (!label) {
+        label = `Clip at ${startTime.toFixed(1)}s`;
+      }
+      
+      const newClip: SavedClip = {
         id: `auto-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
         startTime,
         duration,
-        label: item["Play Name"] || `Clip at ${startTime.toFixed(1)}s`,
+        label,
         notes: item.Notes || "",
         timeline: item.Timeline || "",
         saved: new Date().toISOString(),
         players,
         situation: item.Situation || "other"
       };
+      
+      newClips.push(newClip);
     });
     
     setSavedClips(prev => {
-      // Filter out duplicates by checking startTime and label to prevent duplicates
+      // Filter out duplicates by checking startTime and label
       const filteredNewClips = newClips.filter(newClip => 
         !prev.some(existingClip => 
           Math.abs(existingClip.startTime - newClip.startTime) < 0.1 && 
@@ -100,8 +121,11 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
         )
       );
       
+      console.log("Adding", filteredNewClips.length, "unique clips to library");
       return [...prev, ...filteredNewClips];
     });
+    
+    return newClips;
   };
   
   const removeSavedClip = (id: string) => {

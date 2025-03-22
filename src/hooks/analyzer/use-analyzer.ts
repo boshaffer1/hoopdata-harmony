@@ -46,18 +46,22 @@ export const useAnalyzer = () => {
     saveClipsFromData
   } = useClipLibrary(videoUrl);
 
-  // Combined handlers
+  // Combined handlers with explicit data processing
   const handleFileLoaded = (loadedData: any) => {
+    // Process data through the original handler
     const processedData = originalHandleFileLoaded(loadedData);
     
+    // Only proceed if we have valid data
     if (processedData && processedData.length > 0) {
-      // Explicitly create markers from data
-      addMarkersFromData(processedData);
+      console.log("Creating markers and clips from", processedData.length, "plays");
       
-      // Explicitly save clips to library
-      saveClipsFromData(processedData);
+      // Explicitly create markers from data - this must run
+      const createdMarkers = addMarkersFromData(processedData);
       
-      toast.success(`Created markers and clips from ${processedData.length} plays`);
+      // Explicitly save clips to library - this must run
+      const savedClips = saveClipsFromData(processedData);
+      
+      toast.success(`Created ${createdMarkers.length} markers and ${savedClips.length} clips from ${processedData.length} plays`);
     }
     
     return processedData;

@@ -7,8 +7,7 @@ import MarkersList from "@/components/analyzer/MarkersList";
 import ClipLibrary from "@/components/analyzer/ClipLibrary";
 import { useAnalyzer } from "@/hooks/analyzer/use-analyzer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BookmarkIcon, Library, Flag } from "lucide-react";
-import { SavedClip, GameData } from "@/types/analyzer";
+import { BookmarkIcon, Library } from "lucide-react";
 
 const Analyzer = () => {
   const {
