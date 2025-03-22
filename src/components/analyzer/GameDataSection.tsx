@@ -7,6 +7,7 @@ import FileUploader from "@/components/data/FileUploader";
 import { GameData, GameSituation, PlayerAction } from "@/types/analyzer";
 import { formatVideoTime } from "@/components/video/utils";
 import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface GameDataSectionProps {
   data: GameData[];
@@ -25,106 +26,65 @@ const GameDataSection: React.FC<GameDataSectionProps> = ({
   onPlayClip,
   onExportClip,
 }) => {
-  const getSituationLabel = (situation: GameSituation): string => {
-    const labels: Record<GameSituation, string> = {
-      transition: "Transition",
-      half_court: "Half Court",
-      ato: "After Timeout (ATO)",
-      slob: "Sideline Out of Bounds (SLOB)",
-      blob: "Baseline Out of Bounds (BLOB)",
-      press_break: "Press Break",
-      zone_offense: "Zone Offense",
-      man_offense: "Man Offense",
-      fast_break: "Fast Break",
-      other: "Other"
-    };
-    
-    return labels[situation] || situation;
-  };
-
-  const renderDataTable = () => {
-    if (data.length === 0) {
-      return <FileUploader onFileLoaded={onFileLoaded} />;
-    }
-    
+  if (data.length === 0) {
     return (
-      <div>
-        <div className="mb-4 bg-muted rounded-lg p-4">
-          <h3 className="text-sm font-medium mb-2">CSV Data Preview</h3>
-          <p className="text-xs text-muted-foreground mb-2">
-            Click the play button on any row to play that specific clip from the video.
-          </p>
-          {selectedClip && (
-            <div className="bg-primary/10 p-2 rounded text-xs">
-              <span className="font-medium">Currently selected: </span>
-              {selectedClip.Notes || selectedClip.Timeline || "Unnamed clip"} 
-              (Start: {formatVideoTime(parseFloat(selectedClip["Start time"] || "0"))}, 
-              Duration: {formatVideoTime(parseFloat(selectedClip["Duration"] || "0"))})
-              
-              {selectedClip.Situation && (
-                <div className="mt-1">
-                  <span className="font-medium">Situation: </span>
-                  <Badge variant="outline" className="text-xs">
-                    <Flag className="h-3 w-3 mr-1" />
-                    {getSituationLabel(selectedClip.Situation as GameSituation)}
-                  </Badge>
-                </div>
-              )}
-              
-              {selectedClip.Players && (
-                <div className="mt-1 flex gap-1 flex-wrap">
-                  <span className="font-medium">Players: </span>
-                  {(() => {
-                    try {
-                      const players = JSON.parse(selectedClip.Players);
-                      return players.map((player: PlayerAction, idx: number) => (
-                        <Badge key={idx} variant="outline" className="text-xs">
-                          <User className="h-3 w-3 mr-1" /> 
-                          {player.playerName}: {player.action}
-                        </Badge>
-                      ));
-                    } catch (e) {
-                      return null;
-                    }
-                  })()}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-        <div className="relative overflow-x-auto rounded-lg border">
-          <table className="w-full text-sm text-left">
-            <thead className="bg-muted text-muted-foreground uppercase text-xs">
-              <tr>
-                <th className="px-4 py-2">Actions</th>
-                <th className="px-4 py-2">Timeline</th>
-                <th className="px-4 py-2">Start Time</th>
-                <th className="px-4 py-2">Duration</th>
-                <th className="px-4 py-2">Notes</th>
-                <th className="px-4 py-2">Situation</th>
-                <th className="px-4 py-2">Players</th>
-              </tr>
-            </thead>
-            <tbody>
+      <Card>
+        <CardHeader>
+          <CardTitle>Game Data</CardTitle>
+          <CardDescription>
+            Upload your game data CSV file with play details
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <FileUploader onFileLoaded={onFileLoaded} />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Game Data</CardTitle>
+        <CardDescription>
+          {data.length} plays loaded
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Actions</TableHead>
+                <TableHead>Play Name</TableHead>
+                <TableHead>Time</TableHead>
+                <TableHead>Duration</TableHead>
+                <TableHead>Situation</TableHead>
+                <TableHead>Outcome</TableHead>
+                <TableHead>Players</TableHead>
+                <TableHead>Notes</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {data.map((item, index) => (
-                <tr 
-                  key={index} 
-                  className={`border-t hover:bg-muted/50 ${selectedClip === item ? 'bg-primary/10' : ''}`}
+                <TableRow 
+                  key={index}
+                  className={selectedClip === item ? "bg-primary/10" : ""}
                 >
-                  <td className="px-4 py-2">
-                    <div className="flex space-x-1">
-                      <Button 
-                        size="icon" 
-                        variant="ghost" 
+                  <TableCell>
+                    <div className="flex space-x-2">
+                      <Button
+                        size="icon"
+                        variant="ghost"
                         onClick={() => onPlayClip(item)}
                         disabled={!videoUrl}
                         title="Play clip"
                       >
                         <Play className="h-4 w-4" />
                       </Button>
-                      <Button 
-                        size="icon" 
-                        variant="ghost" 
+                      <Button
+                        size="icon"
+                        variant="ghost"
                         onClick={() => onExportClip(item)}
                         disabled={!videoUrl}
                         title="Export clip"
@@ -132,56 +92,41 @@ const GameDataSection: React.FC<GameDataSectionProps> = ({
                         <Download className="h-4 w-4" />
                       </Button>
                     </div>
-                  </td>
-                  <td className="px-4 py-2">{item.Timeline || '-'}</td>
-                  <td className="px-4 py-2">{formatVideoTime(parseFloat(item["Start time"] || "0"))}</td>
-                  <td className="px-4 py-2">{formatVideoTime(parseFloat(item["Duration"] || "0"))}</td>
-                  <td className="px-4 py-2">{item.Notes || '-'}</td>
-                  <td className="px-4 py-2">
-                    {item.Situation ? (
-                      <Badge variant="outline" className="text-xs">
+                  </TableCell>
+                  <TableCell>{item["Play Name"]}</TableCell>
+                  <TableCell>{formatVideoTime(parseFloat(item["Start time"] || "0"))}</TableCell>
+                  <TableCell>{formatVideoTime(parseFloat(item["Duration"] || "0"))}</TableCell>
+                  <TableCell>
+                    {item.Situation && (
+                      <Badge variant="outline">
                         <Flag className="h-3 w-3 mr-1" />
-                        {getSituationLabel(item.Situation as GameSituation)}
+                        {item.Situation}
                       </Badge>
-                    ) : '-'}
-                  </td>
-                  <td className="px-4 py-2">
-                    {item.Players ? (
-                      <div className="flex gap-1 flex-wrap">
-                        {(() => {
-                          try {
-                            const players = JSON.parse(item.Players);
-                            return players.map((player: PlayerAction, idx: number) => (
-                              <Badge key={idx} variant="outline" className="text-xs">
-                                {player.playerName}: {player.action}
-                              </Badge>
-                            ));
-                          } catch (e) {
-                            return '-';
-                          }
-                        })()}
-                      </div>
-                    ) : '-'}
-                  </td>
-                </tr>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="secondary">
+                      {item.Outcome}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1">
+                      {item.Players && JSON.parse(item.Players).map((player: PlayerAction, idx: number) => (
+                        <Badge key={idx} variant="outline" className="text-xs">
+                          <User className="h-3 w-3 mr-1" />
+                          {player.playerName}
+                        </Badge>
+                      ))}
+                    </div>
+                  </TableCell>
+                  <TableCell className="max-w-[200px] truncate">
+                    {item.Notes}
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
-      </div>
-    );
-  };
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Game Data</CardTitle>
-        <CardDescription>
-          Upload and view your game data CSV file
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        {renderDataTable()}
       </CardContent>
     </Card>
   );
