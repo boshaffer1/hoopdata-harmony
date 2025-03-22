@@ -1,13 +1,13 @@
 
 import React, { useState } from "react";
-import { PlayerStats } from "@/utils/analyzer-stats";
+import type { PlayerStats as PlayerStatsType } from "@/utils/analyzer-stats";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Search } from "lucide-react";
 
 interface PlayerStatsProps {
-  players: PlayerStats[];
+  players: PlayerStatsType[];
 }
 
 const PlayerStats: React.FC<PlayerStatsProps> = ({ players }) => {
