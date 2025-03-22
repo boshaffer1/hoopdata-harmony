@@ -7,36 +7,54 @@ import { PlayerActionType } from "@/types/analyzer";
  * Get the appropriate icon component for a player action
  */
 export const getActionIcon = (action: PlayerActionType): React.ReactNode => {
-  const icons: Record<PlayerActionType, React.ReactNode> = {
-    scored: <Target className="h-3 w-3" />,
-    missed: <XIcon className="h-3 w-3" />,
-    assist: <UserPlus className="h-3 w-3" />,
-    rebound: <ArrowDown className="h-3 w-3" />,
-    block: <Hand className="h-3 w-3" />,
-    steal: <Hand className="h-3 w-3" />,
-    turnover: <RotateCcw className="h-3 w-3" />,
-    foul: <XIcon className="h-3 w-3" />,
-    other: <List className="h-3 w-3" />
-  };
-  
-  return icons[action] || <User className="h-3 w-3" />;
+  switch (action) {
+    case "scored":
+      return <Target className="h-3 w-3" />;
+    case "missed":
+      return <XIcon className="h-3 w-3" />;
+    case "assist":
+      return <UserPlus className="h-3 w-3" />;
+    case "rebound":
+      return <ArrowDown className="h-3 w-3" />;
+    case "block":
+      return <Hand className="h-3 w-3" />;
+    case "steal":
+      return <Hand className="h-3 w-3" />;
+    case "turnover":
+      return <RotateCcw className="h-3 w-3" />;
+    case "foul":
+      return <XIcon className="h-3 w-3" />;
+    case "other":
+      return <List className="h-3 w-3" />;
+    default:
+      return <User className="h-3 w-3" />;
+  }
 };
 
 /**
  * Get the appropriate background color class for a player action
  */
 export const getActionColor = (action: PlayerActionType): string => {
-  const colors: Record<PlayerActionType, string> = {
-    scored: "bg-green-500",
-    missed: "bg-red-500",
-    assist: "bg-blue-500",
-    rebound: "bg-purple-500",
-    block: "bg-yellow-500",
-    steal: "bg-indigo-500",
-    turnover: "bg-orange-500",
-    foul: "bg-pink-500",
-    other: "bg-gray-500"
-  };
-  
-  return colors[action] || "bg-gray-500";
+  switch (action) {
+    case "scored":
+      return "bg-green-500";
+    case "missed":
+      return "bg-red-500";
+    case "assist":
+      return "bg-blue-500";
+    case "rebound":
+      return "bg-purple-500";
+    case "block":
+      return "bg-yellow-500";
+    case "steal":
+      return "bg-indigo-500";
+    case "turnover":
+      return "bg-orange-500";
+    case "foul":
+      return "bg-pink-500";
+    case "other":
+      return "bg-gray-500";
+    default:
+      return "bg-gray-500";
+  }
 };
