@@ -43,9 +43,69 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
       situation
     };
     
-    setSavedClips([...savedClips, savedClip]);
+    setSavedClips(prevClips => {
+      // Check if this clip already exists by comparing startTime
+      const clipExists = prevClips.some(existingClip => 
+        Math.abs(existingClip.startTime - startTime) < 0.1 && 
+        existingClip.label === playLabel
+      );
+      
+      if (clipExists) {
+        toast.info(`Clip updated: ${playLabel}`);
+        return prevClips.map(existingClip => 
+          Math.abs(existingClip.startTime - startTime) < 0.1 && 
+          existingClip.label === playLabel ? savedClip : existingClip
+        );
+      } else {
+        toast.success(`Saved clip: ${playLabel}`);
+        return [...prevClips, savedClip];
+      }
+    });
+    
     setPlayLabel("");
-    toast.success(`Saved clip: ${playLabel}`);
+  };
+  
+  const saveClipsFromData = (data: GameData[]) => {
+    if (!data || data.length === 0) return;
+    
+    const newClips: SavedClip[] = data.map(item => {
+      const startTime = parseFloat(item["Start time"] || "0");
+      const duration = parseFloat(item["Duration"] || "0");
+      
+      let players: PlayerAction[] = [];
+      try {
+        if (item.Players && item.Players !== "[]") {
+          players = JSON.parse(item.Players);
+        }
+      } catch (error) {
+        console.error("Error parsing player data:", error);
+      }
+      
+      return {
+        id: `auto-${Date.now()}-${startTime}`,
+        startTime,
+        duration,
+        label: item["Play Name"] || item.Notes || `Clip at ${startTime}`,
+        notes: item.Notes || "",
+        timeline: item.Timeline || "",
+        saved: new Date().toISOString(),
+        players,
+        situation: item.Situation || "other"
+      };
+    });
+    
+    setSavedClips(prev => {
+      // Filter out duplicates by checking startTime
+      const filteredNewClips = newClips.filter(newClip => 
+        !prev.some(existingClip => Math.abs(existingClip.startTime - newClip.startTime) < 0.1)
+      );
+      
+      if (filteredNewClips.length > 0) {
+        toast.success(`Added ${filteredNewClips.length} clips from CSV data`);
+        return [...prev, ...filteredNewClips];
+      }
+      return prev;
+    });
   };
   
   const removeSavedClip = (id: string) => {
@@ -106,6 +166,7 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
     playLabel,
     setPlayLabel,
     saveClipToLibrary,
+    saveClipsFromData,
     removeSavedClip,
     exportClip,
     exportLibrary

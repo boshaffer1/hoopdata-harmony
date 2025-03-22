@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,14 +33,6 @@ import {
 import { formatVideoTime } from "@/components/video/utils";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { 
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel
-} from "@/components/ui/form";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface ClipLibraryProps {
   savedClips: SavedClip[];
@@ -69,6 +61,35 @@ const ClipLibrary: React.FC<ClipLibraryProps> = ({
   const [playerAction, setPlayerAction] = useState<PlayerActionType>("scored");
   const [activePlayers, setActivePlayers] = useState<PlayerAction[]>([]);
   const [situation, setSituation] = useState<GameSituation>("other");
+
+  // Update the active players when a clip is selected
+  useEffect(() => {
+    if (selectedClip) {
+      // Extract any existing players from the selected clip
+      try {
+        if (selectedClip.Players && selectedClip.Players !== "[]") {
+          const players = JSON.parse(selectedClip.Players);
+          if (Array.isArray(players)) {
+            setActivePlayers(players);
+          }
+        }
+        
+        // Set the situation if it exists
+        if (selectedClip.Situation) {
+          setSituation(selectedClip.Situation as GameSituation);
+        } else {
+          setSituation("other");
+        }
+        
+        // Set the play label if it doesn't exist yet
+        if (!playLabel && selectedClip["Play Name"]) {
+          onPlayLabelChange(selectedClip["Play Name"]);
+        }
+      } catch (error) {
+        console.error("Error parsing players:", error);
+      }
+    }
+  }, [selectedClip]);
 
   const addPlayer = () => {
     if (!playerName.trim()) return;
@@ -106,6 +127,31 @@ const ClipLibrary: React.FC<ClipLibraryProps> = ({
     onPlayClip(clip);
   };
 
+  const getActionIcon = (action: PlayerActionType): React.ReactNode => {
+    switch(action) {
+      case "scored":
+        return <Target className="h-3 w-3" />;
+      case "missed":
+        return <XIcon className="h-3 w-3" />;
+      case "assist":
+        return <UserPlus className="h-3 w-3" />;
+      case "rebound":
+        return <ArrowDown className="h-3 w-3" />;
+      case "block":
+        return <Hand className="h-3 w-3" />;
+      case "steal":
+        return <Hand className="h-3 w-3" />;
+      case "turnover":
+        return <RotateCcw className="h-3 w-3" />;
+      case "foul":
+        return <XIcon className="h-3 w-3" />;
+      case "other":
+        return <List className="h-3 w-3" />;
+      default:
+        return <List className="h-3 w-3" />;
+    }
+  };
+
   const getActionColor = (action: PlayerActionType): string => {
     const colors: Record<PlayerActionType, string> = {
       scored: "bg-green-500",
@@ -120,22 +166,6 @@ const ClipLibrary: React.FC<ClipLibraryProps> = ({
     };
     
     return colors[action] || "bg-gray-500";
-  };
-
-  const getActionIcon = (action: PlayerActionType) => {
-    const icons: Record<PlayerActionType, React.ReactNode> = {
-      scored: <Target className="h-3 w-3" />,
-      missed: <XIcon className="h-3 w-3" />,
-      assist: <UserPlus className="h-3 w-3" />,
-      rebound: <ArrowDown className="h-3 w-3" />,
-      block: <Hand className="h-3 w-3" />,
-      steal: <Hand className="h-3 w-3" />,
-      turnover: <RotateCcw className="h-3 w-3" />,
-      foul: <XIcon className="h-3 w-3" />,
-      other: <List className="h-3 w-3" />
-    };
-    
-    return icons[action] || <User className="h-3 w-3" />;
   };
 
   const getSituationLabel = (situation: GameSituation): string => {
@@ -171,7 +201,7 @@ const ClipLibrary: React.FC<ClipLibraryProps> = ({
             <>
               <div className="text-xs mb-3 bg-primary/10 p-2 rounded">
                 <span className="font-medium">Selected: </span>
-                {selectedClip.Notes || "Unnamed clip"} ({formatVideoTime(parseFloat(selectedClip["Start time"] || "0"))})
+                {selectedClip["Play Name"] || selectedClip.Notes || "Unnamed clip"} ({formatVideoTime(parseFloat(selectedClip["Start time"] || "0"))})
               </div>
               
               <div className="flex space-x-2 mb-3">

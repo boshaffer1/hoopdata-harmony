@@ -9,6 +9,10 @@ export const useGameData = (videoPlayerRef: React.RefObject<any>) => {
 
   const handleFileLoaded = (loadedData: any) => {
     try {
+      if (!Array.isArray(loadedData) || loadedData.length === 0) {
+        throw new Error("Invalid CSV data format");
+      }
+      
       const processedData = loadedData.map((item: any) => {
         // Validate required fields
         if (!item["Play Name"] || !item["Start time"] || !item["Duration"]) {
@@ -29,7 +33,9 @@ export const useGameData = (videoPlayerRef: React.RefObject<any>) => {
 
         // Validate Players JSON format
         try {
-          JSON.parse(processedItem.Players);
+          if (processedItem.Players && processedItem.Players !== "[]") {
+            JSON.parse(processedItem.Players);
+          }
         } catch (e) {
           console.warn("Invalid Players JSON format:", item.Players);
           processedItem.Players = "[]";

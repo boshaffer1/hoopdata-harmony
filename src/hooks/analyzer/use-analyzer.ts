@@ -41,13 +41,17 @@ export const useAnalyzer = () => {
     saveClipToLibrary,
     removeSavedClip,
     exportClip,
-    exportLibrary
+    exportLibrary,
+    saveClipsFromData
   } = useClipLibrary(videoUrl);
 
   // Combined handlers
   const handleFileLoaded = (loadedData: any) => {
     const processedData = originalHandleFileLoaded(loadedData);
-    addMarkersFromData(processedData);
+    if (processedData && processedData.length > 0) {
+      addMarkersFromData(processedData);
+      saveClipsFromData(processedData);
+    }
   };
 
   const playSelectedClip = (item: GameData) => {
