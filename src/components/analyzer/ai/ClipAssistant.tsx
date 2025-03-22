@@ -1,13 +1,13 @@
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { SavedClip } from "@/types/analyzer";
-import { SendIcon, Trash } from "lucide-react";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Trash } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { toast } from "sonner";
+import MessageList from "./components/MessageList";
+import ChatInput from "./components/ChatInput";
+import { useClipSearch } from "@/hooks/analyzer/use-clip-search";
 
 interface Message {
   id: string;
@@ -25,7 +25,6 @@ const ClipAssistant: React.FC<ClipAssistantProps> = ({
   savedClips,
   onPlayClip
 }) => {
-  const [query, setQuery] = useState("");
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "welcome",
@@ -34,26 +33,14 @@ const ClipAssistant: React.FC<ClipAssistantProps> = ({
     }
   ]);
   const [isSearching, setIsSearching] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  // Scroll to bottom when messages change
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+  const { searchClips } = useClipSearch();
 
   // Debug the saved clips when they change
   useEffect(() => {
     console.log("ClipAssistant: savedClips changed", savedClips);
   }, [savedClips]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!query.trim()) return;
-
+  const handleSubmit = (query: string) => {
     // Add user message
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -64,14 +51,10 @@ const ClipAssistant: React.FC<ClipAssistantProps> = ({
     setMessages(prev => [...prev, userMessage]);
     setIsSearching(true);
     
-    // Clear input
-    const searchQuery = query;
-    setQuery("");
-    
     // Process the query
     setTimeout(() => {
-      console.log("Searching for clips with query:", searchQuery);
-      const matchedClips = searchClips(searchQuery);
+      console.log("Searching for clips with query:", query);
+      const matchedClips = searchClips(query, savedClips);
       console.log("Found matched clips:", matchedClips);
       
       // Create assistant message
@@ -102,85 +85,12 @@ const ClipAssistant: React.FC<ClipAssistantProps> = ({
     }, 1000);
   };
 
-  const searchClips = (query: string): SavedClip[] => {
-    // If there are no saved clips, return empty array
-    if (!savedClips || savedClips.length === 0) {
-      console.log("No saved clips available for search");
-      return [];
-    }
-
-    console.log(`Searching through ${savedClips.length} clips for "${query}"`);
-    
-    const searchTerms = query.toLowerCase().split(" ");
-    
-    // More flexible search approach with enhanced logging
-    return savedClips.filter(clip => {
-      // Guard against undefined or null values
-      const clipLabel = (clip.label || "").toLowerCase();
-      const clipNotes = (clip.notes || "").toLowerCase();
-      const clipSituation = (clip.situation || "").toLowerCase();
-      
-      // Map through players carefully to avoid errors
-      let playerNames: string[] = [];
-      if (clip.players && Array.isArray(clip.players)) {
-        playerNames = clip.players
-          .filter(p => p && typeof p === 'object' && 'playerName' in p) // Filter out null/undefined players
-          .map(p => p.playerName ? p.playerName.toLowerCase() : "");
-      }
-      
-      // Actions from players
-      let playerActions: string[] = [];
-      if (clip.players && Array.isArray(clip.players)) {
-        playerActions = clip.players
-          .filter(p => p && typeof p === 'object' && 'action' in p)
-          .map(p => p.action ? p.action.toLowerCase() : "");
-      }
-      
-      // Collect all text to search within
-      const clipText = [
-        clipLabel,
-        clipNotes,
-        clipSituation,
-        ...playerNames,
-        ...playerActions
-      ].join(" ");
-      
-      // Log what we're searching within
-      console.log(`Clip text for "${clip.label}": "${clipText}"`);
-      
-      // Check if ANY search term is found - more permissive search
-      for (const term of searchTerms) {
-        if (clipText.includes(term)) {
-          console.log(`Match found in clip: "${clip.label}" for term: "${term}"`);
-          return true;
-        }
-      }
-      
-      // Special handling for some common search terms
-      if (query.includes("three") || query.includes("3-point") || 
-          query.includes("three pointer") || query.includes("3pt")) {
-        if (clipNotes.includes("three") || clipNotes.includes("3-point") || 
-            clipLabel.includes("three") || clipLabel.includes("3 point")) {
-          console.log(`Special match for three pointer in clip: "${clip.label}"`);
-          return true;
-        }
-      }
-      
-      return false;
-    });
-  };
-
   const clearChat = () => {
     setMessages([{
       id: "welcome",
       role: "assistant",
       content: "Hi, I'm your clip assistant. Ask me to find specific clips in your library."
     }]);
-  };
-
-  const handleClipClick = (clip: SavedClip) => {
-    onPlayClip(clip);
-    toast.success(`Playing: ${clip.label}`);
   };
 
   return (
@@ -201,64 +111,17 @@ const ClipAssistant: React.FC<ClipAssistantProps> = ({
       </CardHeader>
       <CardContent className="p-0">
         <div className="flex flex-col h-[500px]">
-          <ScrollArea className="flex-1 p-4">
-            <div className="space-y-4">
-              {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`flex ${
-                    message.role === "user" ? "justify-end" : "justify-start"
-                  }`}
-                >
-                  <div
-                    className={`max-w-[80%] rounded-lg p-3 ${
-                      message.role === "user"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted"
-                    }`}
-                  >
-                    <div>{message.content}</div>
-                    
-                    {/* Display matched clips if any */}
-                    {message.clips && message.clips.length > 0 && (
-                      <div className="mt-2 space-y-2">
-                        {message.clips.map((clip) => (
-                          <div 
-                            key={clip.id}
-                            onClick={() => handleClipClick(clip)}
-                            className="p-2 bg-background rounded border border-border cursor-pointer hover:bg-accent transition-colors"
-                          >
-                            <div className="font-medium text-sm">{clip.label}</div>
-                            {clip.notes && (
-                              <div className="text-xs text-muted-foreground truncate">{clip.notes}</div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-              <div ref={messagesEndRef} />
-            </div>
-          </ScrollArea>
+          <MessageList 
+            messages={messages} 
+            onPlayClip={onPlayClip} 
+          />
           
           <Separator />
           
-          <form onSubmit={handleSubmit} className="p-4">
-            <div className="flex gap-2">
-              <Input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Find clips with Jayson Tatum shooting 3s..."
-                disabled={isSearching}
-              />
-              <Button type="submit" size="icon" disabled={isSearching}>
-                <SendIcon className="h-4 w-4" />
-                <span className="sr-only">Send</span>
-              </Button>
-            </div>
-          </form>
+          <ChatInput 
+            onSubmit={handleSubmit} 
+            isSearching={isSearching} 
+          />
         </div>
       </CardContent>
     </Card>

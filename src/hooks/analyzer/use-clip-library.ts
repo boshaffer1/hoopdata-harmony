@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from "react";
-import { GameData, SavedClip, PlayerAction, GameSituation } from "@/types/analyzer";
+import { GameData, SavedClip, PlayerAction, GameSituation, PlayerActionType } from "@/types/analyzer";
 import { toast } from "sonner";
 import { downloadJSON, extractVideoClip } from "@/components/video/utils";
 
@@ -8,7 +7,6 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
   const [savedClips, setSavedClips] = useState<SavedClip[]>([]);
   const [playLabel, setPlayLabel] = useState("");
 
-  // Debug when savedClips changes
   useEffect(() => {
     console.log("Clip library currently has", savedClips.length, "clips");
   }, [savedClips]);
@@ -46,7 +44,6 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
     };
     
     setSavedClips(prevClips => {
-      // Check if this clip already exists by comparing startTime
       const clipExists = prevClips.some(existingClip => 
         Math.abs(existingClip.startTime - startTime) < 0.1 && 
         existingClip.label === playLabel
@@ -78,7 +75,6 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
       const startTime = parseFloat(item["Start time"] || "0");
       const duration = parseFloat(item["Duration"] || "0");
       
-      // Skip if missing essential data
       if (isNaN(startTime)) {
         console.warn("Skipping clip with invalid start time:", item);
         return;
@@ -93,7 +89,6 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
         console.error("Error parsing player data:", error);
       }
       
-      // Create a meaningful label
       let label = item["Play Name"] || "";
       if (!label && item["Notes"]) {
         label = item["Notes"];
@@ -120,7 +115,6 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
     console.log(`Generated ${newClips.length} new clips from data`);
     
     setSavedClips(prev => {
-      // Filter out duplicates by checking startTime and label
       const filteredNewClips = newClips.filter(newClip => 
         !prev.some(existingClip => 
           Math.abs(existingClip.startTime - newClip.startTime) < 0.1 && 
@@ -135,7 +129,6 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
     return newClips;
   };
   
-  // Add some demo clips for testing if no clips exist
   const addDemoClips = () => {
     if (savedClips.length === 0) {
       const demoClips: SavedClip[] = [
@@ -148,9 +141,9 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
           timeline: "",
           saved: new Date().toISOString(),
           players: [
-            { playerId: "demo-p1", playerName: "John Smith", action: "scored" }
+            { playerId: "demo-p1", playerName: "John Smith", action: "scored" as PlayerActionType }
           ],
-          situation: "fast_break"
+          situation: "fast_break" as GameSituation
         },
         {
           id: "demo-2",
@@ -161,9 +154,9 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
           timeline: "",
           saved: new Date().toISOString(),
           players: [
-            { playerId: "demo-p2", playerName: "Mike Johnson", action: "missed" }
+            { playerId: "demo-p2", playerName: "Mike Johnson", action: "missed" as PlayerActionType }
           ],
-          situation: "half_court"
+          situation: "half_court" as GameSituation
         },
         {
           id: "demo-3",
@@ -174,9 +167,9 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
           timeline: "",
           saved: new Date().toISOString(),
           players: [
-            { playerId: "demo-p3", playerName: "David Williams", action: "scored" }
+            { playerId: "demo-p3", playerName: "David Williams", action: "scored" as PlayerActionType }
           ],
-          situation: "other"
+          situation: "other" as GameSituation
         },
         {
           id: "demo-4",
@@ -187,9 +180,9 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
           timeline: "",
           saved: new Date().toISOString(),
           players: [
-            { playerId: "demo-p4", playerName: "Jayson Tatum", action: "scored" }
+            { playerId: "demo-p4", playerName: "Jayson Tatum", action: "scored" as PlayerActionType }
           ],
-          situation: "other"
+          situation: "other" as GameSituation
         },
         {
           id: "demo-5",
@@ -200,9 +193,9 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
           timeline: "",
           saved: new Date().toISOString(),
           players: [
-            { playerId: "demo-p5", playerName: "Trae Young", action: "stole" }
+            { playerId: "demo-p5", playerName: "Trae Young", action: "stole" as PlayerActionType }
           ],
-          situation: "defense"
+          situation: "defense" as GameSituation
         }
       ];
       
@@ -213,7 +206,6 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
     return [];
   };
   
-  // Initialize with demo clips if needed
   useEffect(() => {
     addDemoClips();
   }, []);
