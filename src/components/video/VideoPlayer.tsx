@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useImperativeHandle, forwardRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
@@ -12,12 +12,12 @@ interface VideoPlayerProps {
   markers?: { time: number; label: string; color?: string }[];
 }
 
-const VideoPlayer: React.FC<VideoPlayerProps> = ({
+const VideoPlayer = forwardRef<any, VideoPlayerProps>(({
   src,
   className,
   onTimeUpdate,
   markers = []
-}) => {
+}, ref) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -25,6 +25,30 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Expose methods to parent via ref
+  useImperativeHandle(ref, () => ({
+    play: () => {
+      if (videoRef.current) {
+        videoRef.current.play();
+        setIsPlaying(true);
+      }
+    },
+    pause: () => {
+      if (videoRef.current) {
+        videoRef.current.pause();
+        setIsPlaying(false);
+      }
+    },
+    seekToTime: (timeInSeconds: number) => {
+      if (videoRef.current) {
+        videoRef.current.currentTime = timeInSeconds;
+        setCurrentTime(timeInSeconds);
+      }
+    },
+    getCurrentTime: () => currentTime,
+    getDuration: () => duration
+  }));
 
   // Handle video events
   useEffect(() => {
@@ -289,6 +313,8 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
       )}
     </div>
   );
-};
+});
+
+VideoPlayer.displayName = "VideoPlayer";
 
 export default VideoPlayer;

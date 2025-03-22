@@ -1,14 +1,13 @@
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import Layout from "@/components/layout/Layout";
 import VideoPlayer from "@/components/video/VideoPlayer";
 import FileUploader from "@/components/data/FileUploader";
 import DataTable from "@/components/data/DataTable";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { BookmarkIcon, FilePlus, Trash2 } from "lucide-react";
+import { BookmarkIcon, FilePlus, Trash2, Play } from "lucide-react";
 import { toast } from "sonner";
 
 interface Marker {
@@ -18,15 +17,52 @@ interface Marker {
   notes?: string;
 }
 
+interface GameData {
+  [key: string]: string;
+  "Start time"?: string;
+  "Duration"?: string;
+  Timeline?: string;
+  Notes?: string;
+}
+
 const Analyzer = () => {
   const [videoUrl, setVideoUrl] = useState<string | undefined>();
   const [currentTime, setCurrentTime] = useState(0);
-  const [data, setData] = useState<Record<string, any>[]>([]);
+  const [data, setData] = useState<GameData[]>([]);
   const [markers, setMarkers] = useState<Marker[]>([]);
   const [newMarkerLabel, setNewMarkerLabel] = useState("");
+  const [selectedClip, setSelectedClip] = useState<GameData | null>(null);
+  const videoPlayerRef = useRef<any>(null);
   
   const handleFileLoaded = (loadedData: any) => {
-    setData(loadedData);
+    // Convert all CSV data to standard format with consistent property names
+    const processedData = loadedData.map((item: any) => {
+      // Ensure the object has the required properties
+      return {
+        ...item,
+        "Start time": item["Start time"] || "0",
+        "Duration": item["Duration"] || "0",
+      };
+    });
+    
+    setData(processedData);
+    
+    // Automatically create markers from the loaded data
+    const newMarkers = processedData.map((item: GameData, index: number) => {
+      const startTime = parseFloat(item["Start time"] || "0");
+      const colors = ["#3b82f6", "#ef4444", "#22c55e", "#f59e0b", "#8b5cf6"];
+      const randomColor = colors[index % colors.length];
+      
+      return {
+        time: startTime,
+        label: item.Notes || `Clip ${index + 1}`,
+        color: randomColor,
+        notes: `${item.Timeline || ""} - ${item.Notes || ""}`
+      };
+    });
+    
+    setMarkers([...markers, ...newMarkers]);
+    toast.success(`Created ${newMarkers.length} markers from CSV data`);
   };
 
   const handleVideoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -39,8 +75,6 @@ const Analyzer = () => {
 
   const handleTimeUpdate = (time: number) => {
     setCurrentTime(time);
-    
-    // Optionally: Highlight corresponding data in the table based on timestamp
   };
 
   const addMarker = () => {
@@ -78,6 +112,102 @@ const Analyzer = () => {
     return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
   };
 
+  const playClip = (item: GameData) => {
+    if (!videoUrl) {
+      toast.error("Please upload a video first");
+      return;
+    }
+    
+    const startTime = parseFloat(item["Start time"] || "0");
+    const duration = parseFloat(item["Duration"] || "0");
+    
+    if (videoPlayerRef.current) {
+      videoPlayerRef.current.seekToTime(startTime);
+      videoPlayerRef.current.play();
+      
+      setSelectedClip(item);
+      
+      // Optional: stop after duration
+      if (duration > 0) {
+        setTimeout(() => {
+          if (videoPlayerRef.current) {
+            videoPlayerRef.current.pause();
+          }
+        }, duration * 1000);
+      }
+      
+      toast.success(`Playing clip from ${formatTime(startTime)}`);
+    }
+  };
+
+  const seekToMarker = (time: number) => {
+    if (videoPlayerRef.current) {
+      videoPlayerRef.current.seekToTime(time);
+    }
+  };
+
+  // Customize the data table to include a play button for each clip
+  const renderCustomDataTable = () => {
+    if (data.length === 0) {
+      return <FileUploader onFileLoaded={handleFileLoaded} />;
+    }
+    
+    return (
+      <div>
+        <div className="mb-4 bg-muted rounded-lg p-4">
+          <h3 className="text-sm font-medium mb-2">CSV Data Preview</h3>
+          <p className="text-xs text-muted-foreground mb-2">
+            Click the play button on any row to play that specific clip from the video.
+          </p>
+          {selectedClip && (
+            <div className="bg-primary/10 p-2 rounded text-xs">
+              <span className="font-medium">Currently selected: </span>
+              {selectedClip.Notes || selectedClip.Timeline || "Unnamed clip"} 
+              (Start: {formatTime(parseFloat(selectedClip["Start time"] || "0"))}, 
+              Duration: {formatTime(parseFloat(selectedClip["Duration"] || "0"))})
+            </div>
+          )}
+        </div>
+        <div className="relative overflow-x-auto rounded-lg border">
+          <table className="w-full text-sm text-left">
+            <thead className="bg-muted text-muted-foreground uppercase text-xs">
+              <tr>
+                <th className="px-4 py-2">Play</th>
+                <th className="px-4 py-2">Timeline</th>
+                <th className="px-4 py-2">Start Time</th>
+                <th className="px-4 py-2">Duration</th>
+                <th className="px-4 py-2">Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.map((item, index) => (
+                <tr 
+                  key={index} 
+                  className={`border-t hover:bg-muted/50 ${selectedClip === item ? 'bg-primary/10' : ''}`}
+                >
+                  <td className="px-4 py-2">
+                    <Button 
+                      size="icon" 
+                      variant="ghost" 
+                      onClick={() => playClip(item)}
+                      disabled={!videoUrl}
+                    >
+                      <Play className="h-4 w-4" />
+                    </Button>
+                  </td>
+                  <td className="px-4 py-2">{item.Timeline || '-'}</td>
+                  <td className="px-4 py-2">{formatTime(parseFloat(item["Start time"] || "0"))}</td>
+                  <td className="px-4 py-2">{formatTime(parseFloat(item["Duration"] || "0"))}</td>
+                  <td className="px-4 py-2">{item.Notes || '-'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <Layout className="py-6">
       <div className="mb-8">
@@ -95,6 +225,7 @@ const Analyzer = () => {
             <CardContent className="p-0">
               {videoUrl ? (
                 <VideoPlayer 
+                  ref={videoPlayerRef}
                   src={videoUrl} 
                   onTimeUpdate={handleTimeUpdate}
                   markers={markers}
@@ -157,11 +288,7 @@ const Analyzer = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {data.length === 0 ? (
-                <FileUploader onFileLoaded={handleFileLoaded} />
-              ) : (
-                <DataTable data={data} />
-              )}
+              {renderCustomDataTable()}
             </CardContent>
           </Card>
         </div>
@@ -188,7 +315,8 @@ const Analyzer = () => {
                   {markers.map((marker, index) => (
                     <li 
                       key={index} 
-                      className="border rounded-lg p-3 animate-hover"
+                      className="border rounded-lg p-3 hover:bg-muted/50 cursor-pointer"
+                      onClick={() => seekToMarker(marker.time)}
                     >
                       <div className="flex justify-between items-start">
                         <div className="flex items-start space-x-2">
@@ -206,7 +334,10 @@ const Analyzer = () => {
                         <Button 
                           variant="ghost" 
                           size="icon" 
-                          onClick={() => removeMarker(index)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeMarker(index);
+                          }}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -215,6 +346,7 @@ const Analyzer = () => {
                         placeholder="Add notes..."
                         className="mt-2 text-sm"
                         value={marker.notes || ""}
+                        onClick={(e) => e.stopPropagation()}
                         onChange={(e) => {
                           const newMarkers = [...markers];
                           newMarkers[index].notes = e.target.value;
