@@ -2,9 +2,10 @@
 import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { PlayCircle, Download, Trash2, Flag, Target, XIcon, UserPlus, ArrowDown, Hand, RotateCcw, List, User } from "lucide-react";
-import { SavedClip, PlayerActionType, GameSituation } from "@/types/analyzer";
+import { PlayCircle, Download, Trash2, Flag } from "lucide-react";
+import { SavedClip, GameSituation } from "@/types/analyzer";
 import { formatVideoTime } from "@/components/video/utils";
+import { getActionIcon, getActionColor } from "@/utils/playerActionUtils";
 
 interface SavedClipItemProps {
   clip: SavedClip;
@@ -19,38 +20,6 @@ const SavedClipItem: React.FC<SavedClipItemProps> = ({
   onExport,
   onRemove,
 }) => {
-  const getActionIcon = (action: PlayerActionType) => {
-    const icons: Record<PlayerActionType, React.ReactNode> = {
-      scored: <Target className="h-3 w-3" />,
-      missed: <XIcon className="h-3 w-3" />,
-      assist: <UserPlus className="h-3 w-3" />,
-      rebound: <ArrowDown className="h-3 w-3" />,
-      block: <Hand className="h-3 w-3" />,
-      steal: <Hand className="h-3 w-3" />,
-      turnover: <RotateCcw className="h-3 w-3" />,
-      foul: <XIcon className="h-3 w-3" />,
-      other: <List className="h-3 w-3" />
-    };
-    
-    return icons[action] || <User className="h-3 w-3" />;
-  };
-
-  const getActionColor = (action: PlayerActionType): string => {
-    const colors: Record<PlayerActionType, string> = {
-      scored: "bg-green-500",
-      missed: "bg-red-500",
-      assist: "bg-blue-500",
-      rebound: "bg-purple-500",
-      block: "bg-yellow-500",
-      steal: "bg-indigo-500",
-      turnover: "bg-orange-500",
-      foul: "bg-pink-500",
-      other: "bg-gray-500"
-    };
-    
-    return colors[action] || "bg-gray-500";
-  };
-
   const getSituationLabel = (situation: GameSituation): string => {
     const labels: Record<GameSituation, string> = {
       transition: "Transition",

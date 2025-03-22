@@ -3,19 +3,16 @@ import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { XCircle } from "lucide-react";
 import { PlayerAction, PlayerActionType } from "@/types/analyzer";
+import { getActionIcon, getActionColor } from "@/utils/playerActionUtils";
 
 interface PlayerActionItemProps {
   player: PlayerAction;
   onRemove: (playerId: string) => void;
-  getActionIcon: (action: PlayerActionType) => React.ReactNode;
-  getActionColor: (action: PlayerActionType) => string;
 }
 
 const PlayerActionItem: React.FC<PlayerActionItemProps> = ({
   player,
   onRemove,
-  getActionIcon,
-  getActionColor,
 }) => {
   return (
     <Badge key={player.playerId} variant="outline" className="flex items-center gap-1 px-2 py-1">
