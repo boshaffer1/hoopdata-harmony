@@ -20,7 +20,7 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
     let players: PlayerAction[] = [];
     try {
       if (clip.Players) {
-        players = JSON.parse(clip.Players);
+        players = JSON.parse(clip.Players as string);
       }
     } catch (error) {
       console.error("Error parsing player data:", error);
@@ -36,8 +36,8 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
       startTime,
       duration,
       label: playLabel,
-      notes: clip.Notes || "",
-      timeline: clip.Timeline || "",
+      notes: clip.Notes as string || "",
+      timeline: clip.Timeline as string || "",
       saved: new Date().toISOString(),
       players,
       situation
@@ -66,9 +66,9 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
       duration = clip.duration;
       label = clip.label;
     } else {
-      startTime = parseFloat(clip["Start time"] || "0");
-      duration = parseFloat(clip["Duration"] || "0");
-      label = clip.Notes || "clip";
+      startTime = parseFloat(clip["Start time"] as string || "0");
+      duration = parseFloat(clip["Duration"] as string || "0");
+      label = clip.Notes as string || "clip";
     }
     
     toast.loading("Exporting clip...");

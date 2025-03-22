@@ -58,7 +58,7 @@ export const useAnalyzer = () => {
     
     playClip(item);
     
-    const startTime = parseFloat(item["Start time"] || "0");
+    const startTime = parseFloat(item["Start time"] as string || "0");
     const minutes = Math.floor(startTime / 60);
     const seconds = Math.floor(startTime % 60);
     const formattedTime = `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
@@ -69,12 +69,14 @@ export const useAnalyzer = () => {
   const handlePlaySavedClip = (clip: SavedClip) => {
     // Convert SavedClip to GameData format for playClip
     const gameDataClip: GameData = {
+      "Play Name": clip.label,
       "Start time": clip.startTime.toString(),
       "Duration": clip.duration.toString(),
-      Notes: clip.label,
-      Timeline: clip.timeline,
-      Players: clip.players ? JSON.stringify(clip.players) : "",
-      Situation: clip.situation
+      "Notes": clip.notes,
+      "Timeline": clip.timeline,
+      "Players": clip.players ? JSON.stringify(clip.players) : "[]",
+      "Situation": clip.situation || "other",
+      "Outcome": "other"
     };
     
     playSelectedClip(gameDataClip);

@@ -11,14 +11,7 @@ import {
   List, 
   PlayCircle, 
   PlusCircle, 
-  User, 
   XCircle,
-  Target,
-  X as XIcon,
-  RotateCcw,
-  Hand,
-  UserPlus,
-  ArrowDown,
   Flag
 } from "lucide-react";
 import { 
@@ -33,14 +26,7 @@ import {
 import { formatVideoTime } from "@/components/video/utils";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { 
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel
-} from "@/components/ui/form";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { getActionIcon, getActionColor, getSituationLabel } from "@/utils/playerActionUtils";
 
 interface ClipLibraryProps {
   savedClips: SavedClip[];
@@ -89,10 +75,10 @@ const ClipLibrary: React.FC<ClipLibraryProps> = ({
 
   const playSelectedClip = () => {
     if (selectedClip) {
-      const clipWithMetadata = {
+      const clipWithMetadata: GameData = {
         ...selectedClip,
-        Players: JSON.stringify(activePlayers),
-        Situation: situation
+        "Players": JSON.stringify(activePlayers),
+        "Situation": situation as GameSituation || "other"
       };
       onSaveClip(clipWithMetadata);
       setActivePlayers([]);
@@ -102,55 +88,6 @@ const ClipLibrary: React.FC<ClipLibraryProps> = ({
 
   const handlePlayClip = (clip: SavedClip) => {
     onPlayClip(clip);
-  };
-
-  const getActionColor = (action: PlayerActionType): string => {
-    const colors: Record<PlayerActionType, string> = {
-      scored: "bg-green-500",
-      missed: "bg-red-500",
-      assist: "bg-blue-500",
-      rebound: "bg-purple-500",
-      block: "bg-yellow-500",
-      steal: "bg-indigo-500",
-      turnover: "bg-orange-500",
-      foul: "bg-pink-500",
-      other: "bg-gray-500"
-    };
-    
-    return colors[action] || "bg-gray-500";
-  };
-
-  const getActionIcon = (action: PlayerActionType) => {
-    const icons: Record<PlayerActionType, React.ReactNode> = {
-      scored: <Target className="h-3 w-3" />,
-      missed: <XIcon className="h-3 w-3" />,
-      assist: <UserPlus className="h-3 w-3" />,
-      rebound: <ArrowDown className="h-3 w-3" />,
-      block: <Hand className="h-3 w-3" />,
-      steal: <Hand className="h-3 w-3" />,
-      turnover: <RotateCcw className="h-3 w-3" />,
-      foul: <XIcon className="h-3 w-3" />,
-      other: <List className="h-3 w-3" />
-    };
-    
-    return icons[action] || <User className="h-3 w-3" />;
-  };
-
-  const getSituationLabel = (situation: GameSituation): string => {
-    const labels: Record<GameSituation, string> = {
-      transition: "Transition",
-      half_court: "Half Court",
-      ato: "After Timeout (ATO)",
-      slob: "Sideline Out of Bounds (SLOB)",
-      blob: "Baseline Out of Bounds (BLOB)",
-      press_break: "Press Break",
-      zone_offense: "Zone Offense",
-      man_offense: "Man Offense",
-      fast_break: "Fast Break",
-      other: "Other"
-    };
-    
-    return labels[situation] || situation;
   };
 
   return (
