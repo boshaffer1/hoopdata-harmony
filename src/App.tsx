@@ -10,6 +10,8 @@ import Analyzer from "./pages/Analyzer";
 import Stats from "./pages/Stats";
 import Assistant from "./pages/Assistant";
 import Insights from "./pages/Insights";
+import MyTeam from "./pages/MyTeam";
+import PlayerDetail from "./pages/PlayerDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,6 +29,8 @@ const App = () => (
           <Route path="/stats" element={<Stats />} />
           <Route path="/assistant" element={<Assistant />} />
           <Route path="/insights" element={<Insights />} />
+          <Route path="/myteam" element={<MyTeam />} />
+          <Route path="/myteam/player/:teamId/:playerId" element={<PlayerDetail />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

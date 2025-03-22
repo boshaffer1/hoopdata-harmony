@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Menu, X, BarChart, Bot } from "lucide-react";
+import { Menu, X, BarChart, Bot, Users } from "lucide-react";
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -68,6 +68,13 @@ const Navbar = () => {
           >
             <BarChart className="h-4 w-4" />
             Stats
+          </Link>
+          <Link 
+            to="/myteam" 
+            className="text-sm font-medium hover:text-primary transition-colors flex items-center gap-1" 
+          >
+            <Users className="h-4 w-4" />
+            My Team
           </Link>
           <Link 
             to="/assistant" 
@@ -141,6 +148,14 @@ const Navbar = () => {
             >
               <BarChart className="h-4 w-4" />
               Stats
+            </Link>
+            <Link 
+              to="/myteam" 
+              className="text-sm font-medium hover:text-primary transition-colors py-2 flex items-center gap-1" 
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              <Users className="h-4 w-4" />
+              My Team
             </Link>
             <Link 
               to="/assistant" 
