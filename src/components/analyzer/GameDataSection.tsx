@@ -2,9 +2,10 @@
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Play } from "lucide-react";
+import { Play, Download } from "lucide-react";
 import FileUploader from "@/components/data/FileUploader";
 import { GameData } from "@/types/analyzer";
+import { formatVideoTime } from "@/components/video/utils";
 
 interface GameDataSectionProps {
   data: GameData[];
@@ -12,6 +13,7 @@ interface GameDataSectionProps {
   selectedClip: GameData | null;
   onFileLoaded: (loadedData: any) => void;
   onPlayClip: (item: GameData) => void;
+  onExportClip: (item: GameData) => void;
 }
 
 const GameDataSection: React.FC<GameDataSectionProps> = ({
@@ -20,15 +22,8 @@ const GameDataSection: React.FC<GameDataSectionProps> = ({
   selectedClip,
   onFileLoaded,
   onPlayClip,
+  onExportClip,
 }) => {
-  const formatTime = (timeInSeconds: number) => {
-    if (isNaN(timeInSeconds)) return "00:00";
-    
-    const minutes = Math.floor(timeInSeconds / 60);
-    const seconds = Math.floor(timeInSeconds % 60);
-    return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
-  };
-
   const renderDataTable = () => {
     if (data.length === 0) {
       return <FileUploader onFileLoaded={onFileLoaded} />;
@@ -45,8 +40,8 @@ const GameDataSection: React.FC<GameDataSectionProps> = ({
             <div className="bg-primary/10 p-2 rounded text-xs">
               <span className="font-medium">Currently selected: </span>
               {selectedClip.Notes || selectedClip.Timeline || "Unnamed clip"} 
-              (Start: {formatTime(parseFloat(selectedClip["Start time"] || "0"))}, 
-              Duration: {formatTime(parseFloat(selectedClip["Duration"] || "0"))})
+              (Start: {formatVideoTime(parseFloat(selectedClip["Start time"] || "0"))}, 
+              Duration: {formatVideoTime(parseFloat(selectedClip["Duration"] || "0"))})
             </div>
           )}
         </div>
@@ -54,7 +49,7 @@ const GameDataSection: React.FC<GameDataSectionProps> = ({
           <table className="w-full text-sm text-left">
             <thead className="bg-muted text-muted-foreground uppercase text-xs">
               <tr>
-                <th className="px-4 py-2">Play</th>
+                <th className="px-4 py-2">Actions</th>
                 <th className="px-4 py-2">Timeline</th>
                 <th className="px-4 py-2">Start Time</th>
                 <th className="px-4 py-2">Duration</th>
@@ -68,18 +63,30 @@ const GameDataSection: React.FC<GameDataSectionProps> = ({
                   className={`border-t hover:bg-muted/50 ${selectedClip === item ? 'bg-primary/10' : ''}`}
                 >
                   <td className="px-4 py-2">
-                    <Button 
-                      size="icon" 
-                      variant="ghost" 
-                      onClick={() => onPlayClip(item)}
-                      disabled={!videoUrl}
-                    >
-                      <Play className="h-4 w-4" />
-                    </Button>
+                    <div className="flex space-x-1">
+                      <Button 
+                        size="icon" 
+                        variant="ghost" 
+                        onClick={() => onPlayClip(item)}
+                        disabled={!videoUrl}
+                        title="Play clip"
+                      >
+                        <Play className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        size="icon" 
+                        variant="ghost" 
+                        onClick={() => onExportClip(item)}
+                        disabled={!videoUrl}
+                        title="Export clip"
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </td>
                   <td className="px-4 py-2">{item.Timeline || '-'}</td>
-                  <td className="px-4 py-2">{formatTime(parseFloat(item["Start time"] || "0"))}</td>
-                  <td className="px-4 py-2">{formatTime(parseFloat(item["Duration"] || "0"))}</td>
+                  <td className="px-4 py-2">{formatVideoTime(parseFloat(item["Start time"] || "0"))}</td>
+                  <td className="px-4 py-2">{formatVideoTime(parseFloat(item["Duration"] || "0"))}</td>
                   <td className="px-4 py-2">{item.Notes || '-'}</td>
                 </tr>
               ))}

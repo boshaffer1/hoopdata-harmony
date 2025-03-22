@@ -1,11 +1,13 @@
 
 import React from "react";
 import Layout from "@/components/layout/Layout";
-import Section from "@/components/layout/Section";
 import VideoSection from "@/components/analyzer/VideoSection";
 import GameDataSection from "@/components/analyzer/GameDataSection";
 import MarkersList from "@/components/analyzer/MarkersList";
+import ClipLibrary from "@/components/analyzer/ClipLibrary";
 import { useAnalyzer } from "@/hooks/use-analyzer";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { BookmarkIcon, Library } from "lucide-react";
 
 const Analyzer = () => {
   const {
@@ -15,6 +17,8 @@ const Analyzer = () => {
     markers,
     newMarkerLabel,
     selectedClip,
+    playLabel,
+    savedClips,
     videoPlayerRef,
     handleFileLoaded,
     handleVideoFileChange,
@@ -24,8 +28,25 @@ const Analyzer = () => {
     updateMarkerNotes,
     playClip,
     seekToMarker,
-    setNewMarkerLabel
+    setNewMarkerLabel,
+    setPlayLabel,
+    saveClipToLibrary,
+    removeSavedClip,
+    exportClip,
+    exportLibrary,
+    exportAllMarkers
   } = useAnalyzer();
+
+  const handlePlaySavedClip = (clip: any) => {
+    // Convert SavedClip to GameData format for playClip
+    const gameDataClip = {
+      "Start time": clip.startTime.toString(),
+      "Duration": clip.duration.toString(),
+      Notes: clip.label,
+      Timeline: clip.timeline
+    };
+    playClip(gameDataClip);
+  };
 
   return (
     <Layout className="py-6">
@@ -58,17 +79,48 @@ const Analyzer = () => {
             selectedClip={selectedClip}
             onFileLoaded={handleFileLoaded}
             onPlayClip={playClip}
+            onExportClip={exportClip}
           />
         </div>
         
-        {/* Markers and Notes Section */}
+        {/* Markers and Library Tabs */}
         <div className="lg:col-span-1">
-          <MarkersList 
-            markers={markers}
-            onSeekToMarker={seekToMarker}
-            onRemoveMarker={removeMarker}
-            onMarkerNotesChange={updateMarkerNotes}
-          />
+          <Tabs defaultValue="markers">
+            <TabsList className="grid grid-cols-2 mb-6">
+              <TabsTrigger value="markers" className="flex items-center gap-2">
+                <BookmarkIcon className="h-4 w-4" />
+                Markers
+              </TabsTrigger>
+              <TabsTrigger value="library" className="flex items-center gap-2">
+                <Library className="h-4 w-4" />
+                Clip Library
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="markers" className="mt-0">
+              <MarkersList 
+                markers={markers}
+                onSeekToMarker={seekToMarker}
+                onRemoveMarker={removeMarker}
+                onMarkerNotesChange={updateMarkerNotes}
+                onExportAllMarkers={exportAllMarkers}
+              />
+            </TabsContent>
+            
+            <TabsContent value="library" className="mt-0">
+              <ClipLibrary 
+                savedClips={savedClips}
+                playLabel={playLabel}
+                selectedClip={selectedClip}
+                onPlayLabelChange={setPlayLabel}
+                onSaveClip={saveClipToLibrary}
+                onRemoveClip={removeSavedClip}
+                onExportClip={exportClip}
+                onExportLibrary={exportLibrary}
+                onPlayClip={handlePlaySavedClip}
+              />
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
     </Layout>

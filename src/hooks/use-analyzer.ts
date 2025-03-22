@@ -1,7 +1,8 @@
 
 import { useState, useRef } from "react";
-import { Marker, GameData } from "@/types/analyzer";
+import { Marker, GameData, SavedClip } from "@/types/analyzer";
 import { toast } from "sonner";
+import { downloadJSON, extractVideoClip } from "@/components/video/utils";
 
 export const useAnalyzer = () => {
   const [videoUrl, setVideoUrl] = useState<string | undefined>();
@@ -10,6 +11,8 @@ export const useAnalyzer = () => {
   const [markers, setMarkers] = useState<Marker[]>([]);
   const [newMarkerLabel, setNewMarkerLabel] = useState("");
   const [selectedClip, setSelectedClip] = useState<GameData | null>(null);
+  const [playLabel, setPlayLabel] = useState("");
+  const [savedClips, setSavedClips] = useState<SavedClip[]>([]);
   const videoPlayerRef = useRef<any>(null);
   
   const handleFileLoaded = (loadedData: any) => {
@@ -132,6 +135,101 @@ export const useAnalyzer = () => {
       videoPlayerRef.current.seekToTime(time);
     }
   };
+  
+  const saveClipToLibrary = (clip: GameData) => {
+    if (!playLabel.trim()) {
+      toast.error("Please enter a play label");
+      return;
+    }
+    
+    const startTime = parseFloat(clip["Start time"] || "0");
+    const duration = parseFloat(clip["Duration"] || "0");
+    
+    const savedClip: SavedClip = {
+      id: Date.now().toString(),
+      startTime,
+      duration,
+      label: playLabel,
+      notes: clip.Notes || "",
+      timeline: clip.Timeline || "",
+      saved: new Date().toISOString()
+    };
+    
+    setSavedClips([...savedClips, savedClip]);
+    setPlayLabel("");
+    toast.success(`Saved clip: ${playLabel}`);
+  };
+  
+  const removeSavedClip = (id: string) => {
+    setSavedClips(savedClips.filter(clip => clip.id !== id));
+    toast.success("Clip removed from library");
+  };
+  
+  const exportClip = async (clip: SavedClip | GameData) => {
+    if (!videoUrl) {
+      toast.error("No video loaded");
+      return;
+    }
+    
+    let startTime, duration, label;
+    
+    if ('id' in clip) {
+      // It's a SavedClip
+      startTime = clip.startTime;
+      duration = clip.duration;
+      label = clip.label;
+    } else {
+      // It's a GameData
+      startTime = parseFloat(clip["Start time"] || "0");
+      duration = parseFloat(clip["Duration"] || "0");
+      label = clip.Notes || "clip";
+    }
+    
+    toast.loading("Exporting clip...");
+    
+    try {
+      const filename = `${label.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.webm`;
+      await extractVideoClip(videoUrl, startTime, duration, filename);
+      toast.dismiss();
+      toast.success(`Clip exported as ${filename}`);
+    } catch (error) {
+      toast.dismiss();
+      toast.error("Failed to export clip");
+      console.error(error);
+    }
+  };
+  
+  const exportLibrary = () => {
+    if (savedClips.length === 0) {
+      toast.error("No clips in library to export");
+      return;
+    }
+    
+    const exportData = {
+      clips: savedClips,
+      exportedAt: new Date().toISOString(),
+      totalClips: savedClips.length
+    };
+    
+    downloadJSON(exportData, "clip-library.json");
+    toast.success("Clip library exported as JSON");
+  };
+  
+  const exportAllMarkers = () => {
+    if (markers.length === 0) {
+      toast.error("No markers to export");
+      return;
+    }
+    
+    const exportData = {
+      markers,
+      exportedAt: new Date().toISOString(),
+      totalMarkers: markers.length
+    };
+    
+    downloadJSON(exportData, "video-markers.json");
+    toast.success("All markers exported as JSON");
+  };
 
   return {
     videoUrl,
@@ -140,6 +238,8 @@ export const useAnalyzer = () => {
     markers,
     newMarkerLabel,
     selectedClip,
+    playLabel,
+    savedClips,
     videoPlayerRef,
     handleFileLoaded,
     handleVideoFileChange,
@@ -149,6 +249,12 @@ export const useAnalyzer = () => {
     updateMarkerNotes,
     playClip,
     seekToMarker,
-    setNewMarkerLabel
+    setNewMarkerLabel,
+    setPlayLabel,
+    saveClipToLibrary,
+    removeSavedClip,
+    exportClip,
+    exportLibrary,
+    exportAllMarkers
   };
 };

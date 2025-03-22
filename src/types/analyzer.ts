@@ -13,3 +13,13 @@ export interface GameData {
   Timeline?: string;
   Notes?: string;
 }
+
+export interface SavedClip {
+  id: string;
+  startTime: number;
+  duration: number;
+  label: string;
+  notes: string;
+  timeline: string;
+  saved: string;
+}

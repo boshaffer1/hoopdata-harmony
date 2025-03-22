@@ -2,7 +2,7 @@
 import React from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Trash2 } from "lucide-react";
+import { Trash2, Download } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BookmarkIcon } from "lucide-react";
 import { Marker } from "@/types/analyzer";
@@ -13,6 +13,7 @@ interface MarkersListProps {
   onSeekToMarker: (time: number) => void;
   onRemoveMarker: (index: number) => void;
   onMarkerNotesChange: (index: number, notes: string) => void;
+  onExportAllMarkers: () => void;
 }
 
 const MarkersList: React.FC<MarkersListProps> = ({
@@ -20,14 +21,23 @@ const MarkersList: React.FC<MarkersListProps> = ({
   onSeekToMarker,
   onRemoveMarker,
   onMarkerNotesChange,
+  onExportAllMarkers,
 }) => {
   return (
     <Card className="h-full">
-      <CardHeader>
-        <CardTitle>Markers & Notes</CardTitle>
-        <CardDescription>
-          Create and manage video markers and notes
-        </CardDescription>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <div>
+          <CardTitle>Markers & Notes</CardTitle>
+          <CardDescription>
+            Create and manage video markers and notes
+          </CardDescription>
+        </div>
+        {markers.length > 0 && (
+          <Button variant="outline" size="sm" onClick={onExportAllMarkers}>
+            <Download className="h-4 w-4 mr-2" />
+            Export
+          </Button>
+        )}
       </CardHeader>
       <CardContent>
         {markers.length === 0 ? (
