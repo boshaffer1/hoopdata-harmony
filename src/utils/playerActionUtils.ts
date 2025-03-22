@@ -1,5 +1,5 @@
 
-import { PlayerActionType } from "@/types/analyzer";
+import { PlayerActionType, GameSituation } from "@/types/analyzer";
 import { 
   Target,
   X as XIcon,
