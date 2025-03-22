@@ -4,6 +4,7 @@ import { GameData, SavedClip } from "@/types/analyzer";
 import { useClipSave } from "./use-clip-save";
 import { useClipExport } from "./use-clip-export";
 import { useDemoClips } from "./use-demo-clips";
+import { toast } from "sonner";
 
 export const useClipLibrary = (videoUrl: string | undefined) => {
   const [savedClips, setSavedClips] = useState<SavedClip[]>([]);
@@ -60,6 +61,3 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
     addDemoClips: addDemoClipsIfNeeded
   };
 };
-
-// Need to import toast since it's used in the removeClip function
-import { toast } from "sonner";
