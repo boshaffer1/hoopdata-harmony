@@ -1,6 +1,5 @@
-
 import { useState, useRef } from "react";
-import { Marker, GameData, SavedClip } from "@/types/analyzer";
+import { Marker, GameData, SavedClip, PlayerAction } from "@/types/analyzer";
 import { toast } from "sonner";
 import { downloadJSON, extractVideoClip } from "@/components/video/utils";
 
@@ -16,9 +15,7 @@ export const useAnalyzer = () => {
   const videoPlayerRef = useRef<any>(null);
   
   const handleFileLoaded = (loadedData: any) => {
-    // Convert all CSV data to standard format with consistent property names
     const processedData = loadedData.map((item: any) => {
-      // Ensure the object has the required properties
       return {
         ...item,
         "Start time": item["Start time"] || "0",
@@ -28,7 +25,6 @@ export const useAnalyzer = () => {
     
     setData(processedData);
     
-    // Automatically create markers from the loaded data
     const newMarkers = processedData.map((item: GameData, index: number) => {
       const startTime = parseFloat(item["Start time"] || "0");
       const colors = ["#3b82f6", "#ef4444", "#22c55e", "#f59e0b", "#8b5cf6"];
@@ -77,7 +73,6 @@ export const useAnalyzer = () => {
     setMarkers([...markers, newMarker]);
     setNewMarkerLabel("");
     
-    // Format the time for the toast message
     const minutes = Math.floor(currentTime / 60);
     const seconds = Math.floor(currentTime % 60);
     const formattedTime = `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
@@ -112,7 +107,6 @@ export const useAnalyzer = () => {
       
       setSelectedClip(item);
       
-      // Optional: stop after duration
       if (duration > 0) {
         setTimeout(() => {
           if (videoPlayerRef.current) {
@@ -121,7 +115,6 @@ export const useAnalyzer = () => {
         }, duration * 1000);
       }
       
-      // Format the time for the toast message
       const minutes = Math.floor(startTime / 60);
       const seconds = Math.floor(startTime % 60);
       const formattedTime = `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
@@ -145,6 +138,15 @@ export const useAnalyzer = () => {
     const startTime = parseFloat(clip["Start time"] || "0");
     const duration = parseFloat(clip["Duration"] || "0");
     
+    let players: PlayerAction[] = [];
+    try {
+      if (clip.Players) {
+        players = JSON.parse(clip.Players);
+      }
+    } catch (error) {
+      console.error("Error parsing player data:", error);
+    }
+    
     const savedClip: SavedClip = {
       id: Date.now().toString(),
       startTime,
@@ -152,7 +154,8 @@ export const useAnalyzer = () => {
       label: playLabel,
       notes: clip.Notes || "",
       timeline: clip.Timeline || "",
-      saved: new Date().toISOString()
+      saved: new Date().toISOString(),
+      players
     };
     
     setSavedClips([...savedClips, savedClip]);
@@ -174,12 +177,10 @@ export const useAnalyzer = () => {
     let startTime, duration, label;
     
     if ('id' in clip) {
-      // It's a SavedClip
       startTime = clip.startTime;
       duration = clip.duration;
       label = clip.label;
     } else {
-      // It's a GameData
       startTime = parseFloat(clip["Start time"] || "0");
       duration = parseFloat(clip["Duration"] || "0");
       label = clip.Notes || "clip";

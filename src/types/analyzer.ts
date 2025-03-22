@@ -12,6 +12,7 @@ export interface GameData {
   "Duration"?: string;
   Timeline?: string;
   Notes?: string;
+  Players?: string;
 }
 
 export interface SavedClip {
@@ -22,4 +23,34 @@ export interface SavedClip {
   notes: string;
   timeline: string;
   saved: string;
+  players?: PlayerAction[];
 }
+
+export interface PlayerAction {
+  playerId: string;
+  playerName: string;
+  action: PlayerActionType;
+}
+
+export type PlayerActionType = 
+  | "scored" 
+  | "missed" 
+  | "assist" 
+  | "rebound" 
+  | "block" 
+  | "steal" 
+  | "turnover" 
+  | "foul" 
+  | "other";
+
+export const PLAYER_ACTIONS: PlayerActionType[] = [
+  "scored", 
+  "missed", 
+  "assist", 
+  "rebound", 
+  "block", 
+  "steal", 
+  "turnover", 
+  "foul", 
+  "other"
+];

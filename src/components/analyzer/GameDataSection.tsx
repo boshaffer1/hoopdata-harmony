@@ -2,10 +2,11 @@
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Play, Download } from "lucide-react";
+import { Play, Download, User } from "lucide-react";
 import FileUploader from "@/components/data/FileUploader";
 import { GameData } from "@/types/analyzer";
 import { formatVideoTime } from "@/components/video/utils";
+import { Badge } from "@/components/ui/badge";
 
 interface GameDataSectionProps {
   data: GameData[];
@@ -42,6 +43,23 @@ const GameDataSection: React.FC<GameDataSectionProps> = ({
               {selectedClip.Notes || selectedClip.Timeline || "Unnamed clip"} 
               (Start: {formatVideoTime(parseFloat(selectedClip["Start time"] || "0"))}, 
               Duration: {formatVideoTime(parseFloat(selectedClip["Duration"] || "0"))})
+              
+              {selectedClip.Players && (
+                <div className="mt-1 flex gap-1 flex-wrap">
+                  <span className="font-medium">Players: </span>
+                  {try {
+                    const players = JSON.parse(selectedClip.Players);
+                    return players.map((player: any, idx: number) => (
+                      <Badge key={idx} variant="outline" className="text-xs">
+                        <User className="h-3 w-3 mr-1" /> 
+                        {player.playerName}: {player.action}
+                      </Badge>
+                    ));
+                  } catch (e) {
+                    return null;
+                  }}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -54,6 +72,7 @@ const GameDataSection: React.FC<GameDataSectionProps> = ({
                 <th className="px-4 py-2">Start Time</th>
                 <th className="px-4 py-2">Duration</th>
                 <th className="px-4 py-2">Notes</th>
+                <th className="px-4 py-2">Players</th>
               </tr>
             </thead>
             <tbody>
@@ -88,6 +107,22 @@ const GameDataSection: React.FC<GameDataSectionProps> = ({
                   <td className="px-4 py-2">{formatVideoTime(parseFloat(item["Start time"] || "0"))}</td>
                   <td className="px-4 py-2">{formatVideoTime(parseFloat(item["Duration"] || "0"))}</td>
                   <td className="px-4 py-2">{item.Notes || '-'}</td>
+                  <td className="px-4 py-2">
+                    {item.Players && (
+                      <div className="flex gap-1 flex-wrap">
+                        {try {
+                          const players = JSON.parse(item.Players);
+                          return players.map((player: any, idx: number) => (
+                            <Badge key={idx} variant="outline" className="text-xs">
+                              {player.playerName}: {player.action}
+                            </Badge>
+                          ));
+                        } catch (e) {
+                          return '-';
+                        }}
+                      </div>
+                    ) || '-'}
+                  </td>
                 </tr>
               ))}
             </tbody>
