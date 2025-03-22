@@ -2,7 +2,7 @@
 import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { XCircle } from "lucide-react";
-import { PlayerAction, PlayerActionType } from "@/types/analyzer";
+import { PlayerAction } from "@/types/analyzer";
 import { getActionIcon, getActionColor } from "@/utils/playerActionUtils";
 
 interface PlayerActionItemProps {

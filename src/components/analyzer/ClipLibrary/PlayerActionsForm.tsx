@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PlusCircle } from "lucide-react";
 import { PlayerAction, PlayerActionType, PLAYER_ACTIONS } from "@/types/analyzer";
 import PlayerActionItem from "./PlayerActionItem";
-import { getActionIcon, getActionColor } from "@/utils/playerActionUtils";
+import { getActionIcon } from "@/utils/playerActionUtils";
 
 interface PlayerActionsFormProps {
   activePlayers: PlayerAction[];
@@ -74,8 +74,6 @@ const PlayerActionsForm: React.FC<PlayerActionsFormProps> = ({
               key={player.playerId}
               player={player}
               onRemove={onRemovePlayer}
-              getActionIcon={getActionIcon}
-              getActionColor={getActionColor}
             />
           ))}
         </div>
