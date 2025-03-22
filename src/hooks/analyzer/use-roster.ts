@@ -30,7 +30,7 @@ export const useRoster = () => {
     // Check if team already exists
     if (rosters.some(team => team.name.toLowerCase() === teamName.toLowerCase())) {
       toast.error("A team with this name already exists");
-      return;
+      return null;
     }
     
     const newTeam: TeamRoster = {
