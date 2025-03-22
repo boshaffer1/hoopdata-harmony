@@ -145,6 +145,7 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
           duration: 15,
           label: "Fast break layup",
           notes: "Quick transition play with a finish at the rim",
+          timeline: "",
           saved: new Date().toISOString(),
           players: [
             { playerId: "demo-p1", playerName: "John Smith", action: "scored" }
@@ -157,6 +158,7 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
           duration: 20,
           label: "Corner three attempt",
           notes: "Open shot from the corner after ball movement",
+          timeline: "",
           saved: new Date().toISOString(),
           players: [
             { playerId: "demo-p2", playerName: "Mike Johnson", action: "missed" }
@@ -169,11 +171,38 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
           duration: 12,
           label: "Post-up play",
           notes: "Back to the basket move with a hook shot",
+          timeline: "",
           saved: new Date().toISOString(),
           players: [
             { playerId: "demo-p3", playerName: "David Williams", action: "scored" }
           ],
-          situation: "post_up"
+          situation: "other"
+        },
+        {
+          id: "demo-4",
+          startTime: 180,
+          duration: 18,
+          label: "Three pointer by Tatum",
+          notes: "Clean look from beyond the arc",
+          timeline: "",
+          saved: new Date().toISOString(),
+          players: [
+            { playerId: "demo-p4", playerName: "Jayson Tatum", action: "scored" }
+          ],
+          situation: "other"
+        },
+        {
+          id: "demo-5",
+          startTime: 250,
+          duration: 14,
+          label: "Defense by Young",
+          notes: "Great defensive stance leading to a steal",
+          timeline: "",
+          saved: new Date().toISOString(),
+          players: [
+            { playerId: "demo-p5", playerName: "Trae Young", action: "stole" }
+          ],
+          situation: "defense"
         }
       ];
       

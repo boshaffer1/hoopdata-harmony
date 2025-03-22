@@ -65,12 +65,13 @@ const ClipAssistant: React.FC<ClipAssistantProps> = ({
     setIsSearching(true);
     
     // Clear input
+    const searchQuery = query;
     setQuery("");
     
     // Process the query
     setTimeout(() => {
-      console.log("Searching for clips with query:", query);
-      const matchedClips = searchClips(query);
+      console.log("Searching for clips with query:", searchQuery);
+      const matchedClips = searchClips(searchQuery);
       console.log("Found matched clips:", matchedClips);
       
       // Create assistant message
@@ -112,7 +113,7 @@ const ClipAssistant: React.FC<ClipAssistantProps> = ({
     
     const searchTerms = query.toLowerCase().split(" ");
     
-    // Using a more permissive search approach with debug logging
+    // More flexible search approach with enhanced logging
     return savedClips.filter(clip => {
       // Guard against undefined or null values
       const clipLabel = (clip.label || "").toLowerCase();
@@ -123,8 +124,16 @@ const ClipAssistant: React.FC<ClipAssistantProps> = ({
       let playerNames: string[] = [];
       if (clip.players && Array.isArray(clip.players)) {
         playerNames = clip.players
-          .filter(p => p && p.playerName) // Filter out null/undefined players
-          .map(p => p.playerName.toLowerCase());
+          .filter(p => p && typeof p === 'object' && 'playerName' in p) // Filter out null/undefined players
+          .map(p => p.playerName ? p.playerName.toLowerCase() : "");
+      }
+      
+      // Actions from players
+      let playerActions: string[] = [];
+      if (clip.players && Array.isArray(clip.players)) {
+        playerActions = clip.players
+          .filter(p => p && typeof p === 'object' && 'action' in p)
+          .map(p => p.action ? p.action.toLowerCase() : "");
       }
       
       // Collect all text to search within
@@ -132,17 +141,32 @@ const ClipAssistant: React.FC<ClipAssistantProps> = ({
         clipLabel,
         clipNotes,
         clipSituation,
-        ...playerNames
+        ...playerNames,
+        ...playerActions
       ].join(" ");
       
-      // Check if ANY search term is found
-      const matches = searchTerms.some(term => clipText.includes(term));
+      // Log what we're searching within
+      console.log(`Clip text for "${clip.label}": "${clipText}"`);
       
-      if (matches) {
-        console.log(`Match found in clip: "${clip.label}" for query: "${query}"`);
+      // Check if ANY search term is found - more permissive search
+      for (const term of searchTerms) {
+        if (clipText.includes(term)) {
+          console.log(`Match found in clip: "${clip.label}" for term: "${term}"`);
+          return true;
+        }
       }
       
-      return matches;
+      // Special handling for some common search terms
+      if (query.includes("three") || query.includes("3-point") || 
+          query.includes("three pointer") || query.includes("3pt")) {
+        if (clipNotes.includes("three") || clipNotes.includes("3-point") || 
+            clipLabel.includes("three") || clipLabel.includes("3 point")) {
+          console.log(`Special match for three pointer in clip: "${clip.label}"`);
+          return true;
+        }
+      }
+      
+      return false;
     });
   };
 

@@ -44,17 +44,17 @@ const Assistant = () => {
             onPlayClip={handlePlaySavedClip}
           />
           
-          {savedClips.length === 0 && (
-            <div className="mt-4">
-              <Button onClick={handleAddDemoClips} variant="outline" className="w-full">
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Add Demo Clips
-              </Button>
-              <p className="text-xs text-muted-foreground mt-2">
-                Add some sample clips to try out the assistant
-              </p>
-            </div>
-          )}
+          <div className="mt-4">
+            <Button onClick={handleAddDemoClips} variant="outline" className="w-full">
+              <PlusCircle className="mr-2 h-4 w-4" />
+              {savedClips.length === 0 ? "Add Demo Clips" : "Reset Demo Clips"}
+            </Button>
+            <p className="text-xs text-muted-foreground mt-2">
+              {savedClips.length === 0 
+                ? "Add some sample clips to try out the assistant" 
+                : "Refresh the demo clips if the assistant isn't finding matches"}
+            </p>
+          </div>
         </div>
         <div className="col-span-1">
           <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
@@ -65,11 +65,20 @@ const Assistant = () => {
             <div className="space-y-2">
               <p className="text-sm font-medium">Example queries:</p>
               <ul className="text-sm space-y-1 list-disc list-inside">
-                <li>"Show me all clips with Jayson Tatum"</li>
-                <li>"Find fast break situations from the third quarter"</li>
-                <li>"Get clips where players are shooting three pointers"</li>
-                <li>"Show defensive plays from the last game"</li>
+                <li>"Show me clips with Jayson Tatum"</li>
+                <li>"Find fast break situations"</li>
+                <li>"Get clips with three pointers"</li>
+                <li>"Show defensive plays"</li>
+                <li>"Find clips with Trae Young"</li>
               </ul>
+            </div>
+            
+            <div className="mt-6 p-3 bg-muted rounded-md">
+              <p className="text-sm font-medium mb-1">Troubleshooting:</p>
+              <p className="text-xs text-muted-foreground">
+                If the assistant isn't finding clips, try adding demo clips with the button 
+                on the left. You can also try more general terms in your searches.
+              </p>
             </div>
           </div>
         </div>
