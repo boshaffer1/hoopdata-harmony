@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Link } from "react-router-dom";
-import { ChevronRight, FileText, Search } from "lucide-react";
+import { ChevronRight, FileText, Search, Loader2 } from "lucide-react";
 import { ESPNService, TeamWithConference } from "@/utils/espn-service";
 import { toast } from "sonner";
 
@@ -25,6 +25,9 @@ const Scouting = () => {
         // Log the number of teams fetched for debugging
         const totalTeams = Object.values(data).reduce((sum, teams) => sum + teams.length, 0);
         console.log(`Fetched ${totalTeams} teams for ${activeTab}`);
+        
+        // Log conferences to verify structure
+        console.log(`Conferences found: ${Object.keys(data).join(', ')}`);
       } catch (error) {
         console.error("Error fetching teams:", error);
         toast.error(`Failed to load ${activeTab} teams`);
@@ -48,6 +51,21 @@ const Scouting = () => {
     
     return acc;
   }, {} as Record<string, TeamWithConference[]>);
+
+  // Sort conferences for college basketball to show Power conferences first
+  const sortedConferences = Object.entries(filteredTeams).sort((a, b) => {
+    // Put Power conferences first
+    const powerConferences = ["ACC", "Big 12", "Big Ten", "SEC"];
+    
+    const aIsPower = powerConferences.includes(a[0]);
+    const bIsPower = powerConferences.includes(b[0]);
+    
+    if (aIsPower && !bIsPower) return -1;
+    if (!aIsPower && bIsPower) return 1;
+    
+    // Then sort alphabetically
+    return a[0].localeCompare(b[0]);
+  });
 
   return (
     <Layout className="py-6">
@@ -101,11 +119,14 @@ const Scouting = () => {
         {/* Teams by Conference */}
         {loading ? (
           <div className="flex justify-center p-8">
-            <div className="animate-pulse">Loading teams...</div>
+            <div className="flex items-center gap-2">
+              <Loader2 className="h-5 w-5 animate-spin" />
+              <span>Loading teams...</span>
+            </div>
           </div>
         ) : (
           <div className="space-y-8">
-            {Object.entries(filteredTeams).map(([conference, teams]) => (
+            {sortedConferences.map(([conference, teams]) => (
               <div key={conference}>
                 <h2 className="text-xl font-semibold mb-4">{conference}</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -133,8 +154,12 @@ const Scouting = () => {
                                 <h3 className="font-semibold">{team.displayName || "Unknown Team"}</h3>
                                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                   <span>{team.record || "N/A"}</span>
-                                  <span>•</span>
-                                  <span>{team.division || "Division"}</span>
+                                  {team.division && (
+                                    <>
+                                      <span>•</span>
+                                      <span>{team.division}</span>
+                                    </>
+                                  )}
                                 </div>
                               </div>
                             </div>
@@ -148,7 +173,7 @@ const Scouting = () => {
               </div>
             ))}
 
-            {Object.keys(filteredTeams).length === 0 && !loading && (
+            {sortedConferences.length === 0 && !loading && (
               <div className="text-center py-8">
                 <p className="text-muted-foreground">No teams found matching your search criteria.</p>
                 {searchQuery && (

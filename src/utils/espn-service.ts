@@ -1,3 +1,4 @@
+
 import { TeamRoster, Player } from "@/types/analyzer";
 import { toast } from "sonner";
 
@@ -93,7 +94,15 @@ export const ESPNService = {
    */
   async fetchTeams(sport: string, league: string): Promise<ESPNTeam[]> {
     try {
-      const response = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/teams`);
+      // Different endpoint for college basketball to get conference data
+      let url = `https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/teams`;
+      
+      // Use groups endpoint for college basketball to get conference grouping
+      if (league === 'mens-college-basketball' || league === 'womens-college-basketball') {
+        url = `https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/teams?limit=500`;
+      }
+      
+      const response = await fetch(url);
       
       if (!response.ok) {
         throw new Error(`Failed to fetch ${league} teams`);
@@ -126,7 +135,9 @@ export const ESPNService = {
                 shortDisplayName: teamData.shortDisplayName || "",
                 color: teamData.color || "",
                 alternateColor: teamData.alternateColor || "",
-                logo: teamData.logos && teamData.logos.length > 0 ? teamData.logos[0].href : ""
+                logo: teamData.logos && teamData.logos.length > 0 ? teamData.logos[0].href : "",
+                conferenceId: team.conferenceId || "",
+                conference: team.conference || ""
               };
             });
         } else if (league === 'nba' || league === 'wnba') {
@@ -335,42 +346,82 @@ export const ESPNService = {
       // Different conference structures based on league
       if (league === 'mens-college-basketball' || league === 'womens-college-basketball') {
         // For college basketball, use actual conferences
-        conferences = {
-          "Power Conferences": [],
-          "Mid-Major Conferences": []
-        };
+        // Define Power 5 (now Power 4 after Pac-12 changes) and major conferences
+        const powerConferences = [
+          "ACC", 
+          "Big 12", 
+          "Big Ten", 
+          "SEC"
+        ];
         
-        // Simple assignment of conferences
-        const powerConferences = ["ACC", "Big 12", "Big East", "Big Ten", "Pac-12", "SEC"];
+        const midMajorConferences = [
+          "American", 
+          "Atlantic 10", 
+          "Big East", 
+          "Mountain West", 
+          "West Coast",
+          "Conference USA", 
+          "MAC", 
+          "Sun Belt",
+          "Big West",
+          "Big Sky",
+          "WAC",
+          "Horizon",
+          "MAAC",
+          "CAA",
+          "MVC",
+          "Big South"
+        ];
         
-        teams.forEach((team, index) => {
+        // Initialize conferences object
+        for (const conf of [...powerConferences, ...midMajorConferences]) {
+          conferences[conf] = [];
+        }
+        
+        // Add "Other Conferences" category
+        conferences["Other Conferences"] = [];
+        
+        // Assign teams to conferences with mock records
+        teams.forEach((team) => {
           if (!team) return; // Skip undefined teams
           
-          // Generate a mock conference for demo purposes
-          const confIndex = index % 12;
-          const conferenceNames = [
-            "ACC", "Big 12", "Big East", "Big Ten", "Pac-12", "SEC",
-            "American", "Atlantic 10", "Mountain West", "West Coast", "MAC", "Conference USA"
-          ];
-          const conference = conferenceNames[confIndex];
+          // Extract conference name from team data or assign default
+          let conferenceName = team.conference || "Unknown";
           
-          // Is this a power conference?
-          const conferenceType = powerConferences.includes(conference) 
-            ? "Power Conferences" 
-            : "Mid-Major Conferences";
+          // Identify the conference
+          let conferenceKey;
+          if (powerConferences.includes(conferenceName)) {
+            conferenceKey = conferenceName;
+          } else if (midMajorConferences.includes(conferenceName)) {
+            conferenceKey = conferenceName;
+          } else {
+            conferenceKey = "Other Conferences";
+          }
+          
+          // Make sure the conference exists
+          if (!conferences[conferenceKey]) {
+            conferences[conferenceKey] = [];
+          }
           
           // Generate a mock record (wins-losses)
           const wins = 10 + Math.floor(Math.random() * 20);
           const losses = 30 - wins;
           const record = `${wins}-${losses}`;
           
-          conferences[conferenceType].push({
+          conferences[conferenceKey].push({
             ...team,
-            conference: conferenceType,
-            division: conference,
+            conference: conferenceKey,
+            division: conferenceName,
             record
           });
         });
+        
+        // Remove empty conferences
+        for (const conf in conferences) {
+          if (conferences[conf].length === 0) {
+            delete conferences[conf];
+          }
+        }
       } else {
         // For NBA/WNBA, use Eastern and Western conferences
         conferences = {
@@ -410,10 +461,51 @@ export const ESPNService = {
     } catch (error) {
       console.error("Error organizing teams by conference:", error);
       toast.error("Failed to organize teams by conference");
-      return {
-        "Eastern Conference": [],
-        "Western Conference": []
-      };
+      return {};
+    }
+  },
+
+  /**
+   * Fetch roster for a specific team
+   */
+  async fetchTeamRoster(sport: string, league: string, teamId: string): Promise<ESPNAthlete[]> {
+    try {
+      const response = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/teams/${teamId}/roster`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch team roster');
+      }
+      
+      const data = await response.json();
+      
+      // Handle potential different data structures for college vs pro
+      if (data && data.athletes && Array.isArray(data.athletes)) {
+        // Map athletes ensuring we handle any missing data fields
+        return data.athletes
+          .filter((athlete: any) => athlete) // Filter out any null/undefined athletes
+          .map((athlete: any) => ({
+            id: athlete.id || "",
+            uid: athlete.uid || "",
+            guid: athlete.guid || "",
+            firstName: athlete.firstName || "",
+            lastName: athlete.lastName || "",
+            fullName: athlete.fullName || `${athlete.firstName || ""} ${athlete.lastName || ""}`.trim() || "Unknown Player",
+            displayName: athlete.displayName || athlete.fullName || "Unknown Player",
+            shortName: athlete.shortName || "",
+            weight: athlete.weight || 0,
+            height: athlete.height || 0,
+            jersey: athlete.jersey || "",
+            position: athlete.position || { abbreviation: "", displayName: "", name: "" },
+            headshot: athlete.headshot || null
+          }));
+      }
+      
+      console.warn("No athletes found in roster response:", data);
+      return [];
+    } catch (error) {
+      console.error("Error fetching team roster:", error);
+      toast.error("Failed to fetch team roster from ESPN");
+      return [];
     }
   },
 
