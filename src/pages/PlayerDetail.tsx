@@ -116,7 +116,7 @@ const PlayerDetail = () => {
             </TabsContent>
             
             <TabsContent value="notes">
-              <PlayerNotes player={player} />
+              <PlayerNotes player={player} teamId={teamId} />
             </TabsContent>
           </Tabs>
         </div>
