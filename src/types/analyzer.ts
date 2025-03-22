@@ -1,4 +1,3 @@
-
 export interface Marker {
   time: number;
   label: string;
@@ -7,7 +6,7 @@ export interface Marker {
 }
 
 export interface GameData {
-  [key: string]: string | GameSituation | PlayerActionType;
+  [key: string]: string;
   "Play Name": string;
   "Start time": string;
   "Duration": string;
