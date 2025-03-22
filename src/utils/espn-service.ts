@@ -50,6 +50,44 @@ interface PlayerStats {
   ftPercent?: number;
 }
 
+export interface TeamWithConference extends ESPNTeam {
+  conference: string;
+  division: string;
+  record: string;
+}
+
+export interface ScoutingStrength {
+  text: string;
+  value?: number;
+  rating?: string;
+}
+
+export interface ScoutingWeakness {
+  text: string;
+}
+
+export interface ScoutingReport {
+  teamId: string;
+  teamName: string;
+  record: string;
+  conference: string;
+  division: string;
+  coach: string;
+  logo?: string;
+  color?: string;
+  strengths: ScoutingStrength[];
+  weaknesses: ScoutingWeakness[];
+  offensiveStyle: string;
+  defensiveStyle: string;
+  keyStats: {
+    [key: string]: {
+      value: number | string;
+      trend?: 'up' | 'down' | 'neutral';
+    };
+  };
+  playerStats?: any[];
+}
+
 export const ESPNService = {
   /**
    * Fetch teams from ESPN for a specific sport and league
@@ -227,5 +265,146 @@ export const ESPNService = {
       name: espnTeam.displayName,
       players
     };
+  },
+
+  /**
+   * Get teams organized by conference and division with mock records
+   */
+  async getTeamsByConference(sport: string = 'basketball', league: string = 'nba'): Promise<Record<string, TeamWithConference[]>> {
+    try {
+      const teams = await this.fetchTeams(sport, league);
+      
+      // For the NBA, we'll organize into Eastern and Western conferences
+      const conferences: Record<string, TeamWithConference[]> = {
+        "Eastern Conference": [],
+        "Western Conference": []
+      };
+      
+      // NBA divisions
+      const divisions = {
+        "Eastern Conference": ["Atlantic Division", "Central Division", "Southeast Division"],
+        "Western Conference": ["Northwest Division", "Pacific Division", "Southwest Division"]
+      };
+      
+      // Assign teams to conferences and divisions with mock records
+      teams.forEach((team, index) => {
+        const conference = index % 2 === 0 ? "Eastern Conference" : "Western Conference";
+        const divisionIndex = Math.floor(index / 5) % 3;
+        const division = divisions[conference][divisionIndex];
+        
+        // Generate a mock record (wins-losses)
+        const wins = 20 + Math.floor(Math.random() * 35);
+        const losses = 82 - wins;
+        const record = `${wins}-${losses}`;
+        
+        conferences[conference].push({
+          ...team,
+          conference,
+          division,
+          record
+        });
+      });
+      
+      return conferences;
+    } catch (error) {
+      console.error("Error organizing teams by conference:", error);
+      toast.error("Failed to organize teams by conference");
+      return {
+        "Eastern Conference": [],
+        "Western Conference": []
+      };
+    }
+  },
+
+  /**
+   * Get scouting report for a team
+   */
+  async getScoutingReport(teamId: string): Promise<ScoutingReport> {
+    try {
+      // In a real app, this would fetch from a backend API
+      // We'll generate mock data for this example
+      
+      // First try to get the actual team data from ESPN
+      const teams = await this.fetchNBATeams();
+      const team = teams.find(t => t.id === teamId);
+      
+      if (!team) {
+        throw new Error('Team not found');
+      }
+      
+      // Create a mock scouting report
+      const mockStrengths: ScoutingStrength[] = [
+        { text: "Elite 3-point shooting (38.2%, 2nd in NBA)" },
+        { text: "Top-ranked defense (107.7 defensive rating)" },
+        { text: "Excellent ball movement (26.4 assists per game)" },
+        { text: "Depth at every position" },
+        { text: "Strong transition offense" }
+      ];
+      
+      const mockWeaknesses: ScoutingWeakness[] = [
+        { text: "Can become isolation-heavy in clutch situations" },
+        { text: "Occasional turnover issues" },
+        { text: "Interior depth when Porzingis is off the floor" },
+        { text: "Can struggle against teams with elite rim protection" }
+      ];
+      
+      const mockKeyStats = {
+        "3PT%": { value: 38.2, trend: "up" as const },
+        "Defensive Rating": { value: 107.7, trend: "up" as const },
+        "Pace": { value: 99.8, trend: "neutral" as const },
+        "Assists": { value: 26.4, trend: "up" as const },
+        "Rebounding": { value: 44.3, trend: "down" as const }
+      };
+      
+      return {
+        teamId: team.id,
+        teamName: team.displayName,
+        record: "55-14",
+        conference: "Eastern Conference",
+        division: "Atlantic Division",
+        coach: "Joe Mazzulla",
+        logo: team.logo,
+        color: team.color,
+        strengths: mockStrengths,
+        weaknesses: mockWeaknesses,
+        offensiveStyle: "The Celtics run a modern 5-out offense with heavy emphasis on three-point shooting and ball movement. They utilize dribble handoffs and pick-and-pops with their bigs to create space. Tatum and Brown initiate most offensive sets, with Holiday serving as a secondary playmaker.",
+        defensiveStyle: "Switch-heavy defensive scheme that leverages their versatile personnel. They force opponents into difficult mid-range shots and contest aggressively at the rim. Holiday and Derrick White are elite perimeter defenders who disrupt opposing guards.",
+        keyStats: mockKeyStats
+      };
+    } catch (error) {
+      console.error("Error fetching scouting report:", error);
+      toast.error("Failed to fetch scouting report");
+      
+      // Return a default report with an error message
+      return {
+        teamId: teamId,
+        teamName: "Team Not Found",
+        record: "N/A",
+        conference: "N/A",
+        division: "N/A",
+        coach: "N/A",
+        strengths: [],
+        weaknesses: [{ text: "Error loading team data" }],
+        offensiveStyle: "Not available",
+        defensiveStyle: "Not available",
+        keyStats: {}
+      };
+    }
+  },
+
+  /**
+   * Generate a PDF scouting report (mock function)
+   */
+  async generateScoutingReportPDF(teamId: string): Promise<boolean> {
+    // In a real app, this would generate a PDF on the server
+    // For this mock, we'll just show a success message
+    try {
+      toast.success("Scouting report PDF generated successfully!");
+      return true;
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      toast.error("Failed to generate PDF report");
+      return false;
+    }
   }
 };
