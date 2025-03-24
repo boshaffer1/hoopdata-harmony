@@ -45,16 +45,27 @@ const VideoPlayer = forwardRef<any, VideoPlayerProps>(({
     }
     
     try {
+      if (videoRef.current) {
+        console.log("Current time before play:", videoRef.current.currentTime);
+      }
+      
       const playPromise = play();
       if (playPromise instanceof Promise) {
         return playPromise
           .then(() => {
             console.log("Play promise resolved successfully");
+            setTimeout(() => {
+              if (videoRef.current && !videoRef.current.paused && !isPlaying) {
+                console.log("Video is playing but state doesn't reflect it - fixing");
+              }
+            }, 300);
             return Promise.resolve();
           })
           .catch(error => {
             console.error("Error playing video:", error);
-            if (errorMessage) {
+            if (error.name === "NotAllowedError") {
+              toast.error("Playback was blocked by the browser. Try again or click directly on the video.");
+            } else if (errorMessage) {
               toast.error(`Failed to play video: ${errorMessage}`);
             } else {
               toast.error("Failed to play video");
@@ -85,6 +96,8 @@ const VideoPlayer = forwardRef<any, VideoPlayerProps>(({
     }
     
     try {
+      videoRef.current.currentTime = time;
+      console.log(`Set currentTime directly to ${time}s, now at:`, videoRef.current.currentTime);
       seekToTime(time);
       return Promise.resolve();
     } catch (error) {
@@ -119,6 +132,7 @@ const VideoPlayer = forwardRef<any, VideoPlayerProps>(({
       
       if (pendingSeek !== null) {
         console.log(`Handling pending seek to ${pendingSeek}s`);
+        video.currentTime = pendingSeek;
         seekToTime(pendingSeek);
         setPendingSeek(null);
         
@@ -127,7 +141,7 @@ const VideoPlayer = forwardRef<any, VideoPlayerProps>(({
             console.log("Handling pending play after seek");
             enhancedPlay().catch(err => console.error("Failed to play after seek:", err));
             setPendingPlay(false);
-          }, 500);
+          }, 800);
         }
       } else if (pendingPlay) {
         console.log("Handling pending play");
@@ -137,9 +151,11 @@ const VideoPlayer = forwardRef<any, VideoPlayerProps>(({
     };
     
     video.addEventListener("canplay", handleCanPlay);
+    video.addEventListener("loadeddata", handleCanPlay);
     
     return () => {
       video.removeEventListener("canplay", handleCanPlay);
+      video.removeEventListener("loadeddata", handleCanPlay);
     };
   }, [pendingSeek, pendingPlay, seekToTime]);
 
