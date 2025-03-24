@@ -1,21 +1,13 @@
 
-export interface Marker {
-  time: number;
-  label: string;
-  color: string;
-  notes?: string;
-}
-
 export interface GameData {
-  [key: string]: string;
   "Play Name": string;
   "Start time": string;
   "Duration": string;
-  "Situation": GameSituation;
-  "Outcome": PlayerActionType;
-  "Players": string; // JSON string of PlayerAction[]
-  "Notes"?: string;
-  "Timeline"?: string;
+  "Notes": string;
+  "Timeline": string;
+  "Players": string;
+  "Situation": string;
+  "Outcome": string;
 }
 
 export interface SavedClip {
@@ -26,9 +18,27 @@ export interface SavedClip {
   notes: string;
   timeline: string;
   saved: string;
-  players?: PlayerAction[];
-  situation?: GameSituation;
+  players: PlayerAction[];
+  situation: GameSituation;
 }
+
+export interface Marker {
+  time: number;
+  label: string;
+  color: string;
+  notes: string;
+}
+
+export type PlayerActionType = 
+  | 'scored' 
+  | 'missed' 
+  | 'assisted' 
+  | 'rebounded' 
+  | 'blocked' 
+  | 'stole' 
+  | 'turnover' 
+  | 'fouled' 
+  | 'other';
 
 export interface PlayerAction {
   playerId: string;
@@ -36,76 +46,82 @@ export interface PlayerAction {
   action: PlayerActionType;
 }
 
-export type PlayerActionType = 
-  | "scored" 
-  | "missed" 
-  | "assist" 
-  | "rebound" 
-  | "block" 
-  | "steal" 
-  | "turnover" 
-  | "foul" 
-  | "other";
-
-export const PLAYER_ACTIONS: PlayerActionType[] = [
-  "scored", 
-  "missed", 
-  "assist", 
-  "rebound", 
-  "block", 
-  "steal", 
-  "turnover", 
-  "foul", 
-  "other"
-];
-
 export type GameSituation = 
-  | "transition" 
-  | "half_court" 
-  | "ato" // After timeout
-  | "slob" // Sideline out of bounds
-  | "blob" // Baseline out of bounds
-  | "press_break" 
-  | "zone_offense" 
-  | "man_offense"
-  | "fast_break"
-  | "other";
+  | 'transition' 
+  | 'half_court' 
+  | 'ato' 
+  | 'slob' 
+  | 'blob' 
+  | 'press_break' 
+  | 'zone_offense' 
+  | 'man_offense' 
+  | 'fast_break'
+  | 'defense'
+  | 'other';
 
-export const GAME_SITUATIONS: GameSituation[] = [
-  "transition",
-  "half_court",
-  "ato",
-  "slob",
-  "blob",
-  "press_break",
-  "zone_offense",
-  "man_offense",
-  "fast_break",
-  "other"
-];
-
-// New Team Roster related types
 export interface Player {
   id: string;
   name: string;
   number: string;
   position: string;
+  height: string;
+  year: string;
+  hometown: string;
   notes?: string;
-  stats?: {
-    ppg?: number;
-    rpg?: number;
-    apg?: number;
-    spg?: number;
-    bpg?: number;
-    fgPercent?: number;
-    threePointPercent?: number;
-    ftPercent?: number;
-    [key: string]: number | undefined;
-  };
+  image?: string;
+  headshot?: string;
+  espnId?: string;
+  stats?: PlayerStats;
 }
 
 export interface TeamRoster {
   id: string;
   name: string;
+  abbreviation?: string;
+  logo?: string;
+  color?: string;
+  primaryColor?: string;
+  secondaryColor?: string;
+  conference?: string;
+  isCollegeTeam?: boolean;
   players: Player[];
 }
+
+export interface PlayerStats {
+  ppg?: number;
+  rpg?: number;
+  apg?: number;
+  spg?: number;
+  bpg?: number;
+  mpg?: number;
+  fg_pct?: number;
+  fg3_pct?: number;
+  ft_pct?: number;
+}
+
+// Add these export constants for the form components
+export const GAME_SITUATIONS: Record<GameSituation, string> = {
+  transition: 'Transition',
+  half_court: 'Half Court',
+  ato: 'After Timeout',
+  slob: 'Sideline Out of Bounds',
+  blob: 'Baseline Out of Bounds',
+  press_break: 'Press Break',
+  zone_offense: 'Zone Offense',
+  man_offense: 'Man Offense',
+  fast_break: 'Fast Break',
+  defense: 'Defense',
+  other: 'Other'
+};
+
+export const PLAYER_ACTIONS: Record<PlayerActionType, string> = {
+  scored: 'Scored',
+  missed: 'Missed',
+  assisted: 'Assisted',
+  rebounded: 'Rebounded',
+  blocked: 'Blocked',
+  stole: 'Stole',
+  turnover: 'Turnover',
+  fouled: 'Fouled',
+  other: 'Other'
+};

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Link } from "react-router-dom";
-import { ChevronRight, FileText, Search, Loader2 } from "lucide-react";
+import { ChevronRight, FileText, Search, Loader2, Users, Flag } from "lucide-react";
 import { ESPNService, TeamWithConference } from "@/utils/espn-service";
 import { toast } from "sonner";
 
@@ -127,8 +127,11 @@ const Scouting = () => {
         ) : (
           <div className="space-y-8">
             {sortedConferences.map(([conference, teams]) => (
-              <div key={conference}>
-                <h2 className="text-xl font-semibold mb-4">{conference}</h2>
+              <div key={conference} className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <Flag className="h-5 w-5 text-muted-foreground" />
+                  <h2 className="text-xl font-semibold">{conference}</h2>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {teams.map(team => {
                     // Get team colors or use defaults
