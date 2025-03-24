@@ -1,19 +1,18 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { SavedClip } from "@/types/analyzer";
-import { Trash } from "lucide-react";
+import { Search, SendIcon, Trash } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Avatar } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import MessageList from "./components/MessageList";
-import ChatInput from "./components/ChatInput";
-import { useClipSearch } from "@/hooks/analyzer/use-clip-search";
 
 interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
-  clips?: SavedClip[];
 }
 
 interface ClipAssistantProps {
@@ -25,6 +24,7 @@ const ClipAssistant: React.FC<ClipAssistantProps> = ({
   savedClips,
   onPlayClip
 }) => {
+  const [query, setQuery] = useState("");
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "welcome",
@@ -33,14 +33,16 @@ const ClipAssistant: React.FC<ClipAssistantProps> = ({
     }
   ]);
   const [isSearching, setIsSearching] = useState(false);
-  const { searchClips } = useClipSearch();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Debug the saved clips when they change
-  useEffect(() => {
-    console.log("ClipAssistant: savedClips changed", savedClips);
-  }, [savedClips]);
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
-  const handleSubmit = (query: string) => {
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!query.trim()) return;
+
     // Add user message
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -51,11 +53,12 @@ const ClipAssistant: React.FC<ClipAssistantProps> = ({
     setMessages(prev => [...prev, userMessage]);
     setIsSearching(true);
     
+    // Clear input
+    setQuery("");
+    
     // Process the query
     setTimeout(() => {
-      console.log("Searching for clips with query:", query);
-      const matchedClips = searchClips(query, savedClips);
-      console.log("Found matched clips:", matchedClips);
+      const matchedClips = searchClips(query);
       
       // Create assistant message
       let assistantMessage: Message;
@@ -64,8 +67,7 @@ const ClipAssistant: React.FC<ClipAssistantProps> = ({
         assistantMessage = {
           id: (Date.now() + 1).toString(),
           role: "assistant",
-          content: `I found ${matchedClips.length} clips that might match what you're looking for. Click on a clip to play it.`,
-          clips: matchedClips
+          content: `I found ${matchedClips.length} clips that might match what you're looking for. Click on a clip to play it.`
         };
       } else {
         assistantMessage = {
@@ -82,7 +84,27 @@ const ClipAssistant: React.FC<ClipAssistantProps> = ({
       if (matchedClips.length > 0) {
         onPlayClip(matchedClips[0]);
       }
+      
+      // Scroll to bottom of chat
+      setTimeout(scrollToBottom, 100);
     }, 1000);
+  };
+
+  const searchClips = (query: string): SavedClip[] => {
+    const searchTerms = query.toLowerCase().split(" ");
+    
+    // Using a basic keyword matching approach for now
+    return savedClips.filter(clip => {
+      const clipText = [
+        clip.label.toLowerCase(),
+        clip.notes.toLowerCase(),
+        clip.situation,
+        ...clip.players?.map(p => p.playerName.toLowerCase()) || []
+      ].join(" ");
+      
+      // Check if the clip contains all search terms
+      return searchTerms.every(term => clipText.includes(term));
+    });
   };
 
   const clearChat = () => {
@@ -111,17 +133,46 @@ const ClipAssistant: React.FC<ClipAssistantProps> = ({
       </CardHeader>
       <CardContent className="p-0">
         <div className="flex flex-col h-[500px]">
-          <MessageList 
-            messages={messages} 
-            onPlayClip={onPlayClip} 
-          />
+          <ScrollArea className="flex-1 p-4">
+            <div className="space-y-4">
+              {messages.map((message) => (
+                <div
+                  key={message.id}
+                  className={`flex ${
+                    message.role === "user" ? "justify-end" : "justify-start"
+                  }`}
+                >
+                  <div
+                    className={`max-w-[80%] rounded-lg p-3 ${
+                      message.role === "user"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted"
+                    }`}
+                  >
+                    {message.content}
+                  </div>
+                </div>
+              ))}
+              <div ref={messagesEndRef} />
+            </div>
+          </ScrollArea>
           
           <Separator />
           
-          <ChatInput 
-            onSubmit={handleSubmit} 
-            isSearching={isSearching} 
-          />
+          <form onSubmit={handleSubmit} className="p-4">
+            <div className="flex gap-2">
+              <Input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Find clips with Jayson Tatum shooting 3s..."
+                disabled={isSearching}
+              />
+              <Button type="submit" size="icon" disabled={isSearching}>
+                <SendIcon className="h-4 w-4" />
+                <span className="sr-only">Send</span>
+              </Button>
+            </div>
+          </form>
         </div>
       </CardContent>
     </Card>

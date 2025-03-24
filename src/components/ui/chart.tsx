@@ -1,4 +1,3 @@
-
 import * as React from "react"
 import * as RechartsPrimitive from "recharts"
 
@@ -67,12 +66,6 @@ const ChartContainer = React.forwardRef<
 ChartContainer.displayName = "Chart"
 
 const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
-  // Fix the error by ensuring config exists before calling Object.entries
-  if (!config) {
-    console.warn("ChartStyle: config is undefined or null");
-    return null;
-  }
-
   const colorConfig = Object.entries(config).filter(
     ([_, config]) => config.theme || config.color
   )
@@ -95,7 +88,6 @@ ${colorConfig
       itemConfig.color
     return color ? `  --color-${key}: ${color};` : null
   })
-  .filter(Boolean)
   .join("\n")}
 }
 `

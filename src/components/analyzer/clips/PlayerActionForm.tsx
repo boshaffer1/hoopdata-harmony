@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Target, XIcon, UserPlus, ArrowDown, Hand, RotateCcw, List } from "lucide-react";
+import { PlusCircle } from "lucide-react";
 import { PlayerAction, PlayerActionType, PLAYER_ACTIONS } from "@/types/analyzer";
 
 interface PlayerActionFormProps {
@@ -31,12 +31,12 @@ export const PlayerActionForm: React.FC<PlayerActionFormProps> = ({ onAddPlayer 
     switch(action) {
       case "scored": return <Target className="h-3 w-3" />;
       case "missed": return <XIcon className="h-3 w-3" />;
-      case "assisted": return <UserPlus className="h-3 w-3" />;
-      case "rebounded": return <ArrowDown className="h-3 w-3" />;
-      case "blocked": return <Hand className="h-3 w-3" />;
-      case "stole": return <Hand className="h-3 w-3" />;
+      case "assist": return <UserPlus className="h-3 w-3" />;
+      case "rebound": return <ArrowDown className="h-3 w-3" />;
+      case "block": return <Hand className="h-3 w-3" />;
+      case "steal": return <Hand className="h-3 w-3" />;
       case "turnover": return <RotateCcw className="h-3 w-3" />;
-      case "fouled": return <XIcon className="h-3 w-3" />;
+      case "foul": return <XIcon className="h-3 w-3" />;
       case "other": return <List className="h-3 w-3" />;
       default: return <List className="h-3 w-3" />;
     }
@@ -55,12 +55,12 @@ export const PlayerActionForm: React.FC<PlayerActionFormProps> = ({ onAddPlayer 
           <SelectValue placeholder="Action" />
         </SelectTrigger>
         <SelectContent>
-          {Object.entries(PLAYER_ACTIONS).map(([action, label]) => (
+          {PLAYER_ACTIONS.map(action => (
             <SelectItem key={action} value={action}>
-              <div className="flex items-center">
-                {getActionIcon(action as PlayerActionType)}
-                <span className="ml-2">{label}</span>
-              </div>
+              {getActionIcon(action)}
+              <span className="ml-2">
+                {action.charAt(0).toUpperCase() + action.slice(1)}
+              </span>
             </SelectItem>
           ))}
         </SelectContent>
@@ -71,3 +71,5 @@ export const PlayerActionForm: React.FC<PlayerActionFormProps> = ({ onAddPlayer 
     </div>
   );
 };
+
+import { Target, XIcon, UserPlus, ArrowDown, Hand, RotateCcw, List } from "lucide-react";

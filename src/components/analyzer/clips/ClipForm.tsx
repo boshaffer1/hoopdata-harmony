@@ -39,9 +39,21 @@ export const ClipForm: React.FC<ClipFormProps> = ({
   situation,
   onSituationChange
 }) => {
-  // Use the actual record from GAME_SITUATIONS
   const getSituationLabel = (situation: GameSituation): string => {
-    return GAME_SITUATIONS[situation] || "Other";
+    const labels: Record<GameSituation, string> = {
+      transition: "Transition",
+      half_court: "Half Court",
+      ato: "After Timeout (ATO)",
+      slob: "Sideline Out of Bounds (SLOB)",
+      blob: "Baseline Out of Bounds (BLOB)",
+      press_break: "Press Break",
+      zone_offense: "Zone Offense",
+      man_offense: "Man Offense",
+      fast_break: "Fast Break",
+      other: "Other"
+    };
+    
+    return labels[situation] || situation;
   };
 
   const handleSaveClip = () => {
@@ -89,9 +101,9 @@ export const ClipForm: React.FC<ClipFormProps> = ({
             <SelectValue placeholder="Select a situation" />
           </SelectTrigger>
           <SelectContent>
-            {Object.entries(GAME_SITUATIONS).map(([situationKey, situationLabel]) => (
-              <SelectItem key={situationKey} value={situationKey}>
-                {situationLabel}
+            {GAME_SITUATIONS.map(situation => (
+              <SelectItem key={situation} value={situation}>
+                {getSituationLabel(situation)}
               </SelectItem>
             ))}
           </SelectContent>
