@@ -1,3 +1,4 @@
+
 import { useVideo } from "./use-video";
 import { useMarkers } from "./use-markers";
 import { useGameData } from "./use-game-data";
@@ -32,6 +33,7 @@ export const useAnalyzer = () => {
     isPlayingClip,
     handleFileLoaded: originalHandleFileLoaded,
     playClip,
+    stopClipPlayback,
     setSelectedClip
   } = useGameData(videoPlayerRef);
 
@@ -68,11 +70,6 @@ export const useAnalyzer = () => {
       return;
     }
     
-    if (isPlayingClip) {
-      toast.info("Already playing a clip. Wait for it to finish or pause it first.");
-      return;
-    }
-    
     const startTime = parseFloat(item["Start time"] || "0");
     const duration = parseFloat(item["Duration"] || "0");
     
@@ -104,6 +101,17 @@ export const useAnalyzer = () => {
     
     playSelectedClip(gameDataClip);
   };
+  
+  // Add this new function to stop clip playback
+  const handleStopClip = () => {
+    if (isPlayingClip) {
+      if (videoPlayerRef.current) {
+        videoPlayerRef.current.pause();
+      }
+      stopClipPlayback();
+      toast.info("Clip playback stopped");
+    }
+  };
 
   return {
     videoUrl,
@@ -123,6 +131,7 @@ export const useAnalyzer = () => {
     removeMarker,
     updateMarkerNotes,
     playClip: playSelectedClip,
+    stopClip: handleStopClip,
     seekToMarker,
     setNewMarkerLabel,
     setPlayLabel,

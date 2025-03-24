@@ -9,7 +9,8 @@ import RosterView from "@/components/analyzer/teams/RosterView";
 import { useAnalyzer } from "@/hooks/analyzer/use-analyzer";
 import { useRoster } from "@/hooks/analyzer/use-roster";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BookmarkIcon, Library, Users } from "lucide-react";
+import { BookmarkIcon, Library, Users, StopCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const Analyzer = () => {
   const {
@@ -21,6 +22,7 @@ const Analyzer = () => {
     selectedClip,
     playLabel,
     savedClips,
+    isPlayingClip,
     videoPlayerRef,
     handleFileLoaded,
     handleVideoFileChange,
@@ -29,6 +31,7 @@ const Analyzer = () => {
     removeMarker,
     updateMarkerNotes,
     playClip,
+    stopClip,
     seekToMarker,
     setNewMarkerLabel,
     setPlayLabel,
@@ -72,13 +75,38 @@ const Analyzer = () => {
             onAddMarker={addMarker}
           />
           
+          {/* Clip control indicator and stop button */}
+          {isPlayingClip && selectedClip && (
+            <div className="bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700 rounded-md p-4 flex items-center justify-between">
+              <div>
+                <p className="font-medium">
+                  Now playing: {selectedClip["Play Name"]}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Start: {selectedClip["Start time"]}s, Duration: {selectedClip["Duration"]}s
+                </p>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={stopClip} 
+                className="bg-white dark:bg-background flex items-center gap-1"
+              >
+                <StopCircle className="h-4 w-4" />
+                Stop Clip
+              </Button>
+            </div>
+          )}
+          
           {/* Data Table */}
           <GameDataSection 
             data={data}
             videoUrl={videoUrl}
             selectedClip={selectedClip}
+            isPlayingClip={isPlayingClip}
             onFileLoaded={handleFileLoaded}
             onPlayClip={playClip}
+            onStopClip={stopClip}
             onExportClip={exportClip}
           />
         </div>
@@ -116,12 +144,14 @@ const Analyzer = () => {
                 savedClips={savedClips}
                 playLabel={playLabel}
                 selectedClip={selectedClip}
+                isPlayingClip={isPlayingClip}
                 onPlayLabelChange={setPlayLabel}
                 onSaveClip={saveClipToLibrary}
                 onRemoveClip={removeSavedClip}
                 onExportClip={exportClip}
                 onExportLibrary={exportLibrary}
                 onPlayClip={handlePlaySavedClip}
+                onStopClip={stopClip}
               />
             </TabsContent>
             
