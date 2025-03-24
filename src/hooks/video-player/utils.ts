@@ -141,7 +141,7 @@ export const supportsMOVFormat = (): {supported: boolean, level: string} => {
   const level = video.canPlayType('video/quicktime');
   
   return {
-    supported: level !== '' && level !== 'no',
+    supported: level !== "",
     level: level
   };
 };

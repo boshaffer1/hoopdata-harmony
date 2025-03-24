@@ -53,7 +53,8 @@ const VideoFrame = forwardRef<HTMLVideoElement, VideoFrameProps>(({ src }, ref) 
       const movSupport = video.canPlayType('video/quicktime');
       console.log("MOV format support level:", movSupport);
       
-      if (!movSupport || movSupport === 'no' || movSupport === '') {
+      // canPlayType() returns "", "maybe", or "probably"
+      if (movSupport === "") {
         toast.warning("Your browser has limited support for MOV files. If playback fails, try converting to MP4.");
       }
     }
