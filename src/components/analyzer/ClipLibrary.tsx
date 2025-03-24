@@ -9,24 +9,28 @@ interface ClipLibraryProps {
   savedClips: SavedClip[];
   playLabel: string;
   selectedClip: GameData | null;
+  isPlayingClip: boolean;
   onPlayLabelChange: (value: string) => void;
   onSaveClip: (clip: GameData) => void;
   onRemoveClip: (id: string) => void;
   onExportClip: (clip: SavedClip) => void;
   onExportLibrary: () => void;
   onPlayClip: (clip: SavedClip) => void;
+  onStopClip: () => void;
 }
 
 const ClipLibrary: React.FC<ClipLibraryProps> = ({
   savedClips,
   playLabel,
   selectedClip,
+  isPlayingClip,
   onPlayLabelChange,
   onSaveClip,
   onRemoveClip,
   onExportClip,
   onExportLibrary,
   onPlayClip,
+  onStopClip,
 }) => {
   const [activePlayers, setActivePlayers] = useState<PlayerAction[]>([]);
   const [situation, setSituation] = useState<GameSituation>("other");

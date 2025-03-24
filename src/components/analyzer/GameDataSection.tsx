@@ -13,8 +13,10 @@ interface GameDataSectionProps {
   data: GameData[];
   videoUrl?: string;
   selectedClip: GameData | null;
+  isPlayingClip: boolean;
   onFileLoaded: (loadedData: any) => void;
   onPlayClip: (item: GameData) => void;
+  onStopClip: () => void;
   onExportClip: (item: GameData) => void;
 }
 
@@ -22,8 +24,10 @@ const GameDataSection: React.FC<GameDataSectionProps> = ({
   data,
   videoUrl,
   selectedClip,
+  isPlayingClip,
   onFileLoaded,
   onPlayClip,
+  onStopClip,
   onExportClip,
 }) => {
   if (data.length === 0) {
