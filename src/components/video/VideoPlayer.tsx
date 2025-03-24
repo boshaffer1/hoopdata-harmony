@@ -195,6 +195,7 @@ const VideoPlayer = forwardRef<any, VideoPlayerProps>(({
   useEffect(() => {
     if (hasError && errorMessage) {
       toast.error(`Video error: ${errorMessage}`);
+      console.error(`Video playback error: ${errorMessage}`);
     }
   }, [hasError, errorMessage]);
 
@@ -220,9 +221,13 @@ const VideoPlayer = forwardRef<any, VideoPlayerProps>(({
         )}
       >
         <VideoFrame ref={videoRef} src={src} />
-        <BufferingIndicator isBuffering={isBuffering} />
+        <BufferingIndicator 
+          isBuffering={isBuffering} 
+          hasError={hasError} 
+          errorMessage={errorMessage} 
+        />
         <VideoPlayerControls markers={markers} />
-        <PlayOverlay isVisible={!isPlaying && !isBuffering} onClick={actions.togglePlay} />
+        <PlayOverlay isVisible={!isPlaying && !isBuffering && !hasError} onClick={actions.togglePlay} />
       </div>
     </VideoPlayerProvider>
   );
