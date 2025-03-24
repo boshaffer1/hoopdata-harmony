@@ -86,3 +86,48 @@ export const waitForVideoReadiness = async (video: HTMLVideoElement | null, time
     }, timeout);
   });
 };
+
+/**
+ * Get human-readable video error message
+ */
+export const getVideoErrorMessage = (errorCode?: number): string => {
+  switch (errorCode) {
+    case 1: // MEDIA_ERR_ABORTED
+      return "Playback aborted by the user";
+    case 2: // MEDIA_ERR_NETWORK
+      return "Network error while loading the video";
+    case 3: // MEDIA_ERR_DECODE
+      return "Error decoding the video. Try a different format or lower resolution.";
+    case 4: // MEDIA_ERR_SRC_NOT_SUPPORTED
+      return "Video format not supported. Try converting to MP4 (H.264).";
+    default:
+      return "An unknown error occurred";
+  }
+};
+
+/**
+ * Check if browser supports a specific video format
+ */
+export const isSupportedVideoFormat = (format: string): boolean => {
+  const video = document.createElement('video');
+  return !!video.canPlayType(format);
+};
+
+/**
+ * Get a list of supported video formats in the current browser
+ */
+export const getSupportedFormats = (): string[] => {
+  const video = document.createElement('video');
+  const formats = [
+    { type: 'video/mp4; codecs="avc1.42E01E, mp4a.40.2"', name: 'MP4 (H.264)' },
+    { type: 'video/webm; codecs="vp8, vorbis"', name: 'WebM (VP8)' },
+    { type: 'video/webm; codecs="vp9"', name: 'WebM (VP9)' },
+    { type: 'video/ogg; codecs="theora"', name: 'Ogg Theora' },
+    { type: 'video/mp4; codecs="hvc1"', name: 'MP4 (HEVC/H.265)' },
+    { type: 'video/mp4; codecs="av01"', name: 'MP4 (AV1)' }
+  ];
+  
+  return formats
+    .filter(format => video.canPlayType(format.type))
+    .map(format => format.name);
+};
