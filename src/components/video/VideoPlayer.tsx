@@ -1,7 +1,7 @@
 
 import React, { useRef, useImperativeHandle, forwardRef, useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
-import { useVideoPlayer } from "@/hooks/use-video-player";
+import { useVideoPlayer } from "@/hooks/video/use-video-player";
 import VideoControls from "./VideoControls";
 import VideoTimeline from "./VideoTimeline";
 import PlayOverlay from "./PlayOverlay";
