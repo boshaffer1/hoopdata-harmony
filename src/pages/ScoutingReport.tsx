@@ -35,7 +35,8 @@ const ScoutingReportPage = () => {
       
       setLoading(true);
       try {
-        const data = await ESPNService.getScoutingReport(teamId);
+        // Use correct parameters for getScoutingReport
+        const data = await ESPNService.getScoutingReport("basketball", "mens-college-basketball", teamId);
         setReport(data);
         
         // Set the first player as selected by default if players exist
@@ -54,10 +55,11 @@ const ScoutingReportPage = () => {
   }, [teamId]);
   
   const generateReport = () => {
-    if (!teamId) return;
+    if (!report || !teamId) return;
     
     try {
-      ESPNService.generateScoutingReportPDF(teamId);
+      // Pass the full report object, not just teamId
+      ESPNService.generateScoutingReportPDF(report);
       toast.success("Scouting report PDF generated successfully!");
     } catch (error) {
       console.error("Error generating report:", error);
@@ -103,7 +105,7 @@ const ScoutingReportPage = () => {
   }
   
   // Use team color from the report or fallback to default
-  const teamColor = report.color ? `#${report.color}` : "#3b82f6";
+  const teamColor = report.color ? report.color : "#3b82f6";
   
   // Find the selected player
   const playerData = report.playerStats && selectedPlayer 
@@ -222,7 +224,7 @@ const ScoutingReportPage = () => {
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-2">
-                    {report.strengths.map((strength, index) => (
+                    {report.strengths && report.strengths.map((strength, index) => (
                       <li key={index} className="flex items-start gap-2">
                         <span className="text-green-600 mt-1">•</span>
                         <span>{strength.text}</span>
@@ -242,7 +244,7 @@ const ScoutingReportPage = () => {
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-2">
-                    {report.weaknesses.map((weakness, index) => (
+                    {report.weaknesses && report.weaknesses.map((weakness, index) => (
                       <li key={index} className="flex items-start gap-2">
                         <span className="text-red-600 mt-1">•</span>
                         <span>{weakness.text}</span>
@@ -286,7 +288,7 @@ const ScoutingReportPage = () => {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-                  {Object.entries(report.keyStats).map(([key, data]) => (
+                  {report.keyStats && Object.entries(report.keyStats).map(([key, data]) => (
                     <div key={key} className="p-4 rounded-lg border">
                       <div className="text-xs text-muted-foreground mb-1">{key}</div>
                       <div className="flex items-center gap-1">
@@ -306,7 +308,7 @@ const ScoutingReportPage = () => {
               <CardHeader>
                 <CardTitle>Team Roster</CardTitle>
                 <CardDescription>
-                  Coach: {report.coach}
+                  Coach: {report.coach || 'N/A'}
                 </CardDescription>
               </CardHeader>
               <CardContent>
