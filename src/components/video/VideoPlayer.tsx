@@ -1,3 +1,4 @@
+
 import React, { useRef, useImperativeHandle, forwardRef, useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useVideoPlayer } from "@/hooks/video-player/use-video-player";
@@ -5,7 +6,6 @@ import VideoControls from "./VideoControls";
 import VideoTimeline from "./VideoTimeline";
 import PlayOverlay from "./PlayOverlay";
 import { toast } from "sonner";
-import { isVideoReady } from "@/hooks/video-player/utils";
 
 interface VideoPlayerProps {
   src?: string;
@@ -24,6 +24,7 @@ const VideoPlayer = forwardRef<any, VideoPlayerProps>(({
   const [isVideoReady, setIsVideoReady] = useState(false);
   const [pendingSeek, setPendingSeek] = useState<number | null>(null);
   const [pendingPlay, setPendingPlay] = useState(false);
+  const [lastSeekTime, setLastSeekTime] = useState(0);
   
   const [
     { isPlaying, currentTime, duration, volume, isMuted, isBuffering, hasError, errorMessage },
@@ -49,9 +50,17 @@ const VideoPlayer = forwardRef<any, VideoPlayerProps>(({
         console.log("Current time before play:", videoRef.current.currentTime);
       }
       
-      const playPromise = play();
-      if (playPromise instanceof Promise) {
-        return playPromise
+      // Directly use the video element for more reliable playback
+      try {
+        const playPromise = videoRef.current.play();
+        if (playPromise !== undefined) {
+          await playPromise;
+          console.log("Native video.play() succeeded");
+        }
+      } catch (err) {
+        console.error("Native video.play() failed:", err);
+        // Fall back to our play implementation
+        return play()
           .then(() => {
             console.log("Play promise resolved successfully");
             setTimeout(() => {
@@ -72,10 +81,9 @@ const VideoPlayer = forwardRef<any, VideoPlayerProps>(({
             }
             return Promise.reject(error);
           });
-      } else {
-        console.log("Play method did not return a promise");
-        return Promise.resolve();
       }
+      
+      return Promise.resolve();
     } catch (error) {
       console.error("Exception playing video:", error);
       return Promise.reject(error);
@@ -89,6 +97,14 @@ const VideoPlayer = forwardRef<any, VideoPlayerProps>(({
       return Promise.reject(new Error("Video element not available"));
     }
     
+    // To avoid repeated seeks to the same timestamp
+    if (Math.abs(lastSeekTime - time) < 0.1) {
+      console.log("Ignoring repeated seek to the same position");
+      return Promise.resolve();
+    }
+    
+    setLastSeekTime(time);
+    
     if (!isVideoReady) {
       console.log("Video not ready yet, setting pending seek time:", time);
       setPendingSeek(time);
@@ -96,8 +112,11 @@ const VideoPlayer = forwardRef<any, VideoPlayerProps>(({
     }
     
     try {
+      // Directly update the video element currentTime for more reliable seeking
       videoRef.current.currentTime = time;
       console.log(`Set currentTime directly to ${time}s, now at:`, videoRef.current.currentTime);
+      
+      // Also update our internal state
       seekToTime(time);
       return Promise.resolve();
     } catch (error) {
@@ -118,6 +137,9 @@ const VideoPlayer = forwardRef<any, VideoPlayerProps>(({
     if (videoRef.current && src) {
       console.log("Video source changed, loading new source");
       setIsVideoReady(false);
+      // Reset any pending operations
+      setPendingSeek(null);
+      setPendingPlay(false);
       videoRef.current.load();
     }
   }, [src]);
@@ -134,6 +156,7 @@ const VideoPlayer = forwardRef<any, VideoPlayerProps>(({
         console.log(`Handling pending seek to ${pendingSeek}s`);
         video.currentTime = pendingSeek;
         seekToTime(pendingSeek);
+        setLastSeekTime(pendingSeek);
         setPendingSeek(null);
         
         if (pendingPlay) {

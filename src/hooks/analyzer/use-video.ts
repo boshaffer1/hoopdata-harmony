@@ -46,14 +46,20 @@ export const useVideo = () => {
   const seekToMarker = (time: number) => {
     if (!videoPlayerRef.current) {
       toast.error("Video player not initialized");
-      return;
+      return Promise.reject("Video player not initialized");
+    }
+    
+    if (!isPlayerReady) {
+      toast.warning("Video player is still initializing. Please try again in a moment.");
+      return Promise.reject("Video player not ready");
     }
     
     console.log(`Seeking to marker at ${time}s`);
-    videoPlayerRef.current.seekToTime(time)
+    return videoPlayerRef.current.seekToTime(time)
       .catch((error: any) => {
         console.error("Error seeking to marker:", error);
         toast.error("Failed to seek to marker position");
+        return Promise.reject(error);
       });
   };
 

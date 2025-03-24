@@ -108,13 +108,13 @@ export const useGameData = (videoPlayerRef: React.RefObject<any>) => {
     if (!videoPlayerRef.current) {
       console.warn("Video player reference not available");
       toast.error("Video player not ready");
-      return;
+      return Promise.reject("Video player not available");
     }
     
     if (isPlayingClip) {
       console.log("Already playing a clip, cancelling new request");
       toast.info("Already playing a clip");
-      return;
+      return Promise.reject("Already playing a clip");
     }
     
     setIsPlayingClip(true);
@@ -126,33 +126,48 @@ export const useGameData = (videoPlayerRef: React.RefObject<any>) => {
       
       console.log(`Playing clip: "${item["Play Name"]}" at ${startTime}s for ${duration}s`);
       
-      videoPlayerRef.current.pause();
+      try {
+        videoPlayerRef.current.pause();
+        await new Promise(resolve => setTimeout(resolve, 300));
+      } catch (error) {
+        console.log("Error pausing before seek, continuing:", error);
+      }
       
-      await videoPlayerRef.current.seekToTime(startTime)
-        .catch((error: any) => {
-          console.error("Error seeking to position:", error);
-          toast.error("Failed to seek to clip position");
-          throw error;
-        });
+      try {
+        console.log("Seeking to position:", startTime);
+        await videoPlayerRef.current.seekToTime(startTime);
+        
+        await new Promise(resolve => setTimeout(resolve, 800));
+        
+        console.log("Current position after seek:", videoPlayerRef.current.getCurrentTime());
+      } catch (error) {
+        console.error("Error seeking to position:", error);
+        toast.error("Failed to seek to clip position");
+        setIsPlayingClip(false);
+        return Promise.reject(error);
+      }
       
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      console.log("Current position after seek:", videoPlayerRef.current.getCurrentTime());
-      
-      console.log("Seek completed, now playing video");
-      await videoPlayerRef.current.play()
-        .catch((error: any) => {
-          console.error("Error playing clip:", error);
-          toast.error("Failed to play clip");
-          throw error;
-        });
+      try {
+        console.log("Seek completed, now playing video");
+        await videoPlayerRef.current.play();
+      } catch (error) {
+        console.error("Error playing clip:", error);
+        toast.error("Failed to play clip");
+        setIsPlayingClip(false);
+        return Promise.reject(error);
+      }
       
       if (duration > 0) {
         setTimeout(() => {
           if (videoPlayerRef.current) {
-            videoPlayerRef.current.pause();
-            console.log("Clip playback completed");
-            setIsPlayingClip(false);
+            try {
+              videoPlayerRef.current.pause();
+              console.log("Clip playback completed");
+            } catch (error) {
+              console.error("Error pausing after clip completion:", error);
+            } finally {
+              setIsPlayingClip(false);
+            }
           }
         }, duration * 1000);
       } else {
@@ -160,10 +175,13 @@ export const useGameData = (videoPlayerRef: React.RefObject<any>) => {
           setIsPlayingClip(false);
         }, 3000);
       }
+      
+      return Promise.resolve();
     } catch (error) {
       console.error("Error in clip playback flow:", error);
       setIsPlayingClip(false);
       toast.error("Failed to play clip");
+      return Promise.reject(error);
     }
   };
 
