@@ -31,7 +31,7 @@ const VideoFrame = forwardRef<HTMLVideoElement, VideoFrameProps>(({ src }, ref) 
       { type: 'video/webm; codecs="vp8, vorbis"', format: 'WebM (VP8)' },
       { type: 'video/webm; codecs="vp9"', format: 'WebM (VP9)' },
       { type: 'video/ogg; codecs="theora"', format: 'Ogg Theora' },
-      { type: 'video/quicktime', format: 'MOV (QuickTime)' } // Added QuickTime MOV format
+      { type: 'video/quicktime', format: 'MOV (QuickTime)' }
     ];
     
     // Get file extension
@@ -53,8 +53,7 @@ const VideoFrame = forwardRef<HTMLVideoElement, VideoFrameProps>(({ src }, ref) 
       const movSupport = video.canPlayType('video/quicktime');
       console.log("MOV format support level:", movSupport);
       
-      // canPlayType() returns "", "maybe", or "probably"
-      if (movSupport === "") {
+      if (!movSupport || movSupport === 'no' || movSupport === '') {
         toast.warning("Your browser has limited support for MOV files. If playback fails, try converting to MP4.");
       }
     }

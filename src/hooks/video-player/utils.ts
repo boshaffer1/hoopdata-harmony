@@ -125,7 +125,7 @@ export const getSupportedFormats = (): string[] => {
     { type: 'video/ogg; codecs="theora"', name: 'Ogg Theora' },
     { type: 'video/mp4; codecs="hvc1"', name: 'MP4 (HEVC/H.265)' },
     { type: 'video/mp4; codecs="av01"', name: 'MP4 (AV1)' },
-    { type: 'video/quicktime', name: 'MOV (QuickTime)' }  // Added QuickTime MOV format
+    { type: 'video/quicktime', name: 'MOV (QuickTime)' }
   ];
   
   return formats
@@ -141,7 +141,7 @@ export const supportsMOVFormat = (): {supported: boolean, level: string} => {
   const level = video.canPlayType('video/quicktime');
   
   return {
-    supported: level !== "",
+    supported: level !== '' && level !== 'no',
     level: level
   };
 };
