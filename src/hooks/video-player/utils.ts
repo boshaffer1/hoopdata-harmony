@@ -1,3 +1,4 @@
+
 /**
  * Clamp a time value between 0 and a maximum duration
  */
@@ -96,9 +97,9 @@ export const getVideoErrorMessage = (errorCode?: number): string => {
     case 2: // MEDIA_ERR_NETWORK
       return "Network issue while loading the video";
     case 3: // MEDIA_ERR_DECODE
-      return "Decoding issue. The player is attempting to recover.";
+      return "Error decoding the video. Try a different format like WebM.";
     case 4: // MEDIA_ERR_SRC_NOT_SUPPORTED
-      return "This video format may not be fully supported. Trying alternate playback method.";
+      return "This video format is not supported by your browser. Try converting to WebM.";
     default:
       return "Playback issue detected. Attempting recovery...";
   }
@@ -134,26 +135,14 @@ export const getSupportedFormats = (): string[] => {
 };
 
 /**
- * Check if the browser specifically supports MOV (QuickTime) format
- */
-export const supportsMOVFormat = (): {supported: boolean, level: string} => {
-  const video = document.createElement('video');
-  const level = video.canPlayType('video/quicktime');
-  
-  return {
-    supported: level !== "",
-    level: level
-  };
-};
-
-/**
  * Detect the video format from its file extension or blob type
  */
 export const detectVideoFormat = (src?: string): string | null => {
   if (!src) return null;
   
-  // If it's a blob URL, we can't detect from the URL
+  // If it's a blob URL, try to infer from the original filename if available
   if (src.startsWith('blob:')) {
+    console.log("Blob URL detected, format cannot be determined from URL");
     return null;
   }
   
@@ -192,25 +181,17 @@ export const attemptVideoRecovery = async (
   // No video element to recover
   if (!videoElement) return false;
   
+  // For all errors, log browser capabilities
+  console.log("Browser video format support:", getSupportedFormats());
+  
   // For decoding errors (common with MOV files)
   if (errorCode === 3) {
     console.log("Attempting recovery for decoding error");
     
     try {
-      // 1. Try to reset playback position slightly
-      const currentPosition = videoElement.currentTime;
-      if (currentPosition > 1) {
-        videoElement.currentTime = currentPosition - 0.5;
-        await new Promise(resolve => setTimeout(resolve, 200));
-      }
-      
-      // 2. Try to reload the video
-      const currentSrc = videoElement.src;
-      if (currentSrc) {
-        videoElement.load();
-        await new Promise(resolve => setTimeout(resolve, 300));
-        return true;
-      }
+      // Try to reload the video
+      videoElement.load();
+      return true;
     } catch (e) {
       console.error("Recovery attempt failed:", e);
     }
@@ -218,23 +199,10 @@ export const attemptVideoRecovery = async (
   
   // For unsupported format errors
   if (errorCode === 4) {
-    const src = videoElement.src;
-    const isMovFile = src.toLowerCase().includes('.mov') || 
-                     (detectVideoFormat(src) === 'video/quicktime');
-    
-    if (isMovFile) {
-      console.log("Attempting MOV-specific recovery");
-      
-      try {
-        // For MOV files, sometimes a complete refresh works better
-        videoElement.load();
-        await new Promise(resolve => setTimeout(resolve, 500));
-        return true;
-      } catch (e) {
-        console.error("MOV recovery attempt failed:", e);
-      }
-    }
+    console.log("Unsupported format error, no automatic recovery possible");
+    return false;
   }
   
   return false;
 };
+

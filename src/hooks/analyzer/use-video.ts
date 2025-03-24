@@ -1,6 +1,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
+import { getSupportedFormats } from "@/hooks/video-player/utils";
 
 export const useVideo = () => {
   const [videoUrl, setVideoUrl] = useState<string | undefined>();
@@ -30,6 +31,22 @@ export const useVideo = () => {
     if (file) {
       // Reset state when loading a new video
       setIsPlayerReady(false);
+      
+      // Check file type
+      const fileType = file.type;
+      console.log("Video file type:", fileType);
+      
+      // Log supported formats
+      console.log("Browser supports these video formats:", getSupportedFormats());
+      
+      // Check if the browser likely supports this format
+      const video = document.createElement('video');
+      const supportLevel = video.canPlayType(fileType);
+      console.log(`Browser support for ${fileType}: ${supportLevel}`);
+      
+      if (supportLevel === "") {
+        toast.warning(`Your browser might not support ${fileType} files. If you experience playback issues, try converting to WebM format.`);
+      }
       
       const url = URL.createObjectURL(file);
       setVideoUrl(url);
