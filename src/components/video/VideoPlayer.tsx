@@ -1,10 +1,11 @@
 
-import React, { useRef, useImperativeHandle, forwardRef } from "react";
+import React, { useRef, useImperativeHandle, forwardRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { useVideoPlayer } from "@/hooks/use-video-player";
 import VideoControls from "./VideoControls";
 import VideoTimeline from "./VideoTimeline";
 import PlayOverlay from "./PlayOverlay";
+import { toast } from "sonner";
 
 interface VideoPlayerProps {
   src?: string;
@@ -25,14 +26,58 @@ const VideoPlayer = forwardRef<any, VideoPlayerProps>(({
     { play, pause, seekToTime, togglePlay, handleTimeChange, handleVolumeChange, toggleMute, toggleFullscreen, jumpTime, getCurrentTime, getDuration }
   ] = useVideoPlayer(videoRef, onTimeUpdate);
 
+  // Log when play is called to help with debugging
+  const enhancedPlay = () => {
+    console.log("Play method called on video player");
+    if (!videoRef.current?.src) {
+      console.warn("Attempted to play video but no source is set");
+      toast.warning("No video source available");
+      return;
+    }
+    
+    try {
+      const playPromise = play();
+      if (playPromise !== undefined) {
+        playPromise.catch(error => {
+          console.error("Error playing video:", error);
+          toast.error("Failed to play video");
+        });
+      }
+    } catch (error) {
+      console.error("Exception playing video:", error);
+    }
+  };
+  
+  const enhancedSeek = (time: number) => {
+    console.log(`Seeking to time: ${time}s`);
+    if (!videoRef.current) {
+      console.warn("Video element not available for seeking");
+      return;
+    }
+    
+    try {
+      seekToTime(time);
+    } catch (error) {
+      console.error("Error seeking to time:", error);
+    }
+  };
+
   // Expose methods to parent via ref
   useImperativeHandle(ref, () => ({
-    play,
+    play: enhancedPlay,
     pause,
-    seekToTime,
+    seekToTime: enhancedSeek,
     getCurrentTime,
     getDuration
   }));
+
+  // Force video element to load when src changes
+  useEffect(() => {
+    if (videoRef.current && src) {
+      console.log("Video source changed, loading new source");
+      videoRef.current.load();
+    }
+  }, [src]);
 
   return (
     <div 
@@ -48,6 +93,7 @@ const VideoPlayer = forwardRef<any, VideoPlayerProps>(({
         className="w-full h-full object-contain"
         onClick={togglePlay}
         src={src}
+        preload="auto"
       >
         Your browser doesn't support HTML5 video.
       </video>
@@ -60,7 +106,7 @@ const VideoPlayer = forwardRef<any, VideoPlayerProps>(({
           duration={duration}
           markers={markers}
           onTimeChange={handleTimeChange}
-          onMarkerClick={seekToTime}
+          onMarkerClick={enhancedSeek}
         />
         
         <VideoControls 

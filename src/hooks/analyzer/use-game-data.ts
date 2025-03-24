@@ -59,7 +59,7 @@ export const useGameData = (videoPlayerRef: React.RefObject<any>) => {
     }
   };
 
-  // Helper function to determine situation from CSV
+  // Helper functions for parsing CSV data
   const getSituationFromCSV = (item: any): GameSituation => {
     if (item["Situation"] === "SLOB") return "slob";
     if (item["Situation"] === "BLOB") return "blob";
@@ -69,7 +69,6 @@ export const useGameData = (videoPlayerRef: React.RefObject<any>) => {
     return "other";
   };
 
-  // Helper function to determine outcome from CSV
   const getOutcomeFromCSV = (item: any) => {
     if (item["Shooting"]?.includes("3")) return "scored";
     if (item["Shooting"]?.includes("2")) return "scored";
@@ -78,7 +77,6 @@ export const useGameData = (videoPlayerRef: React.RefObject<any>) => {
     return "other";
   };
 
-  // Helper function to extract players from CSV
   const getPlayersFromCSV = (item: any): string => {
     const players = [];
     
@@ -115,23 +113,39 @@ export const useGameData = (videoPlayerRef: React.RefObject<any>) => {
 
   const playClip = (item: GameData) => {
     if (!videoPlayerRef.current) {
+      console.warn("Video player reference not available");
+      toast.error("Video player not ready");
       return;
     }
     
-    const startTime = parseFloat(item["Start time"] || "0");
-    const duration = parseFloat(item["Duration"] || "0");
-    
-    videoPlayerRef.current.seekToTime(startTime);
-    videoPlayerRef.current.play();
+    try {
+      const startTime = parseFloat(item["Start time"] || "0");
+      const duration = parseFloat(item["Duration"] || "0");
       
-    setSelectedClip(item);
+      console.log(`Playing clip: "${item["Play Name"]}" at ${startTime}s for ${duration}s`);
       
-    if (duration > 0) {
+      // First seek to the correct time
+      videoPlayerRef.current.seekToTime(startTime);
+      
+      // Small delay to ensure the seek has completed
       setTimeout(() => {
-        if (videoPlayerRef.current) {
-          videoPlayerRef.current.pause();
+        // Then play the video
+        videoPlayerRef.current.play();
+        setSelectedClip(item);
+        
+        // If duration specified, set a timer to pause at the end
+        if (duration > 0) {
+          setTimeout(() => {
+            if (videoPlayerRef.current) {
+              videoPlayerRef.current.pause();
+              console.log("Clip playback completed");
+            }
+          }, duration * 1000);
         }
-      }, duration * 1000);
+      }, 100);
+    } catch (error) {
+      console.error("Error playing clip:", error);
+      toast.error("Failed to play clip");
     }
   };
 
