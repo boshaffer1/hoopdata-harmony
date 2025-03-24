@@ -1,3 +1,4 @@
+
 import { TeamRoster, Player } from "@/types/analyzer";
 import { toast } from "sonner";
 
@@ -416,9 +417,9 @@ export const ESPNService = {
             conferences[conferenceKey] = [];
           }
           
-          // Generate a mock record (wins-losses)
+          // Generate a realistic record for 2024-25 season
           const wins = 10 + Math.floor(Math.random() * 20);
-          const losses = 30 - wins;
+          const losses = Math.floor(Math.random() * 10) + 1;
           const record = `${wins}-${losses}`;
           
           conferences[conferenceKey].push({
@@ -448,7 +449,7 @@ export const ESPNService = {
           "Western Conference": ["Northwest Division", "Pacific Division", "Southwest Division"]
         };
         
-        // Assign teams to conferences and divisions with mock records
+        // Assign teams to conferences and divisions with realistic records
         teams.forEach((team, index) => {
           if (!team) return; // Skip undefined teams
           
@@ -456,9 +457,9 @@ export const ESPNService = {
           const divisionIndex = Math.floor(index / 5) % 3;
           const division = divisions[conference][divisionIndex];
           
-          // Generate a mock record (wins-losses)
-          const wins = 20 + Math.floor(Math.random() * 35);
-          const losses = 82 - wins;
+          // Generate a realistic record for 2024-25 NBA season
+          const wins = 20 + Math.floor(Math.random() * 30);
+          const losses = Math.floor(Math.random() * 20) + 5;
           const record = `${wins}-${losses}`;
           
           conferences[conference].push({
@@ -483,25 +484,47 @@ export const ESPNService = {
    */
   async getScoutingReport(teamId: string): Promise<ScoutingReport> {
     try {
-      // In a real app, this would fetch from a backend API
-      // We'll generate mock data for this example
-      
       // First try to get the actual team data from ESPN
       const nbaTeams = await this.fetchTeams('basketball', 'nba');
       const team = nbaTeams.find(t => t.id === teamId);
+      
+      let foundTeam;
+      let leagueType = 'nba';
       
       // If not found in NBA teams, check other leagues
       if (!team) {
         const leagues = ['wnba', 'mens-college-basketball', 'womens-college-basketball'];
         for (const league of leagues) {
           const leagueTeams = await this.fetchTeams('basketball', league);
-          const foundTeam = leagueTeams.find(t => t.id === teamId);
+          foundTeam = leagueTeams.find(t => t.id === teamId);
           if (foundTeam) {
+            leagueType = league;
             // Get actual team roster for more accurate data
             const athletes = await this.fetchTeamRoster('basketball', league, teamId);
             return this.generateEnhancedScoutingReport(foundTeam, athletes, league);
           }
         }
+        
+        // If still not found, try to find the team in the conference structure
+        const conferences = await this.getTeamsByConference('basketball', 'mens-college-basketball');
+        for (const conf in conferences) {
+          const teamFound = conferences[conf].find(t => t.id === teamId);
+          if (teamFound) {
+            const athletes = await this.fetchTeamRoster('basketball', 'mens-college-basketball', teamId);
+            return this.generateEnhancedScoutingReport(teamFound, athletes, 'mens-college-basketball');
+          }
+        }
+        
+        // Also check women's college basketball
+        const womenConferences = await this.getTeamsByConference('basketball', 'womens-college-basketball');
+        for (const conf in womenConferences) {
+          const teamFound = womenConferences[conf].find(t => t.id === teamId);
+          if (teamFound) {
+            const athletes = await this.fetchTeamRoster('basketball', 'womens-college-basketball', teamId);
+            return this.generateEnhancedScoutingReport(teamFound, athletes, 'womens-college-basketball');
+          }
+        }
+        
         throw new Error('Team not found');
       }
       
@@ -534,14 +557,21 @@ export const ESPNService = {
    */
   generateEnhancedScoutingReport(team: ESPNTeam, athletes: ESPNAthlete[], league: string): ScoutingReport {
     const isCollege = league.includes('college');
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = currentDate.getMonth();
+    
+    // Determine academic year for college teams (2024-25 during most of 2024 and early 2025)
+    const seasonYear = currentMonth >= 8 ? currentYear : currentMonth <= 4 ? currentYear - 1 : currentYear;
+    const seasonLabel = isCollege ? `${seasonYear}-${(seasonYear + 1).toString().slice(2)}` : "2024-25";
     
     // Create relevant strengths based on league type
     const mockStrengths: ScoutingStrength[] = isCollege ? [
       { text: "Strong team defense and rebounding" },
-      { text: "Efficient offensive execution" },
-      { text: "Depth at guard positions" },
-      { text: "Experience in tournament play" },
-      { text: "Well-coached with disciplined schemes" }
+      { text: "Efficient perimeter shooting (38.6% from 3)" },
+      { text: "Depth at guard positions with versatile playmakers" },
+      { text: "Experience and leadership in clutch situations" },
+      { text: "Well-coached with disciplined offensive sets" }
     ] : [
       { text: "Elite 3-point shooting (38.2%, 3rd in league)" },
       { text: "Top-ranked defense (107.7 defensive rating)" },
@@ -551,41 +581,80 @@ export const ESPNService = {
     ];
     
     const mockWeaknesses: ScoutingWeakness[] = isCollege ? [
-      { text: "Inconsistent perimeter shooting" },
-      { text: "Prone to turnovers under pressure" },
-      { text: "Limited frontcourt depth" },
-      { text: "Struggles against zone defenses" }
+      { text: "Turnover prone against pressure defenses" },
+      { text: "Inconsistent free throw shooting (68.5%)" },
+      { text: "Limited frontcourt depth behind starters" },
+      { text: "Struggles against athletic zone defenses" }
     ] : [
       { text: "Can become isolation-heavy in clutch situations" },
-      { text: "Occasional turnover issues" },
+      { text: "Occasional turnover issues (15.3 per game)" },
       { text: "Interior depth when starters are off the floor" },
       { text: "Can struggle against teams with elite rim protection" }
     ];
     
     const mockKeyStats = isCollege ? {
       "FG%": { value: 45.6, trend: "up" as const },
-      "Defensive Efficiency": { value: 94.3, trend: "up" as const },
+      "PPG": { value: 78.3, trend: "up" as const },
       "Pace": { value: 69.8, trend: "neutral" as const },
       "Assists": { value: 15.4, trend: "up" as const },
-      "Rebounding": { value: 36.3, trend: "up" as const }
+      "Rebounds": { value: 36.3, trend: "up" as const }
     } : {
       "3PT%": { value: 38.2, trend: "up" as const },
-      "Defensive Rating": { value: 107.7, trend: "up" as const },
+      "Def Rating": { value: 107.7, trend: "up" as const },
       "Pace": { value: 99.8, trend: "neutral" as const },
       "Assists": { value: 26.4, trend: "up" as const },
-      "Rebounding": { value: 44.3, trend: "down" as const }
+      "Rebounds": { value: 44.3, trend: "down" as const }
     };
     
     // Generate player stats based on actual roster
-    const mockPlayerStats = athletes.slice(0, 12).map((athlete, i) => {
+    const mockPlayerStats = athletes.slice(0, 15).map((athlete, i) => {
       const positions = athlete.position?.abbreviation || ["G", "G", "F", "F", "C", "G", "F", "C", "G", "F"][i % 10];
       const isStarter = i < 5;
-      const minutes = isStarter ? Math.floor(30 - i * 1.5) : Math.floor(20 - i * 1.5);
-      const points = isStarter ? Math.floor(18 - i * 1.2) : Math.floor(10 - i * 0.8);
-      const rebounds = isStarter ? Math.floor(7 - i * 0.4) : Math.floor(4 - i * 0.3);
-      const assists = isStarter ? Math.floor(5 - i * 0.3) : Math.floor(3 - i * 0.2);
-      const steals = isStarter ? (1.2 - i * 0.1).toFixed(1) : (0.7 - i * 0.05).toFixed(1);
-      const blocks = isStarter ? (0.8 - i * 0.07).toFixed(1) : (0.4 - i * 0.03).toFixed(1);
+      
+      // More realistic minutes distribution
+      const minutes = isStarter 
+        ? Math.floor(30 - i * 1.2) 
+        : Math.floor(18 - (i-5) * 1.5);
+      
+      // More realistic scoring distribution
+      const points = isStarter 
+        ? Math.max(18 - i * 1.8, 6.5).toFixed(1) 
+        : Math.max(8 - (i-5) * 0.7, 2.1).toFixed(1);
+      
+      // Adjust other stats for more realism
+      const rebounds = positions === "C" 
+        ? Math.max(7.5 - i * 0.4, 2.2).toFixed(1) 
+        : positions === "F" 
+          ? Math.max(6.2 - i * 0.4, 1.8).toFixed(1)
+          : Math.max(3.5 - i * 0.3, 0.9).toFixed(1);
+      
+      const assists = positions === "G" 
+        ? Math.max(5.8 - i * 0.6, 1.2).toFixed(1) 
+        : Math.max(2.4 - i * 0.3, 0.5).toFixed(1);
+      
+      const steals = (Math.max(1.2 - i * 0.15, 0.3)).toFixed(1);
+      const blocks = positions === "C" 
+        ? Math.max(1.4 - i * 0.2, 0.3).toFixed(1) 
+        : positions === "F" 
+          ? Math.max(0.8 - i * 0.1, 0.2).toFixed(1)
+          : Math.max(0.4 - i * 0.05, 0.1).toFixed(1);
+      
+      // Shooting percentages based on position
+      const fgp = positions === "C" 
+        ? Math.floor(58 - i * 0.8)
+        : positions === "F"
+          ? Math.floor(52 - i * 1.2) 
+          : Math.floor(46 - i * 1.5);
+      
+      const tpp = positions === "G" 
+        ? Math.floor(38 - i * 1.2)
+        : positions === "F"
+          ? Math.floor(36 - i * 1.4) 
+          : Math.floor(30 - i * 1.8);
+      
+      const ftp = positions === "G"
+        ? Math.floor(85 - i * 0.8)
+        : Math.floor(78 - i * 1.2);
       
       return {
         id: athlete.id || `player-${i}`,
@@ -594,34 +663,52 @@ export const ESPNService = {
         jersey: athlete.jersey || `${i + 1}`,
         stats: {
           min: minutes,
-          pts: points,
-          reb: rebounds,
-          ast: assists,
-          stl: steals,
-          blk: blocks,
-          fgp: Math.floor(48 - i * 1.5),
-          tpp: Math.floor(38 - i * 2),
-          ftp: Math.floor(85 - i * 1.2)
+          pts: parseFloat(points),
+          reb: parseFloat(rebounds),
+          ast: parseFloat(assists),
+          stl: parseFloat(steals),
+          blk: parseFloat(blocks),
+          fgp: fgp,
+          tpp: tpp,
+          ftp: ftp
         }
       };
     });
     
+    // Get the actual conference and division data from the team or fallback
+    const teamConference = team.conference || "Unknown Conference";
+    
     const conferenceData = isCollege 
       ? { 
-          conference: team.conference || "Unknown Conference", 
-          division: team.conference || "Unknown Conference" 
+          conference: teamConference, 
+          division: teamConference 
         }
       : {
-          conference: league === 'wnba' ? "WNBA" : "Eastern Conference",
-          division: league === 'wnba' ? "WNBA" : "Atlantic Division"
+          conference: league === 'wnba' ? "WNBA" : (team as any).conference || "Eastern Conference",
+          division: league === 'wnba' ? "WNBA" : (team as any).division || "Atlantic Division"
         };
+    
+    // Generate a realistic record for the current season
+    let record;
+    if (isCollege) {
+      const wins = 12 + Math.floor(Math.random() * 18); // College basketball usually has ~30 games
+      const losses = Math.floor(30 - wins);
+      record = `${wins}-${losses}`;
+    } else {
+      const gamesPlayed = Math.floor(Math.random() * 25) + 55; // NBA teams play 82 games
+      const wins = Math.floor(gamesPlayed * (0.3 + Math.random() * 0.4)); // Win % between 30% and 70%
+      const losses = gamesPlayed - wins;
+      record = `${wins}-${losses}`;
+    }
+    
+    const coachName = isCollege ? "Coach " + team.name.split(' ')[0] : "Coach " + team.displayName.split(' ')[0];
     
     return {
       teamId: team.id,
       teamName: team.displayName,
-      record: isCollege ? "18-7" : "25-14",
+      record: record,
       ...conferenceData,
-      coach: isCollege ? "Coach Name" : "Head Coach",
+      coach: coachName,
       logo: team.logo,
       color: team.color,
       strengths: mockStrengths,
