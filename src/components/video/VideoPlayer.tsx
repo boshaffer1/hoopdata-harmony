@@ -1,4 +1,3 @@
-
 import React, { useRef, useImperativeHandle, forwardRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { useVideoPlayer } from "@/hooks/use-video-player";
@@ -37,7 +36,7 @@ const VideoPlayer = forwardRef<any, VideoPlayerProps>(({
     
     try {
       const playPromise = play();
-      if (playPromise !== undefined && typeof playPromise.then === 'function') {
+      if (playPromise !== undefined && playPromise instanceof Promise) {
         playPromise.then(() => {
           console.log("Play promise resolved successfully");
         }).catch(error => {
