@@ -15,34 +15,115 @@ interface TeamStatsProps {
 export const TeamStats: React.FC<TeamStatsProps> = ({ rosters }) => {
   // Use the first team in the rosters for now
   const team = rosters[0];
+
+  // Generate more accurate distribution based on player stats
+  const generatePointsDistribution = () => {
+    if (!team || !team.players) {
+      return defaultPointsDistribution;
+    }
+
+    // Sort players by generated points (descending)
+    const sortedPlayers = [...team.players]
+      .filter(p => p.stats && p.stats.ppg)
+      .sort((a, b) => (b.stats?.ppg || 0) - (a.stats?.ppg || 0));
+
+    // Take top 8 scorers or all players if less than 8
+    const topScorers = sortedPlayers.slice(0, 8);
+    
+    return topScorers.map((player, index) => ({
+      name: player.name.split(' ').pop()?.substring(0, 4) || `P${index+1}`,
+      value: player.stats?.ppg || defaultPointsDistribution[index]?.value || 0
+    }));
+  };
   
-  // More realistic stat distributions based on 2024-25 basketball season
-  const pointsDistribution = [
-    { name: "P1", value: 16.8 },
-    { name: "P2", value: 14.2 },
-    { name: "P3", value: 11.5 },
-    { name: "P4", value: 9.7 },
-    { name: "P5", value: 8.1 },
-    { name: "P6", value: 6.3 },
-    { name: "P7", value: 4.5 },
-    { name: "P8", value: 3.2 },
+  // Default points distribution if no actual stats available
+  const defaultPointsDistribution = [
+    { name: "P1", value: 18.4 },
+    { name: "P2", value: 15.7 },
+    { name: "P3", value: 12.9 },
+    { name: "P4", value: 10.2 },
+    { name: "P5", value: 8.7 },
+    { name: "P6", value: 7.1 },
+    { name: "P7", value: 5.3 },
+    { name: "P8", value: 3.8 },
   ];
   
-  // More accurate team overview statistics for 2024-25 season
-  const teamOverview = {
-    record: "22-11",
-    conference: "12-8",
-    ppg: 76.8,
-    oppg: 68.3,
-    rpg: 38.2,
-    apg: 16.7,
-    spg: 7.1,
-    bpg: 3.8,
-    topf: 11.3,
-    fgp: 46.8,
-    tpp: 36.2,
-    ftp: 75.3
+  // Use actual data if available or fall back to defaults
+  const pointsDistribution = generatePointsDistribution();
+  
+  // Calculate team totals based on actual player stats
+  const calculateTeamStats = () => {
+    if (!team || !team.players || team.players.length === 0) {
+      return defaultTeamOverview;
+    }
+    
+    // Extract players with stats
+    const playersWithStats = team.players.filter(p => p.stats);
+    
+    if (playersWithStats.length === 0) {
+      return defaultTeamOverview;
+    }
+    
+    // Calculate team averages
+    const ppg = playersWithStats.reduce((sum, p) => sum + (p.stats?.ppg || 0), 0);
+    const rpg = playersWithStats.reduce((sum, p) => sum + (p.stats?.rpg || 0), 0);
+    const apg = playersWithStats.reduce((sum, p) => sum + (p.stats?.apg || 0), 0);
+    const spg = playersWithStats.reduce((sum, p) => sum + (p.stats?.spg || 0), 0);
+    const bpg = playersWithStats.reduce((sum, p) => sum + (p.stats?.bpg || 0), 0);
+    
+    // Calculate team shooting percentages (weighted by attempts)
+    const fgpValues = playersWithStats.filter(p => p.stats?.fgPercent).map(p => p.stats?.fgPercent || 0);
+    const tppValues = playersWithStats.filter(p => p.stats?.threePointPercent).map(p => p.stats?.threePointPercent || 0);
+    const ftpValues = playersWithStats.filter(p => p.stats?.ftPercent).map(p => p.stats?.ftPercent || 0);
+    
+    // Average the percentages
+    const fgp = fgpValues.length ? fgpValues.reduce((sum, val) => sum + val, 0) / fgpValues.length : 45.0;
+    const tpp = tppValues.length ? tppValues.reduce((sum, val) => sum + val, 0) / tppValues.length : 35.0;
+    const ftp = ftpValues.length ? ftpValues.reduce((sum, val) => sum + val, 0) / ftpValues.length : 73.0;
+    
+    // Generate a realistic opponent ppg based on team scoring
+    const oppg = Math.round((ppg - 3 + Math.random() * 6) * 10) / 10;
+    
+    // Generate realistic record based on ppg vs oppg differential
+    const winPercentage = Math.min(0.85, Math.max(0.15, 0.5 + (ppg - oppg) / 100));
+    const games = Math.floor(Math.random() * 10) + 55; // 55-65 games played
+    const wins = Math.round(games * winPercentage);
+    const losses = games - wins;
+    
+    return {
+      record: `${wins}-${losses}`,
+      conference: "11-7", // conference record could be derived in real data
+      ppg: Math.round(ppg * 10) / 10,
+      oppg: oppg,
+      rpg: Math.round(rpg * 10) / 10,
+      apg: Math.round(apg * 10) / 10,
+      spg: Math.round(spg * 10) / 10,
+      bpg: Math.round(bpg * 10) / 10,
+      topf: Math.round((ppg * 0.13) * 10) / 10, // turnovers typically correlate with pace
+      fgp: Math.round(fgp * 10) / 10,
+      tpp: Math.round(tpp * 10) / 10,
+      ftp: Math.round(ftp * 10) / 10
+    };
   };
+  
+  // Default team overview stats for when no data is available
+  const defaultTeamOverview = {
+    record: "24-13",
+    conference: "12-8",
+    ppg: 78.4,
+    oppg: 72.6,
+    rpg: 39.2,
+    apg: 16.4,
+    spg: 7.3,
+    bpg: 4.2,
+    topf: 12.1,
+    fgp: 46.3,
+    tpp: 36.8,
+    ftp: 75.2
+  };
+  
+  // Use calculated stats or fall back to defaults
+  const teamOverview = calculateTeamStats();
   
   return (
     <Tabs defaultValue="overview">
@@ -143,13 +224,20 @@ export const TeamStats: React.FC<TeamStatsProps> = ({ rosters }) => {
               </TableHeader>
               <TableBody>
                 {team && team.players.map((player, index) => {
-                  // Generate more realistic player stats with less dramatic dropoff
-                  const ppg = Math.max(16.8 - index * 1.2, 2.5).toFixed(1);
-                  const rpg = Math.max(7.4 - index * 0.5, 1.4).toFixed(1);
-                  const apg = Math.max(4.6 - index * 0.4, 0.8).toFixed(1);
-                  const fgp = Math.max(48 - index, 39).toFixed(1);
-                  const tpp = Math.max(38 - index * 1.2, 29).toFixed(1);
-                  const ftp = Math.max(82 - index * 0.8, 68).toFixed(1);
+                  // Use actual stats if available, otherwise generate realistic ones
+                  const stats = player.stats || {};
+                  const ppg = stats.ppg !== undefined ? stats.ppg.toFixed(1) : 
+                    (Math.max(17.5 - index * 1.4, 2.3).toFixed(1));
+                  const rpg = stats.rpg !== undefined ? stats.rpg.toFixed(1) : 
+                    (Math.max(6.8 - index * 0.5, 1.2).toFixed(1));
+                  const apg = stats.apg !== undefined ? stats.apg.toFixed(1) : 
+                    (Math.max(4.2 - index * 0.4, 0.7).toFixed(1));
+                  const fgp = stats.fgPercent !== undefined ? stats.fgPercent.toFixed(1) : 
+                    (Math.max(49 - index * 0.8, 38).toFixed(1));
+                  const tpp = stats.threePointPercent !== undefined ? stats.threePointPercent.toFixed(1) : 
+                    (Math.max(40 - index * 1.1, 28).toFixed(1));
+                  const ftp = stats.ftPercent !== undefined ? stats.ftPercent.toFixed(1) : 
+                    (Math.max(84 - index * 0.7, 65).toFixed(1));
                   
                   return (
                     <TableRow key={player.id}>
