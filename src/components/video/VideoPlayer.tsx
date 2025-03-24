@@ -2,9 +2,11 @@
 import React, { useRef, useImperativeHandle, forwardRef, useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useVideoPlayer } from "@/hooks/video-player/use-video-player";
-import VideoControls from "./VideoControls";
-import VideoTimeline from "./VideoTimeline";
 import PlayOverlay from "./PlayOverlay";
+import BufferingIndicator from "./BufferingIndicator";
+import VideoFrame from "./VideoFrame";
+import VideoPlayerControls from "./VideoPlayerControls";
+import { VideoPlayerProvider } from "./context/VideoPlayerContext";
 import { toast } from "sonner";
 
 interface VideoPlayerProps {
@@ -26,10 +28,8 @@ const VideoPlayer = forwardRef<any, VideoPlayerProps>(({
   const [pendingPlay, setPendingPlay] = useState(false);
   const [lastSeekTime, setLastSeekTime] = useState(0);
   
-  const [
-    { isPlaying, currentTime, duration, volume, isMuted, isBuffering, hasError, errorMessage },
-    { play, pause, seekToTime, togglePlay, handleTimeChange, handleVolumeChange, toggleMute, toggleFullscreen, jumpTime, getCurrentTime, getDuration }
-  ] = useVideoPlayer(videoRef, onTimeUpdate);
+  const [state, actions] = useVideoPlayer(videoRef, onTimeUpdate);
+  const { isPlaying, isBuffering, hasError, errorMessage } = state;
 
   const enhancedPlay = async () => {
     console.log("Play method called on video player");
@@ -66,7 +66,7 @@ const VideoPlayer = forwardRef<any, VideoPlayerProps>(({
       }
       
       // Fall back to our play implementation
-      const playResult = play();
+      const playResult = actions.play();
       // Ensure we're always returning a Promise
       if (playResult instanceof Promise) {
         return playResult
@@ -127,7 +127,7 @@ const VideoPlayer = forwardRef<any, VideoPlayerProps>(({
       console.log(`Set currentTime directly to ${time}s, now at:`, videoRef.current.currentTime);
       
       // Also update our internal state
-      seekToTime(time);
+      actions.seekToTime(time);
       return Promise.resolve();
     } catch (error) {
       console.error("Error seeking to time:", error);
@@ -137,10 +137,10 @@ const VideoPlayer = forwardRef<any, VideoPlayerProps>(({
 
   useImperativeHandle(ref, () => ({
     play: enhancedPlay,
-    pause,
+    pause: actions.pause,
     seekToTime: enhancedSeek,
-    getCurrentTime,
-    getDuration
+    getCurrentTime: actions.getCurrentTime,
+    getDuration: actions.getDuration
   }));
 
   useEffect(() => {
@@ -165,7 +165,7 @@ const VideoPlayer = forwardRef<any, VideoPlayerProps>(({
       if (pendingSeek !== null) {
         console.log(`Handling pending seek to ${pendingSeek}s`);
         video.currentTime = pendingSeek;
-        seekToTime(pendingSeek);
+        actions.seekToTime(pendingSeek);
         setLastSeekTime(pendingSeek);
         setPendingSeek(null);
         
@@ -190,7 +190,7 @@ const VideoPlayer = forwardRef<any, VideoPlayerProps>(({
       video.removeEventListener("canplay", handleCanPlay);
       video.removeEventListener("loadeddata", handleCanPlay);
     };
-  }, [pendingSeek, pendingPlay, seekToTime]);
+  }, [pendingSeek, pendingPlay, actions.seekToTime]);
 
   useEffect(() => {
     if (hasError && errorMessage) {
@@ -198,57 +198,33 @@ const VideoPlayer = forwardRef<any, VideoPlayerProps>(({
     }
   }, [hasError, errorMessage]);
 
+  const contextValue = {
+    state,
+    actions,
+    isVideoReady,
+    pendingPlay,
+    setPendingPlay,
+    pendingSeek,
+    setPendingSeek,
+    enhancedPlay,
+    enhancedSeek
+  };
+
   return (
-    <div 
-      id="video-container"
-      className={cn(
-        "video-player-container rounded-xl overflow-hidden bg-black relative group",
-        className
-      )}
-    >
-      <video
-        ref={videoRef}
-        className="w-full h-full object-contain"
-        onClick={togglePlay}
-        src={src}
-        preload="auto"
-        playsInline
+    <VideoPlayerProvider {...contextValue}>
+      <div 
+        id="video-container"
+        className={cn(
+          "video-player-container rounded-xl overflow-hidden bg-black relative group",
+          className
+        )}
       >
-        Your browser doesn't support HTML5 video.
-      </video>
-
-      {isBuffering && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
-        </div>
-      )}
-
-      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4 transition-opacity opacity-0 group-hover:opacity-100">
-        <VideoTimeline 
-          currentTime={currentTime}
-          duration={duration}
-          markers={markers}
-          onTimeChange={handleTimeChange}
-          onMarkerClick={enhancedSeek}
-        />
-        
-        <VideoControls 
-          isPlaying={isPlaying}
-          currentTime={currentTime}
-          duration={duration}
-          volume={volume}
-          isMuted={isMuted}
-          onPlayPause={togglePlay}
-          onTimeChange={handleTimeChange}
-          onVolumeChange={handleVolumeChange}
-          onToggleMute={toggleMute}
-          onToggleFullscreen={toggleFullscreen}
-          onJumpTime={jumpTime}
-        />
+        <VideoFrame ref={videoRef} src={src} />
+        <BufferingIndicator isBuffering={isBuffering} />
+        <VideoPlayerControls markers={markers} />
+        <PlayOverlay isVisible={!isPlaying && !isBuffering} onClick={actions.togglePlay} />
       </div>
-
-      <PlayOverlay isVisible={!isPlaying && !isBuffering} onClick={togglePlay} />
-    </div>
+    </VideoPlayerProvider>
   );
 });
 
