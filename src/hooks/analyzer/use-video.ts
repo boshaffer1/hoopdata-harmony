@@ -64,6 +64,7 @@ export const useVideo = () => {
     setCurrentTime(time);
   };
 
+  // Modified to ensure more reliable seeking with proper validation and retries
   const seekToMarker = (time: number) => {
     if (!videoPlayerRef.current) {
       toast.error("Video player not initialized");
@@ -76,12 +77,44 @@ export const useVideo = () => {
     }
     
     console.log(`Seeking to marker at ${time}s`);
-    return videoPlayerRef.current.seekToTime(time)
-      .catch((error: any) => {
-        console.error("Error seeking to marker:", error);
-        toast.error("Failed to seek to marker position");
-        return Promise.reject(error);
-      });
+    
+    // Important: Pause playback before seeking to avoid decoder errors
+    try {
+      if (videoPlayerRef.current) {
+        videoPlayerRef.current.pause();
+      }
+    } catch (err) {
+      console.warn("Error pausing before seek:", err);
+    }
+    
+    // Add a small delay to ensure pause takes effect
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        if (videoPlayerRef.current) {
+          videoPlayerRef.current.seekToTime(time)
+            .then(() => {
+              console.log(`Successfully sought to ${time}s`);
+              // Verify the seek worked by checking current time
+              const currentPos = videoPlayerRef.current.getCurrentTime();
+              console.log(`Current position after seek: ${currentPos}s`);
+              
+              // If seek didn't work properly (more than 2s difference), try once more
+              if (Math.abs(currentPos - time) > 2) {
+                console.warn(`Seek discrepancy detected (${currentPos} vs ${time}), trying again`);
+                return videoPlayerRef.current.seekToTime(time);
+              }
+              return resolve(true);
+            })
+            .catch((error: any) => {
+              console.error("Error seeking to marker:", error);
+              toast.error("Failed to seek to marker position");
+              return Promise.reject(error);
+            });
+        } else {
+          resolve(false);
+        }
+      }, 200); // Small delay before seeking
+    });
   };
 
   return {

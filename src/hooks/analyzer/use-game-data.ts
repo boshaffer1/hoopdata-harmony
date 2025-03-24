@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { GameData, GameSituation } from "@/types/analyzer";
 import { toast } from "sonner";
@@ -127,26 +128,66 @@ export const useGameData = (videoPlayerRef: React.RefObject<any>) => {
       console.log(`Playing clip: "${item["Play Name"]}" at ${startTime}s for ${duration}s`);
       
       try {
+        // First pause the video to stabilize the player
         videoPlayerRef.current.pause();
         await new Promise(resolve => setTimeout(resolve, 300));
       } catch (error) {
         console.log("Error pausing before seek, continuing:", error);
       }
       
-      try {
-        console.log("Seeking to position:", startTime);
-        await videoPlayerRef.current.seekToTime(startTime);
-        
-        await new Promise(resolve => setTimeout(resolve, 800));
-        
-        console.log("Current position after seek:", videoPlayerRef.current.getCurrentTime());
-      } catch (error) {
-        console.error("Error seeking to position:", error);
-        toast.error("Failed to seek to clip position");
-        setIsPlayingClip(false);
-        return Promise.reject(error);
+      // Perform the seek with multiple retries if needed
+      let seekError = null;
+      let seekSuccess = false;
+      
+      // Try up to 3 times to seek
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          console.log(`Seek attempt ${attempt}: To position ${startTime}s`);
+          await videoPlayerRef.current.seekToTime(startTime);
+          
+          // Wait for seek to take effect
+          await new Promise(resolve => setTimeout(resolve, 300));
+          
+          // Verify the seek worked
+          const actualTime = videoPlayerRef.current.getCurrentTime();
+          console.log(`Current position after seek: ${actualTime}s`);
+          
+          // Check if seek was successful (within 2 seconds of target)
+          if (Math.abs(actualTime - startTime) <= 2) {
+            seekSuccess = true;
+            break;
+          } else {
+            console.warn(`Seek verification failed. Expected: ${startTime}, Got: ${actualTime}`);
+            // Try a different approach on subsequent attempts
+            if (attempt === 2) {
+              // Force a direct set on the video element
+              try {
+                const videoElement = videoPlayerRef.current.getVideoElement();
+                if (videoElement) {
+                  videoElement.currentTime = startTime;
+                  await new Promise(resolve => setTimeout(resolve, 500));
+                }
+              } catch (directSetError) {
+                console.error("Error on direct time set:", directSetError);
+              }
+            }
+          }
+        } catch (error) {
+          console.error(`Seek attempt ${attempt} failed:`, error);
+          seekError = error;
+          await new Promise(resolve => setTimeout(resolve, 200 * attempt)); // Increasing delay between retries
+        }
       }
       
+      if (!seekSuccess) {
+        if (seekError) {
+          throw seekError;
+        } else {
+          throw new Error("Failed to seek to the correct position after multiple attempts");
+        }
+      }
+      
+      // Now play the video
       try {
         console.log("Seek completed, now playing video");
         await videoPlayerRef.current.play();
@@ -157,6 +198,7 @@ export const useGameData = (videoPlayerRef: React.RefObject<any>) => {
         return Promise.reject(error);
       }
       
+      // Set a timeout to pause after the clip duration
       if (duration > 0) {
         setTimeout(() => {
           if (videoPlayerRef.current) {
@@ -171,6 +213,7 @@ export const useGameData = (videoPlayerRef: React.RefObject<any>) => {
           }
         }, duration * 1000);
       } else {
+        // If no duration specified, just clear the playing state after a few seconds
         setTimeout(() => {
           setIsPlayingClip(false);
         }, 3000);

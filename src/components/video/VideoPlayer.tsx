@@ -38,12 +38,14 @@ const VideoPlayer = forwardRef<any, VideoPlayerProps>(({
     enhancedSeek
   } = useEnhancedPlayer(videoRef, actions, errorMessage);
 
+  // Expose methods through ref
   useImperativeHandle(ref, () => ({
     play: enhancedPlay,
     pause: actions.pause,
     seekToTime: enhancedSeek,
     getCurrentTime: actions.getCurrentTime,
-    getDuration: actions.getDuration
+    getDuration: actions.getDuration,
+    getVideoElement: () => videoRef.current // Add direct access to video element for troubleshooting
   }));
 
   useEffect(() => {
@@ -81,12 +83,19 @@ const VideoPlayer = forwardRef<any, VideoPlayerProps>(({
       }
     };
     
+    // Important: Listen to both canplay and loadeddata
     video.addEventListener("canplay", handleCanPlay);
     video.addEventListener("loadeddata", handleCanPlay);
+    
+    // Also listen to 'canplaythrough' which indicates the video can play without buffering
+    video.addEventListener("canplaythrough", () => {
+      console.log("Video can play through without buffering");
+    });
     
     return () => {
       video.removeEventListener("canplay", handleCanPlay);
       video.removeEventListener("loadeddata", handleCanPlay);
+      video.removeEventListener("canplaythrough", handleCanPlay);
     };
   }, [pendingSeek, pendingPlay, enhancedSeek, enhancedPlay, setPendingPlay]);
 
