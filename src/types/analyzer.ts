@@ -28,6 +28,15 @@ export interface SavedClip {
   saved: string;
   players?: PlayerAction[];
   situation?: GameSituation;
+  folderId?: string; // Added field to associate clips with folders
+}
+
+export interface ClipFolder {
+  id: string;
+  name: string;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface PlayerAction {

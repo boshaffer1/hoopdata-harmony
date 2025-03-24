@@ -1,14 +1,47 @@
 
-import { useState } from "react";
-import { GameData, SavedClip, PlayerAction, GameSituation } from "@/types/analyzer";
+import { useState, useEffect } from "react";
+import { GameData, SavedClip, PlayerAction, GameSituation, ClipFolder } from "@/types/analyzer";
 import { toast } from "sonner";
 import { downloadJSON, extractVideoClip } from "@/components/video/utils";
 
 export const useClipLibrary = (videoUrl: string | undefined) => {
   const [savedClips, setSavedClips] = useState<SavedClip[]>([]);
+  const [folders, setFolders] = useState<ClipFolder[]>([]);
   const [playLabel, setPlayLabel] = useState("");
+  const [activeFolder, setActiveFolder] = useState<string | null>(null);
 
-  const saveClipToLibrary = (clip: GameData) => {
+  // Load saved clips and folders from localStorage on initial load
+  useEffect(() => {
+    const savedClipsData = localStorage.getItem('savedClips');
+    const foldersData = localStorage.getItem('clipFolders');
+    
+    if (savedClipsData) {
+      try {
+        setSavedClips(JSON.parse(savedClipsData));
+      } catch (error) {
+        console.error('Error loading saved clips:', error);
+      }
+    }
+    
+    if (foldersData) {
+      try {
+        setFolders(JSON.parse(foldersData));
+      } catch (error) {
+        console.error('Error loading folders:', error);
+      }
+    }
+  }, []);
+
+  // Save to localStorage whenever clips or folders change
+  useEffect(() => {
+    localStorage.setItem('savedClips', JSON.stringify(savedClips));
+  }, [savedClips]);
+  
+  useEffect(() => {
+    localStorage.setItem('clipFolders', JSON.stringify(folders));
+  }, [folders]);
+
+  const saveClipToLibrary = (clip: GameData, folderId?: string) => {
     if (!playLabel.trim()) {
       toast.error("Please enter a play label");
       return;
@@ -37,7 +70,8 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
       timeline: clip.Timeline || "",
       saved: new Date().toISOString(),
       players,
-      situation
+      situation,
+      folderId: folderId || activeFolder || undefined
     };
     
     setSavedClips(prevClips => {
@@ -173,6 +207,7 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
     
     const exportData = {
       clips: savedClips,
+      folders: folders,
       exportedAt: new Date().toISOString(),
       totalClips: savedClips.length
     };
@@ -181,14 +216,96 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
     toast.success("Clip library exported as JSON");
   };
 
+  // New folder management functions
+  const createFolder = (name: string, description: string = "") => {
+    if (!name.trim()) {
+      toast.error("Folder name is required");
+      return;
+    }
+    
+    // Check if folder with the same name already exists
+    if (folders.some(folder => folder.name.toLowerCase() === name.toLowerCase())) {
+      toast.error("A folder with this name already exists");
+      return;
+    }
+    
+    const newFolder: ClipFolder = {
+      id: `folder-${Date.now()}`,
+      name,
+      description,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    setFolders(prev => [...prev, newFolder]);
+    toast.success(`Created folder: ${name}`);
+    return newFolder;
+  };
+  
+  const updateFolder = (id: string, updates: Partial<ClipFolder>) => {
+    setFolders(prev => prev.map(folder => 
+      folder.id === id 
+        ? { 
+            ...folder, 
+            ...updates, 
+            updatedAt: new Date().toISOString() 
+          } 
+        : folder
+    ));
+    toast.success("Folder updated");
+  };
+  
+  const deleteFolder = (id: string) => {
+    // First, remove folder association from clips
+    setSavedClips(prev => prev.map(clip => 
+      clip.folderId === id 
+        ? { ...clip, folderId: undefined } 
+        : clip
+    ));
+    
+    // Then delete the folder
+    setFolders(prev => prev.filter(folder => folder.id !== id));
+    
+    // Reset active folder if it was the deleted one
+    if (activeFolder === id) {
+      setActiveFolder(null);
+    }
+    
+    toast.success("Folder deleted");
+  };
+  
+  const moveClipToFolder = (clipId: string, folderId: string | null) => {
+    setSavedClips(prev => prev.map(clip => 
+      clip.id === clipId 
+        ? { ...clip, folderId: folderId || undefined } 
+        : clip
+    ));
+    toast.success("Clip moved to folder");
+  };
+  
+  const getClipsByFolder = (folderId: string | null) => {
+    if (!folderId) {
+      return savedClips;
+    }
+    return savedClips.filter(clip => clip.folderId === folderId);
+  };
+
   return {
     savedClips,
+    folders,
     playLabel,
+    activeFolder,
     setPlayLabel,
+    setActiveFolder,
     saveClipToLibrary,
     saveClipsFromData,
     removeSavedClip,
     exportClip,
-    exportLibrary
+    exportLibrary,
+    createFolder,
+    updateFolder,
+    deleteFolder,
+    moveClipToFolder,
+    getClipsByFolder
   };
 };

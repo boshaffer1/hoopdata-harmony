@@ -14,6 +14,7 @@ import MyTeam from "./pages/MyTeam";
 import PlayerDetail from "./pages/PlayerDetail";
 import Scouting from "./pages/Scouting";
 import ScoutingReport from "./pages/ScoutingReport";
+import ClipLibrary from "./pages/ClipLibrary";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -31,6 +32,7 @@ const App = () => (
           <Route path="/stats" element={<Stats />} />
           <Route path="/assistant" element={<Assistant />} />
           <Route path="/insights" element={<Insights />} />
+          <Route path="/library" element={<ClipLibrary />} />
           <Route path="/myteam" element={<MyTeam />} />
           <Route path="/myteam/player/:teamId/:playerId" element={<PlayerDetail />} />
           <Route path="/scouting" element={<Scouting />} />

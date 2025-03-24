@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Menu, X, BarChart, Bot, Users, Target, FileText } from "lucide-react";
+import { Menu, X, BarChart, Bot, Users, Target, FileText, Library } from "lucide-react";
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -61,6 +61,13 @@ const Navbar = () => {
             className="text-sm font-medium hover:text-primary transition-colors" 
           >
             Video Analyzer
+          </Link>
+          <Link 
+            to="/library" 
+            className="text-sm font-medium hover:text-primary transition-colors flex items-center gap-1" 
+          >
+            <Library className="h-4 w-4" />
+            My Library
           </Link>
           <Link 
             to="/stats" 
@@ -147,6 +154,14 @@ const Navbar = () => {
               onClick={() => setIsMobileMenuOpen(false)}
             >
               Video Analyzer
+            </Link>
+            <Link 
+              to="/library" 
+              className="text-sm font-medium hover:text-primary transition-colors py-2 flex items-center gap-1" 
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              <Library className="h-4 w-4" />
+              My Library
             </Link>
             <Link 
               to="/stats" 
