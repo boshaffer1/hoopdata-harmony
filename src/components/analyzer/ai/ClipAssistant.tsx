@@ -1,18 +1,19 @@
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { SavedClip } from "@/types/analyzer";
-import { Search, SendIcon, Trash } from "lucide-react";
+import { SendIcon, Trash } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Avatar } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
+import { toast } from "sonner";
 
 interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
+  clips?: SavedClip[];
 }
 
 interface ClipAssistantProps {
@@ -38,6 +39,11 @@ const ClipAssistant: React.FC<ClipAssistantProps> = ({
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,7 +73,8 @@ const ClipAssistant: React.FC<ClipAssistantProps> = ({
         assistantMessage = {
           id: (Date.now() + 1).toString(),
           role: "assistant",
-          content: `I found ${matchedClips.length} clips that might match what you're looking for. Click on a clip to play it.`
+          content: `I found ${matchedClips.length} clips that might match what you're looking for. Click on a clip to play it.`,
+          clips: matchedClips
         };
       } else {
         assistantMessage = {
@@ -84,26 +91,35 @@ const ClipAssistant: React.FC<ClipAssistantProps> = ({
       if (matchedClips.length > 0) {
         onPlayClip(matchedClips[0]);
       }
-      
-      // Scroll to bottom of chat
-      setTimeout(scrollToBottom, 100);
     }, 1000);
   };
 
   const searchClips = (query: string): SavedClip[] => {
+    // If there are no saved clips, return empty array
+    if (!savedClips || savedClips.length === 0) {
+      return [];
+    }
+
     const searchTerms = query.toLowerCase().split(" ");
     
-    // Using a basic keyword matching approach for now
+    // Using a more permissive search approach - match if any term is present
     return savedClips.filter(clip => {
+      // Guard against undefined or null values
+      const clipLabel = clip.label?.toLowerCase() || "";
+      const clipNotes = clip.notes?.toLowerCase() || "";
+      const clipSituation = clip.situation?.toLowerCase() || "";
+      
+      // Collect all text to search within
       const clipText = [
-        clip.label.toLowerCase(),
-        clip.notes.toLowerCase(),
-        clip.situation,
-        ...clip.players?.map(p => p.playerName.toLowerCase()) || []
+        clipLabel,
+        clipNotes,
+        clipSituation,
+        // Safely map player names or use empty array if players is undefined
+        ...(clip.players?.map(p => p.playerName?.toLowerCase() || "") || [])
       ].join(" ");
       
-      // Check if the clip contains all search terms
-      return searchTerms.every(term => clipText.includes(term));
+      // Match if ANY search term is found (more permissive search)
+      return searchTerms.some(term => clipText.includes(term));
     });
   };
 
@@ -113,6 +129,11 @@ const ClipAssistant: React.FC<ClipAssistantProps> = ({
       role: "assistant",
       content: "Hi, I'm your clip assistant. Ask me to find specific clips in your library."
     }]);
+  };
+
+  const handleClipClick = (clip: SavedClip) => {
+    onPlayClip(clip);
+    toast.success(`Playing: ${clip.label}`);
   };
 
   return (
@@ -149,7 +170,25 @@ const ClipAssistant: React.FC<ClipAssistantProps> = ({
                         : "bg-muted"
                     }`}
                   >
-                    {message.content}
+                    <div>{message.content}</div>
+                    
+                    {/* Display matched clips if any */}
+                    {message.clips && message.clips.length > 0 && (
+                      <div className="mt-2 space-y-2">
+                        {message.clips.map((clip) => (
+                          <div 
+                            key={clip.id}
+                            onClick={() => handleClipClick(clip)}
+                            className="p-2 bg-background rounded border border-border cursor-pointer hover:bg-accent transition-colors"
+                          >
+                            <div className="font-medium text-sm">{clip.label}</div>
+                            {clip.notes && (
+                              <div className="text-xs text-muted-foreground truncate">{clip.notes}</div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
