@@ -23,7 +23,7 @@ const BufferingIndicator: React.FC<BufferingIndicatorProps> = ({
       
       {hasError && errorMessage && (
         <div className="text-center p-4 bg-black/70 rounded-lg max-w-md">
-          <p className="text-red-400 font-semibold mb-2">Video Playback Error</p>
+          <p className="text-red-400 font-semibold mb-2">Video Playback Issue</p>
           <p className="text-white">{errorMessage}</p>
           <p className="text-white/70 text-sm mt-2">Try refreshing the page or reloading the video.</p>
         </div>

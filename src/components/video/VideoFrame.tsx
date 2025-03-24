@@ -78,7 +78,7 @@ const VideoFrame = forwardRef<HTMLVideoElement, VideoFrameProps>(({ src }, ref) 
           errorMessage = "Issue decoding video. Try refreshing the page.";
           break;
         case 4: // MEDIA_ERR_SRC_NOT_SUPPORTED
-          errorMessage = "This video format may not be fully supported by your browser";
+          errorMessage = "Playback issue occurred. Please try again.";
           break;
         default:
           errorMessage = "Unknown playback error";

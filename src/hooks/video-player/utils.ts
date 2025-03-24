@@ -97,9 +97,9 @@ export const getVideoErrorMessage = (errorCode?: number): string => {
     case 2: // MEDIA_ERR_NETWORK
       return "Network error while loading the video";
     case 3: // MEDIA_ERR_DECODE
-      return "Error decoding the video. Try a different format or lower resolution.";
+      return "Error decoding the video. Try refreshing the page.";
     case 4: // MEDIA_ERR_SRC_NOT_SUPPORTED
-      return "Video format not supported. Try converting to MP4 (H.264).";
+      return "Video playback issue. Try refreshing the page.";
     default:
       return "An unknown error occurred";
   }
@@ -110,7 +110,8 @@ export const getVideoErrorMessage = (errorCode?: number): string => {
  */
 export const isSupportedVideoFormat = (format: string): boolean => {
   const video = document.createElement('video');
-  return !!video.canPlayType(format);
+  const canPlay = video.canPlayType(format);
+  return canPlay !== "";
 };
 
 /**
@@ -129,7 +130,7 @@ export const getSupportedFormats = (): string[] => {
   ];
   
   return formats
-    .filter(format => video.canPlayType(format.type))
+    .filter(format => video.canPlayType(format.type) !== "")
     .map(format => format.name);
 };
 
