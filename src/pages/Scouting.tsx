@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Link } from "react-router-dom";
-import { ChevronRight, FileText, Search, Loader2, Users, Flag } from "lucide-react";
+import { ChevronRight, FileText, Search, Loader2, Users, Flag, AlertTriangle } from "lucide-react";
 import { ESPNService, TeamWithConference } from "@/utils/espn-service";
 import { toast } from "sonner";
 
@@ -15,6 +15,7 @@ const Scouting = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("nba");
+  const [isUsingMockData, setIsUsingMockData] = useState(false);
 
   useEffect(() => {
     const fetchTeams = async () => {
@@ -22,15 +23,20 @@ const Scouting = () => {
       try {
         const data = await ESPNService.getTeamsByConference('basketball', activeTab);
         setTeamsData(data);
-        // Log the number of teams fetched for debugging
+        
+        // Check if we received data
         const totalTeams = Object.values(data).reduce((sum, teams) => sum + teams.length, 0);
         console.log(`Fetched ${totalTeams} teams for ${activeTab}`);
         
-        // Log conferences to verify structure
-        console.log(`Conferences found: ${Object.keys(data).join(', ')}`);
+        // If received data
+        if (totalTeams > 0) {
+          console.log(`Conferences found: ${Object.keys(data).join(', ')}`);
+          setIsUsingMockData(false);
+        }
       } catch (error) {
         console.error("Error fetching teams:", error);
         toast.error(`Failed to load ${activeTab} teams`);
+        setIsUsingMockData(true);
       } finally {
         setLoading(false);
       }
@@ -38,6 +44,35 @@ const Scouting = () => {
 
     fetchTeams();
   }, [activeTab]);
+
+  const handleRetryFetch = async () => {
+    // Try to fetch real data again
+    toast.info("Attempting to fetch real data from ESPN...");
+    ESPNService.setUseMockData(false);
+    setLoading(true);
+    
+    try {
+      const data = await ESPNService.getTeamsByConference('basketball', activeTab);
+      setTeamsData(data);
+      
+      // Check if we received data
+      const totalTeams = Object.values(data).reduce((sum, teams) => sum + teams.length, 0);
+      
+      if (totalTeams > 0) {
+        toast.success("Successfully fetched team data!");
+        setIsUsingMockData(false);
+      } else {
+        toast.error("No teams found. Using mock data.");
+        setIsUsingMockData(true);
+      }
+    } catch (error) {
+      console.error("Error retrying fetch:", error);
+      toast.error("Failed to connect to ESPN API. Using mock data.");
+      setIsUsingMockData(true);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredTeams = Object.entries(teamsData).reduce((acc, [conference, teams]) => {
     // Filter teams, ensuring proper null checks
@@ -115,6 +150,29 @@ const Scouting = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Mock Data Notice */}
+        {isUsingMockData && (
+          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
+            <div className="flex items-start">
+              <AlertTriangle className="h-5 w-5 text-yellow-500 mr-2 mt-0.5" />
+              <div>
+                <h3 className="font-medium">Using Demo Data</h3>
+                <p className="text-sm text-muted-foreground">
+                  Unable to connect to the ESPN API. Showing demonstration data for preview purposes.
+                </p>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="mt-2" 
+                  onClick={handleRetryFetch}
+                >
+                  Retry Connection
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Teams by Conference */}
         {loading ? (

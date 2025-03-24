@@ -17,7 +17,15 @@ import { ScoutingReportTab } from "@/components/scouting/tabs/ScoutingReportTab"
 
 const ScoutingReportPage = () => {
   const { teamId } = useParams<{ teamId: string }>();
-  const { report, loading, selectedPlayer, setSelectedPlayer, generateReport } = useScoutingReport(teamId);
+  const { 
+    report, 
+    loading, 
+    selectedPlayer, 
+    setSelectedPlayer, 
+    generateReport,
+    isUsingMockData,
+    retryFetchReport
+  } = useScoutingReport(teamId);
   
   if (loading) {
     return (
@@ -41,7 +49,12 @@ const ScoutingReportPage = () => {
     <Layout className="py-6">
       <div className="space-y-6">
         {/* Breadcrumb & Actions */}
-        <NavigationBar teamName={report.teamName || ''} generateReport={generateReport} />
+        <NavigationBar 
+          teamName={report.teamName || ''} 
+          generateReport={generateReport}
+          isUsingMockData={isUsingMockData}
+          retryFetchReport={retryFetchReport}
+        />
         
         {/* Team Header */}
         <TeamHeader report={report} />
