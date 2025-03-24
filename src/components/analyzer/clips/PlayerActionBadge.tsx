@@ -19,12 +19,12 @@ export const PlayerActionBadge: React.FC<PlayerActionBadgeProps> = ({
     switch(action) {
       case "scored": return <Target className="h-3 w-3" />;
       case "missed": return <XIcon className="h-3 w-3" />;
-      case "assist": return <UserPlus className="h-3 w-3" />;
-      case "rebound": return <ArrowDown className="h-3 w-3" />;
-      case "block": return <Hand className="h-3 w-3" />;
-      case "steal": return <Hand className="h-3 w-3" />;
+      case "assisted": return <UserPlus className="h-3 w-3" />;
+      case "rebounded": return <ArrowDown className="h-3 w-3" />;
+      case "blocked": return <Hand className="h-3 w-3" />;
+      case "stole": return <Hand className="h-3 w-3" />;
       case "turnover": return <RotateCcw className="h-3 w-3" />;
-      case "foul": return <XIcon className="h-3 w-3" />;
+      case "fouled": return <XIcon className="h-3 w-3" />;
       case "other": return <List className="h-3 w-3" />;
       default: return <List className="h-3 w-3" />;
     }
@@ -34,12 +34,12 @@ export const PlayerActionBadge: React.FC<PlayerActionBadgeProps> = ({
     const colors: Record<PlayerActionType, string> = {
       scored: "bg-green-500",
       missed: "bg-red-500",
-      assist: "bg-blue-500",
-      rebound: "bg-purple-500",
-      block: "bg-yellow-500",
-      steal: "bg-indigo-500",
+      assisted: "bg-blue-500",
+      rebounded: "bg-purple-500",
+      blocked: "bg-yellow-500",
+      stole: "bg-indigo-500",
       turnover: "bg-orange-500",
-      foul: "bg-pink-500",
+      fouled: "bg-pink-500",
       other: "bg-gray-500"
     };
     

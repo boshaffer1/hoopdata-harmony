@@ -114,6 +114,9 @@ const ESPNImport: React.FC<ESPNImportProps> = ({
               name: player.name,
               number: player.number || "0",
               position: player.position || "N/A",
+              height: player.height || "",
+              year: player.year || "",
+              hometown: player.hometown || "",
               notes: player.notes || ""
             });
             playersAdded++;

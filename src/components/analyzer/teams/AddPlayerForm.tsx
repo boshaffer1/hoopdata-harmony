@@ -21,7 +21,10 @@ const AddPlayerForm: React.FC<AddPlayerFormProps> = ({ teamId, onAddPlayer }) =>
     onAddPlayer(teamId, {
       name: newPlayerName,
       number: newPlayerNumber || "0",
-      position: newPlayerPosition || "N/A"
+      position: newPlayerPosition || "N/A",
+      height: "",
+      year: "",
+      hometown: ""
     });
     
     setNewPlayerName("");

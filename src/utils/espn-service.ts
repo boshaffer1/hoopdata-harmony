@@ -8,4 +8,5 @@ import { ESPNService, TeamWithConference } from './espn/index';
 import type { ESPNTeam, ScoutingReport } from './espn/index';
 
 // Re-export types and service for backward compatibility
-export { ESPNService, ESPNTeam, TeamWithConference, ScoutingReport };
+export { ESPNService };
+export type { ESPNTeam, TeamWithConference, ScoutingReport };
