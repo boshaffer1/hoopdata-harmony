@@ -2,6 +2,7 @@
 import React, { forwardRef, useState, useEffect } from 'react';
 import { useVideoPlayerContext } from './context/VideoPlayerContext';
 import { toast } from 'sonner';
+import { attemptVideoRecovery, detectVideoFormat } from '@/hooks/video-player/utils';
 
 interface VideoFrameProps {
   src?: string;
@@ -10,6 +11,7 @@ interface VideoFrameProps {
 const VideoFrame = forwardRef<HTMLVideoElement, VideoFrameProps>(({ src }, ref) => {
   const { actions, state } = useVideoPlayerContext();
   const { togglePlay } = actions;
+  const { isRecovering } = state;
   const [attemptedRecovery, setAttemptedRecovery] = useState(false);
   const [recoveryAttempts, setRecoveryAttempts] = useState(0);
   const MAX_RECOVERY_ATTEMPTS = 3;
@@ -19,11 +21,20 @@ const VideoFrame = forwardRef<HTMLVideoElement, VideoFrameProps>(({ src }, ref) 
     if (src) {
       setAttemptedRecovery(false);
       setRecoveryAttempts(0);
+      
+      // Check if this is a MOV file
+      const isMovFile = src.toLowerCase().endsWith('.mov') || 
+                        (detectVideoFormat(src) === 'video/quicktime');
+      
+      if (isMovFile) {
+        // For MOV files, provide helpful information
+        console.log("MOV file detected, may require special handling");
+      }
     }
   }, [src]);
 
   // Enhanced error handler with improved recovery strategies
-  const handleError = (e: React.SyntheticEvent<HTMLVideoElement>) => {
+  const handleError = async (e: React.SyntheticEvent<HTMLVideoElement>) => {
     console.error("Video element error event:", e);
     const videoElement = e.target as HTMLVideoElement;
     const errorCode = videoElement.error?.code;
@@ -38,6 +49,21 @@ const VideoFrame = forwardRef<HTMLVideoElement, VideoFrameProps>(({ src }, ref) 
     if (recoveryAttempts < MAX_RECOVERY_ATTEMPTS) {
       setRecoveryAttempts(prev => prev + 1);
       
+      // Apply recovery strategy
+      const recovered = await attemptVideoRecovery(videoElement, errorCode);
+      
+      if (recovered) {
+        setAttemptedRecovery(true);
+        // Toast notification for recovery
+        if (recoveryAttempts === 0) {
+          toast.info(
+            "Video playback issue detected. Attempting to recover...",
+            { duration: 2000 }
+          );
+        }
+        return;
+      }
+
       // Different recovery strategies based on error type
       if (errorCode === 3) { // MEDIA_ERR_DECODE
         console.log(`Recovery attempt ${recoveryAttempts + 1} for decode error`);
@@ -83,14 +109,42 @@ const VideoFrame = forwardRef<HTMLVideoElement, VideoFrameProps>(({ src }, ref) 
         }, 200);
         
         // Show a less discouraging toast message
-        toast.info(
-          "Video playback issue detected. Attempting to recover...",
-          { duration: 2000 }
-        );
+        if (!isRecovering) {
+          toast.info(
+            "Video playback issue detected. Attempting to recover...",
+            { duration: 2000 }
+          );
+        }
         
         return;
       } else if (errorCode === 4) { // MEDIA_ERR_SRC_NOT_SUPPORTED
-        // For format issues, inform but don't try to recover multiple times
+        // For format issues with MOV files, try a different approach
+        const isMovFile = src?.toLowerCase().endsWith('.mov');
+        
+        if (isMovFile && recoveryAttempts === 1) {
+          console.log("Trying alternate MOV recovery approach");
+          
+          if (videoElement) {
+            // For MOV files, sometimes a complete pause and restart helps
+            videoElement.pause();
+            
+            // Clean up first
+            videoElement.removeAttribute('src');
+            videoElement.load();
+            
+            // Reapply source
+            setTimeout(() => {
+              if (src && videoElement) {
+                videoElement.src = src;
+                videoElement.load();
+              }
+            }, 300);
+          }
+          
+          return;
+        }
+        
+        // Generic format issue message
         toast.error(
           "This video format might not be fully supported by your browser.",
           { duration: 4000 }
@@ -115,7 +169,7 @@ const VideoFrame = forwardRef<HTMLVideoElement, VideoFrameProps>(({ src }, ref) 
           errorMessage = "Issue decoding video. Try refreshing the page.";
           break;
         case 4: // MEDIA_ERR_SRC_NOT_SUPPORTED
-          errorMessage = "Playback issue occurred. Please try again.";
+          errorMessage = "Video format issue. This format may not be fully supported.";
           break;
         default:
           errorMessage = "Unknown playback error";

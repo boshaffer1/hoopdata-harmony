@@ -12,6 +12,7 @@ export function useVideoEvents(
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isRecovering, setIsRecovering] = useState(false);
 
   // Setup video event listeners
   useEffect(() => {
@@ -29,6 +30,7 @@ export function useVideoEvents(
       // Reset error state on successful load
       setHasError(false);
       setErrorMessage(null);
+      setIsRecovering(false);
     };
 
     const handleFullscreenChange = () => {
@@ -45,6 +47,7 @@ export function useVideoEvents(
       // Reset error state on successful playback
       setHasError(false);
       setErrorMessage(null);
+      setIsRecovering(false);
     };
     
     const handlePause = () => {
@@ -57,9 +60,13 @@ export function useVideoEvents(
       const errorCode = videoElement.error?.code;
       const errorMessage = getVideoErrorMessage(errorCode);
       
-      setHasError(true);
-      setErrorMessage(errorMessage);
-      setIsPlaying(false);
+      // Don't set hasError to true during recovery
+      // to avoid showing error message too early
+      if (!isRecovering) {
+        setHasError(true);
+        setErrorMessage(errorMessage);
+        setIsPlaying(false);
+      }
       
       logVideoError(videoElement.error, "video event listener");
     };
@@ -70,6 +77,13 @@ export function useVideoEvents(
     
     const handleCanPlayThrough = () => {
       console.log("Video can play through without buffering");
+      setIsRecovering(false);
+    };
+    
+    const handleLoadStart = () => {
+      console.log("Video load started");
+      // Consider the video in recovery mode when it starts loading
+      setIsRecovering(true);
     };
 
     video.addEventListener("timeupdate", handleTimeUpdate);
@@ -80,6 +94,7 @@ export function useVideoEvents(
     video.addEventListener("error", handleError);
     video.addEventListener("waiting", handleWaiting);
     video.addEventListener("canplaythrough", handleCanPlayThrough);
+    video.addEventListener("loadstart", handleLoadStart);
     document.addEventListener("fullscreenchange", handleFullscreenChange);
 
     return () => {
@@ -91,9 +106,10 @@ export function useVideoEvents(
       video.removeEventListener("error", handleError);
       video.removeEventListener("waiting", handleWaiting);
       video.removeEventListener("canplaythrough", handleCanPlayThrough);
+      video.removeEventListener("loadstart", handleLoadStart);
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
     };
-  }, [onTimeUpdate, videoRef]);
+  }, [onTimeUpdate, videoRef, isRecovering]);
 
   return {
     isPlaying,
@@ -103,7 +119,9 @@ export function useVideoEvents(
     duration,
     isFullscreen,
     hasError,
-    errorMessage
+    errorMessage,
+    isRecovering,
+    setIsRecovering
   };
 }
 
@@ -111,14 +129,14 @@ export function useVideoEvents(
 function getVideoErrorMessage(errorCode?: number): string {
   switch (errorCode) {
     case 1: // MEDIA_ERR_ABORTED
-      return "Playback aborted by the user";
+      return "Playback interrupted";
     case 2: // MEDIA_ERR_NETWORK
-      return "Network error while loading the video";
+      return "Network issue while loading video";
     case 3: // MEDIA_ERR_DECODE
-      return "Error decoding the video";
+      return "Video playback issue. The system is attempting to recover.";
     case 4: // MEDIA_ERR_SRC_NOT_SUPPORTED
-      return "Video format not supported";
+      return "Video format or codec issue. Please try again.";
     default:
-      return "An unknown error occurred";
+      return "An unexpected playback issue occurred";
   }
 }

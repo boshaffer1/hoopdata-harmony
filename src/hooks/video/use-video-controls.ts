@@ -9,13 +9,17 @@ export function useVideoControls(
     setIsPlaying,
     currentTime,
     setCurrentTime,
-    duration
+    duration,
+    isRecovering,
+    setIsRecovering
   }: {
     isPlaying: boolean;
     setIsPlaying: (value: boolean) => void;
     currentTime: number;
     setCurrentTime: (value: number) => void;
     duration: number;
+    isRecovering?: boolean;
+    setIsRecovering?: (value: boolean) => void;
   }
 ) {
   const [volume, setVolume] = useState(1);
@@ -50,6 +54,8 @@ export function useVideoControls(
             setIsPlaying(true);
             setIsBuffering(false);
             console.log("Video playing successfully");
+            // Clear recovery state when play succeeds
+            if (setIsRecovering) setIsRecovering(false);
             return Promise.resolve();
           })
           .catch((error) => {
@@ -64,6 +70,7 @@ export function useVideoControls(
         // For browsers that don't return a promise
         setIsPlaying(true);
         setIsBuffering(false);
+        if (setIsRecovering) setIsRecovering(false);
         return Promise.resolve();
       }
     } catch (error) {
