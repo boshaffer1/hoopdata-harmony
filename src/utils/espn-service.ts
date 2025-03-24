@@ -1,4 +1,3 @@
-
 import { TeamRoster, Player } from "@/types/analyzer";
 import { toast } from "sonner";
 
@@ -106,7 +105,23 @@ export const ESPNService = {
       if (sport === 'basketball') {
         if (league === 'mens-college-basketball' || league === 'womens-college-basketball') {
           // College basketball has a different structure
-          return data.sports[0].leagues[0].teams;
+          // Map the college teams to match our ESPNTeam structure
+          return data.sports[0].leagues[0].teams.map((team: any) => {
+            const teamData = team.team || {};
+            return {
+              id: teamData.id || "",
+              uid: teamData.uid || "",
+              slug: teamData.slug || "",
+              location: teamData.location || "",
+              name: teamData.name || "",
+              abbreviation: teamData.abbreviation || "",
+              displayName: teamData.displayName || teamData.name || "",
+              shortDisplayName: teamData.shortDisplayName || "",
+              color: teamData.color || "",
+              alternateColor: teamData.alternateColor || "",
+              logo: teamData.logos && teamData.logos.length > 0 ? teamData.logos[0].href : ""
+            };
+          });
         } else {
           // NBA and WNBA have the same structure
           return data.sports[0].leagues[0].teams.map((team: any) => team.team);
@@ -140,7 +155,30 @@ export const ESPNService = {
       }
       
       const data = await response.json();
-      return data.athletes;
+      
+      // Handle potential different data structures for college vs pro
+      if (league === 'mens-college-basketball' || league === 'womens-college-basketball') {
+        // If the response structure is different for college, handle it here
+        if (data.athletes) {
+          return data.athletes.map((athlete: any) => ({
+            id: athlete.id || "",
+            uid: athlete.uid || "",
+            guid: athlete.guid || "",
+            firstName: athlete.firstName || "",
+            lastName: athlete.lastName || "",
+            fullName: athlete.fullName || `${athlete.firstName} ${athlete.lastName}`,
+            displayName: athlete.displayName || athlete.fullName || "",
+            shortName: athlete.shortName || "",
+            weight: athlete.weight || 0,
+            height: athlete.height || 0,
+            jersey: athlete.jersey || "",
+            position: athlete.position || { abbreviation: "", displayName: "", name: "" },
+            headshot: athlete.headshot || null
+          }));
+        }
+      }
+      
+      return data.athletes || [];
     } catch (error) {
       console.error("Error fetching team roster:", error);
       toast.error("Failed to fetch team roster from ESPN");
@@ -274,36 +312,78 @@ export const ESPNService = {
     try {
       const teams = await this.fetchTeams(sport, league);
       
-      // For the NBA, we'll organize into Eastern and Western conferences
-      const conferences: Record<string, TeamWithConference[]> = {
-        "Eastern Conference": [],
-        "Western Conference": []
-      };
+      let conferences: Record<string, TeamWithConference[]> = {};
+      let divisions: Record<string, string[]> = {};
       
-      // NBA divisions
-      const divisions = {
-        "Eastern Conference": ["Atlantic Division", "Central Division", "Southeast Division"],
-        "Western Conference": ["Northwest Division", "Pacific Division", "Southwest Division"]
-      };
-      
-      // Assign teams to conferences and divisions with mock records
-      teams.forEach((team, index) => {
-        const conference = index % 2 === 0 ? "Eastern Conference" : "Western Conference";
-        const divisionIndex = Math.floor(index / 5) % 3;
-        const division = divisions[conference][divisionIndex];
+      // Different conference structures based on league
+      if (league === 'mens-college-basketball' || league === 'womens-college-basketball') {
+        // For college basketball, use actual conferences
+        conferences = {
+          "Power Conferences": [],
+          "Mid-Major Conferences": []
+        };
         
-        // Generate a mock record (wins-losses)
-        const wins = 20 + Math.floor(Math.random() * 35);
-        const losses = 82 - wins;
-        const record = `${wins}-${losses}`;
+        // Simple assignment of conferences
+        const powerConferences = ["ACC", "Big 12", "Big East", "Big Ten", "Pac-12", "SEC"];
         
-        conferences[conference].push({
-          ...team,
-          conference,
-          division,
-          record
+        teams.forEach((team, index) => {
+          // Generate a mock conference for demo purposes
+          const confIndex = index % 12;
+          const conferenceNames = [
+            "ACC", "Big 12", "Big East", "Big Ten", "Pac-12", "SEC",
+            "American", "Atlantic 10", "Mountain West", "West Coast", "MAC", "Conference USA"
+          ];
+          const conference = conferenceNames[confIndex];
+          
+          // Is this a power conference?
+          const conferenceType = powerConferences.includes(conference) 
+            ? "Power Conferences" 
+            : "Mid-Major Conferences";
+          
+          // Generate a mock record (wins-losses)
+          const wins = 10 + Math.floor(Math.random() * 20);
+          const losses = 30 - wins;
+          const record = `${wins}-${losses}`;
+          
+          conferences[conferenceType].push({
+            ...team,
+            conference: conferenceType,
+            division: conference,
+            record
+          });
         });
-      });
+      } else {
+        // For NBA/WNBA, use Eastern and Western conferences
+        conferences = {
+          "Eastern Conference": [],
+          "Western Conference": []
+        };
+        
+        // NBA divisions
+        divisions = {
+          "Eastern Conference": ["Atlantic Division", "Central Division", "Southeast Division"],
+          "Western Conference": ["Northwest Division", "Pacific Division", "Southwest Division"]
+        };
+        
+        // Assign teams to conferences and divisions with mock records
+        teams.forEach((team, index) => {
+          const conference = index % 2 === 0 ? "Eastern Conference" : "Western Conference";
+          const divisionIndex = Math.floor(index / 5) % 3;
+          const division = divisions[conference][divisionIndex];
+          
+          // Generate a mock record (wins-losses)
+          const wins = 20 + Math.floor(Math.random() * 35);
+          const losses = 82 - wins;
+          const record = `${wins}-${losses}`;
+          
+          conferences[conference].push({
+            ...team,
+            conference,
+            division,
+            record
+          });
+        });
+      }
       
       return conferences;
     } catch (error) {
@@ -325,52 +405,23 @@ export const ESPNService = {
       // We'll generate mock data for this example
       
       // First try to get the actual team data from ESPN
-      const teams = await this.fetchNBATeams();
-      const team = teams.find(t => t.id === teamId);
+      const nbaTeams = await this.fetchNBATeams();
+      const team = nbaTeams.find(t => t.id === teamId);
       
+      // If not found in NBA teams, check other leagues
       if (!team) {
+        const leagues = ['wnba', 'mens-college-basketball', 'womens-college-basketball'];
+        for (const league of leagues) {
+          const leagueTeams = await this.fetchTeams('basketball', league);
+          const foundTeam = leagueTeams.find(t => t.id === teamId);
+          if (foundTeam) {
+            return this.generateMockScoutingReport(foundTeam);
+          }
+        }
         throw new Error('Team not found');
       }
       
-      // Create a mock scouting report
-      const mockStrengths: ScoutingStrength[] = [
-        { text: "Elite 3-point shooting (38.2%, 2nd in NBA)" },
-        { text: "Top-ranked defense (107.7 defensive rating)" },
-        { text: "Excellent ball movement (26.4 assists per game)" },
-        { text: "Depth at every position" },
-        { text: "Strong transition offense" }
-      ];
-      
-      const mockWeaknesses: ScoutingWeakness[] = [
-        { text: "Can become isolation-heavy in clutch situations" },
-        { text: "Occasional turnover issues" },
-        { text: "Interior depth when Porzingis is off the floor" },
-        { text: "Can struggle against teams with elite rim protection" }
-      ];
-      
-      const mockKeyStats = {
-        "3PT%": { value: 38.2, trend: "up" as const },
-        "Defensive Rating": { value: 107.7, trend: "up" as const },
-        "Pace": { value: 99.8, trend: "neutral" as const },
-        "Assists": { value: 26.4, trend: "up" as const },
-        "Rebounding": { value: 44.3, trend: "down" as const }
-      };
-      
-      return {
-        teamId: team.id,
-        teamName: team.displayName,
-        record: "55-14",
-        conference: "Eastern Conference",
-        division: "Atlantic Division",
-        coach: "Joe Mazzulla",
-        logo: team.logo,
-        color: team.color,
-        strengths: mockStrengths,
-        weaknesses: mockWeaknesses,
-        offensiveStyle: "The Celtics run a modern 5-out offense with heavy emphasis on three-point shooting and ball movement. They utilize dribble handoffs and pick-and-pops with their bigs to create space. Tatum and Brown initiate most offensive sets, with Holiday serving as a secondary playmaker.",
-        defensiveStyle: "Switch-heavy defensive scheme that leverages their versatile personnel. They force opponents into difficult mid-range shots and contest aggressively at the rim. Holiday and Derrick White are elite perimeter defenders who disrupt opposing guards.",
-        keyStats: mockKeyStats
-      };
+      return this.generateMockScoutingReport(team);
     } catch (error) {
       console.error("Error fetching scouting report:", error);
       toast.error("Failed to fetch scouting report");
@@ -387,9 +438,85 @@ export const ESPNService = {
         weaknesses: [{ text: "Error loading team data" }],
         offensiveStyle: "Not available",
         defensiveStyle: "Not available",
-        keyStats: {}
+        keyStats: {},
+        playerStats: []
       };
     }
+  },
+  
+  /**
+   * Generate mock scouting report for a team
+   */
+  generateMockScoutingReport(team: ESPNTeam): ScoutingReport {
+    // Create a mock scouting report
+    const mockStrengths: ScoutingStrength[] = [
+      { text: "Elite 3-point shooting (38.2%, 2nd in league)" },
+      { text: "Top-ranked defense (107.7 defensive rating)" },
+      { text: "Excellent ball movement (26.4 assists per game)" },
+      { text: "Depth at every position" },
+      { text: "Strong transition offense" }
+    ];
+    
+    const mockWeaknesses: ScoutingWeakness[] = [
+      { text: "Can become isolation-heavy in clutch situations" },
+      { text: "Occasional turnover issues" },
+      { text: "Interior depth when starters are off the floor" },
+      { text: "Can struggle against teams with elite rim protection" }
+    ];
+    
+    const mockKeyStats = {
+      "3PT%": { value: 38.2, trend: "up" as const },
+      "Defensive Rating": { value: 107.7, trend: "up" as const },
+      "Pace": { value: 99.8, trend: "neutral" as const },
+      "Assists": { value: 26.4, trend: "up" as const },
+      "Rebounding": { value: 44.3, trend: "down" as const }
+    };
+    
+    // Generate mock player stats for the report
+    const mockPlayerStats = Array.from({ length: 10 }, (_, i) => {
+      const positions = ["G", "G", "F", "F", "C", "G", "F", "C", "G", "F"];
+      const minutes = Math.floor(30 - i * 2.5);
+      const points = Math.floor(18 - i * 1.4);
+      const rebounds = Math.floor(7 - i * 0.5);
+      const assists = Math.floor(5 - i * 0.4);
+      const steals = (1.2 - i * 0.1).toFixed(1);
+      const blocks = (0.8 - i * 0.07).toFixed(1);
+      
+      return {
+        id: `player-${i}`,
+        name: `Player ${i + 1}`,
+        position: positions[i],
+        jersey: `${i + 1}`,
+        stats: {
+          min: minutes,
+          pts: points,
+          reb: rebounds,
+          ast: assists,
+          stl: steals,
+          blk: blocks,
+          fgp: Math.floor(48 - i * 1.5),
+          tpp: Math.floor(38 - i * 2),
+          ftp: Math.floor(85 - i * 1.2)
+        }
+      };
+    });
+    
+    return {
+      teamId: team.id,
+      teamName: team.displayName,
+      record: "25-14",
+      conference: "Eastern Conference",
+      division: "Atlantic Division",
+      coach: "Coach Name",
+      logo: team.logo,
+      color: team.color,
+      strengths: mockStrengths,
+      weaknesses: mockWeaknesses,
+      offensiveStyle: "The team runs a modern 5-out offense with heavy emphasis on three-point shooting and ball movement. They utilize dribble handoffs and pick-and-pops with their bigs to create space.",
+      defensiveStyle: "Switch-heavy defensive scheme that leverages their versatile personnel. They force opponents into difficult mid-range shots and contest aggressively at the rim.",
+      keyStats: mockKeyStats,
+      playerStats: mockPlayerStats
+    };
   },
 
   /**

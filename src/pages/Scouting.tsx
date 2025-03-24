@@ -8,26 +8,21 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Link } from "react-router-dom";
 import { ChevronRight, FileText, Search } from "lucide-react";
 import { ESPNService, TeamWithConference } from "@/utils/espn-service";
-import { toast } from "sonner";
 
 const Scouting = () => {
   const [teamsData, setTeamsData] = useState<Record<string, TeamWithConference[]>>({});
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("nba");
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchTeams = async () => {
       setLoading(true);
-      setError(null);
       try {
         const data = await ESPNService.getTeamsByConference('basketball', activeTab);
         setTeamsData(data);
       } catch (error) {
         console.error("Error fetching teams:", error);
-        setError("Failed to load teams. Please try again.");
-        toast.error("Failed to load teams data.");
       } finally {
         setLoading(false);
       }
@@ -37,18 +32,10 @@ const Scouting = () => {
   }, [activeTab]);
 
   const filteredTeams = Object.entries(teamsData).reduce((acc, [conference, teams]) => {
-    // Add null check to ensure teams is an array
-    if (!Array.isArray(teams)) {
-      return acc;
-    }
-    
-    const filtered = teams.filter(team => {
-      // Add null check for team and team.displayName
-      if (!team || typeof team.displayName !== 'string') {
-        return false;
-      }
-      return team.displayName.toLowerCase().includes(searchQuery.toLowerCase());
-    });
+    // Add null checks to prevent "toLowerCase is not a function" errors
+    const filtered = teams.filter(team => 
+      team.displayName && team.displayName.toLowerCase().includes(searchQuery.toLowerCase())
+    );
     
     if (filtered.length > 0) {
       acc[conference] = filtered;
@@ -111,18 +98,6 @@ const Scouting = () => {
           <div className="flex justify-center p-8">
             <div className="animate-pulse">Loading teams...</div>
           </div>
-        ) : error ? (
-          <div className="flex flex-col items-center justify-center p-8 text-center">
-            <p className="text-destructive mb-4">{error}</p>
-            <Button 
-              variant="outline" 
-              onClick={() => {
-                setActiveTab(prev => prev); // Trigger useEffect
-              }}
-            >
-              Retry
-            </Button>
-          </div>
         ) : (
           <div className="space-y-8">
             {Object.entries(filteredTeams).map(([conference, teams]) => (
@@ -130,8 +105,8 @@ const Scouting = () => {
                 <h2 className="text-xl font-semibold mb-4">{conference}</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {teams.map(team => {
-                    // Check if team and team.color exist before using them
-                    const teamColor = team && team.color ? `#${team.color}` : "#3b82f6";
+                    // Get team colors or use defaults
+                    const teamColor = team.color ? `#${team.color}` : "#3b82f6";
                     const borderColorStyle = { borderLeftColor: teamColor };
                     
                     return (
@@ -145,14 +120,14 @@ const Scouting = () => {
                               {team.logo && (
                                 <img 
                                   src={team.logo} 
-                                  alt={team.displayName || 'Team logo'} 
+                                  alt={team.displayName || "Team logo"} 
                                   className="w-10 h-10 object-contain"
                                 />
                               )}
                               <div>
-                                <h3 className="font-semibold">{team.displayName || 'Team'}</h3>
+                                <h3 className="font-semibold">{team.displayName || "Unknown Team"}</h3>
                                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                  <span>{team.record || 'N/A'}</span>
+                                  <span>{team.record || "N/A"}</span>
                                   <span>•</span>
                                   <span>{team.division || "Division"}</span>
                                 </div>
@@ -168,7 +143,7 @@ const Scouting = () => {
               </div>
             ))}
 
-            {Object.keys(filteredTeams).length === 0 && !loading && !error && (
+            {Object.keys(filteredTeams).length === 0 && !loading && (
               <div className="text-center py-8">
                 <p className="text-muted-foreground">No teams found matching your search criteria.</p>
                 {searchQuery && (
