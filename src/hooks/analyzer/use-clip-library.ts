@@ -1,45 +1,72 @@
-
 import { useState, useEffect } from "react";
 import { GameData, SavedClip, PlayerAction, GameSituation, ClipFolder } from "@/types/analyzer";
 import { toast } from "sonner";
 import { downloadJSON, extractVideoClip } from "@/components/video/utils";
+
+const CLIPS_STORAGE_KEY = 'savedClips';
+const FOLDERS_STORAGE_KEY = 'clipFolders';
 
 export const useClipLibrary = (videoUrl: string | undefined) => {
   const [savedClips, setSavedClips] = useState<SavedClip[]>([]);
   const [folders, setFolders] = useState<ClipFolder[]>([]);
   const [playLabel, setPlayLabel] = useState("");
   const [activeFolder, setActiveFolder] = useState<string | null>(null);
+  const [storageInitialized, setStorageInitialized] = useState(false);
 
-  // Load saved clips and folders from localStorage on initial load
   useEffect(() => {
-    const savedClipsData = localStorage.getItem('savedClips');
-    const foldersData = localStorage.getItem('clipFolders');
-    
-    if (savedClipsData) {
-      try {
-        setSavedClips(JSON.parse(savedClipsData));
-      } catch (error) {
-        console.error('Error loading saved clips:', error);
+    try {
+      const savedClipsData = localStorage.getItem(CLIPS_STORAGE_KEY);
+      if (savedClipsData) {
+        const parsedClips = JSON.parse(savedClipsData);
+        if (Array.isArray(parsedClips)) {
+          setSavedClips(parsedClips);
+        } else {
+          console.error('Invalid clip data format in localStorage');
+          localStorage.removeItem(CLIPS_STORAGE_KEY);
+        }
       }
-    }
-    
-    if (foldersData) {
-      try {
-        setFolders(JSON.parse(foldersData));
-      } catch (error) {
-        console.error('Error loading folders:', error);
+      
+      const foldersData = localStorage.getItem(FOLDERS_STORAGE_KEY);
+      if (foldersData) {
+        const parsedFolders = JSON.parse(foldersData);
+        if (Array.isArray(parsedFolders)) {
+          setFolders(parsedFolders);
+        } else {
+          console.error('Invalid folder data format in localStorage');
+          localStorage.removeItem(FOLDERS_STORAGE_KEY);
+        }
       }
+      
+      setStorageInitialized(true);
+    } catch (error) {
+      console.error('Error loading data from localStorage:', error);
+      setSavedClips([]);
+      setFolders([]);
+      setStorageInitialized(true);
     }
   }, []);
 
-  // Save to localStorage whenever clips or folders change
   useEffect(() => {
-    localStorage.setItem('savedClips', JSON.stringify(savedClips));
-  }, [savedClips]);
+    if (storageInitialized) {
+      try {
+        localStorage.setItem(CLIPS_STORAGE_KEY, JSON.stringify(savedClips));
+      } catch (error) {
+        console.error('Error saving clips to localStorage:', error);
+        toast.error("Failed to save clips to local storage");
+      }
+    }
+  }, [savedClips, storageInitialized]);
   
   useEffect(() => {
-    localStorage.setItem('clipFolders', JSON.stringify(folders));
-  }, [folders]);
+    if (storageInitialized) {
+      try {
+        localStorage.setItem(FOLDERS_STORAGE_KEY, JSON.stringify(folders));
+      } catch (error) {
+        console.error('Error saving folders to localStorage:', error);
+        toast.error("Failed to save folders to local storage");
+      }
+    }
+  }, [folders, storageInitialized]);
 
   const saveClipToLibrary = (clip: GameData, folderId?: string) => {
     if (!playLabel.trim()) {
@@ -75,7 +102,6 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
     };
     
     setSavedClips(prevClips => {
-      // Check if this clip already exists by comparing startTime
       const clipExists = prevClips.some(existingClip => 
         Math.abs(existingClip.startTime - startTime) < 0.1 && 
         existingClip.label === playLabel
@@ -107,7 +133,6 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
       const startTime = parseFloat(item["Start time"] || "0");
       const duration = parseFloat(item["Duration"] || "0");
       
-      // Skip if missing essential data
       if (isNaN(startTime)) {
         console.warn("Skipping clip with invalid start time:", item);
         return;
@@ -122,7 +147,6 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
         console.error("Error parsing player data:", error);
       }
       
-      // Create a meaningful label
       let label = item["Play Name"] || "";
       if (!label && item["Notes"]) {
         label = item["Notes"];
@@ -147,7 +171,6 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
     });
     
     setSavedClips(prev => {
-      // Filter out duplicates by checking startTime and label
       const filteredNewClips = newClips.filter(newClip => 
         !prev.some(existingClip => 
           Math.abs(existingClip.startTime - newClip.startTime) < 0.1 && 
@@ -213,17 +236,15 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
     };
     
     downloadJSON(exportData, "clip-library.json");
-    toast.success("Clip library exported as JSON");
+    toast.success(`Clip library exported (${savedClips.length} clips)`);
   };
 
-  // New folder management functions
   const createFolder = (name: string, description: string = "") => {
     if (!name.trim()) {
       toast.error("Folder name is required");
       return;
     }
     
-    // Check if folder with the same name already exists
     if (folders.some(folder => folder.name.toLowerCase() === name.toLowerCase())) {
       toast.error("A folder with this name already exists");
       return;
@@ -256,17 +277,14 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
   };
   
   const deleteFolder = (id: string) => {
-    // First, remove folder association from clips
     setSavedClips(prev => prev.map(clip => 
       clip.folderId === id 
         ? { ...clip, folderId: undefined } 
         : clip
     ));
     
-    // Then delete the folder
     setFolders(prev => prev.filter(folder => folder.id !== id));
     
-    // Reset active folder if it was the deleted one
     if (activeFolder === id) {
       setActiveFolder(null);
     }
@@ -290,6 +308,71 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
     return savedClips.filter(clip => clip.folderId === folderId);
   };
 
+  const importLibrary = (data: any) => {
+    try {
+      if (!data || typeof data !== 'object') {
+        throw new Error("Invalid import data format");
+      }
+      
+      if (!Array.isArray(data.clips)) {
+        throw new Error("Invalid clips format in import data");
+      }
+      
+      if (!Array.isArray(data.folders)) {
+        throw new Error("Invalid folders format in import data");
+      }
+      
+      setSavedClips(prev => {
+        const existingIds = new Set(prev.map(clip => clip.id));
+        const newClips = data.clips.filter((clip: SavedClip) => !existingIds.has(clip.id));
+        
+        if (newClips.length === 0) {
+          toast.info("No new clips found in import");
+          return prev;
+        }
+        
+        toast.success(`Imported ${newClips.length} new clips`);
+        return [...prev, ...newClips];
+      });
+      
+      setFolders(prev => {
+        const existingIds = new Set(prev.map(folder => folder.id));
+        const newFolders = data.folders.filter((folder: ClipFolder) => !existingIds.has(folder.id));
+        
+        if (newFolders.length > 0) {
+          toast.success(`Imported ${newFolders.length} new folders`);
+        }
+        
+        return [...prev, ...newFolders];
+      });
+      
+      return true;
+    } catch (error) {
+      console.error("Error importing library:", error);
+      toast.error("Failed to import library: Invalid format");
+      return false;
+    }
+  };
+
+  const getStorageInfo = () => {
+    try {
+      const clipsSize = new Blob([JSON.stringify(savedClips)]).size;
+      const foldersSize = new Blob([JSON.stringify(folders)]).size;
+      const totalSize = clipsSize + foldersSize;
+      
+      return {
+        clipsCount: savedClips.length,
+        foldersCount: folders.length,
+        totalSizeBytes: totalSize,
+        totalSizeKB: Math.round(totalSize / 1024),
+        totalSizeMB: (totalSize / (1024 * 1024)).toFixed(2)
+      };
+    } catch (error) {
+      console.error("Error calculating storage size:", error);
+      return null;
+    }
+  };
+
   return {
     savedClips,
     folders,
@@ -302,10 +385,12 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
     removeSavedClip,
     exportClip,
     exportLibrary,
+    importLibrary,
     createFolder,
     updateFolder,
     deleteFolder,
     moveClipToFolder,
-    getClipsByFolder
+    getClipsByFolder,
+    getStorageInfo
   };
 };

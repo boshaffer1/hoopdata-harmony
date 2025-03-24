@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { 
   DropdownMenu, 
@@ -22,7 +22,8 @@ import {
   Filter, 
   Search, 
   MoreVertical, 
-  FolderPlus 
+  FolderPlus,
+  Upload
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { 
@@ -33,6 +34,7 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 import { GameSituation, GAME_SITUATIONS } from "@/types/analyzer";
+import { toast } from "sonner";
 
 interface LibraryClipListProps {
   clips: SavedClip[];
@@ -55,6 +57,7 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [situationFilter, setSituationFilter] = useState<GameSituation | "all">("all");
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Filter clips based on search term and situation filter
   const filteredClips = clips.filter(clip => {
