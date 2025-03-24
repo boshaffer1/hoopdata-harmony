@@ -1,12 +1,11 @@
-
 import React, { useRef, useImperativeHandle, forwardRef, useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
-import { useVideoPlayer } from "@/hooks/video/use-video-player";
+import { useVideoPlayer } from "@/hooks/video-player/use-video-player";
 import VideoControls from "./VideoControls";
 import VideoTimeline from "./VideoTimeline";
 import PlayOverlay from "./PlayOverlay";
 import { toast } from "sonner";
-import { isVideoReady } from "@/hooks/video/utils";
+import { isVideoReady } from "@/hooks/video-player/utils";
 
 interface VideoPlayerProps {
   src?: string;
@@ -31,7 +30,6 @@ const VideoPlayer = forwardRef<any, VideoPlayerProps>(({
     { play, pause, seekToTime, togglePlay, handleTimeChange, handleVolumeChange, toggleMute, toggleFullscreen, jumpTime, getCurrentTime, getDuration }
   ] = useVideoPlayer(videoRef, onTimeUpdate);
 
-  // Enhanced play method with better error handling
   const enhancedPlay = async () => {
     console.log("Play method called on video player");
     if (!videoRef.current?.src) {
@@ -43,24 +41,30 @@ const VideoPlayer = forwardRef<any, VideoPlayerProps>(({
     if (!isVideoReady) {
       console.log("Video not ready yet, setting pending play flag");
       setPendingPlay(true);
-      return Promise.resolve(); // Return a resolved promise to prevent errors
+      return Promise.resolve();
     }
     
     try {
-      return play()
-        .then(() => {
-          console.log("Play promise resolved successfully");
-          return Promise.resolve();
-        })
-        .catch(error => {
-          console.error("Error playing video:", error);
-          if (errorMessage) {
-            toast.error(`Failed to play video: ${errorMessage}`);
-          } else {
-            toast.error("Failed to play video");
-          }
-          return Promise.reject(error);
-        });
+      const playPromise = play();
+      if (playPromise instanceof Promise) {
+        return playPromise
+          .then(() => {
+            console.log("Play promise resolved successfully");
+            return Promise.resolve();
+          })
+          .catch(error => {
+            console.error("Error playing video:", error);
+            if (errorMessage) {
+              toast.error(`Failed to play video: ${errorMessage}`);
+            } else {
+              toast.error("Failed to play video");
+            }
+            return Promise.reject(error);
+          });
+      } else {
+        console.log("Play method did not return a promise");
+        return Promise.resolve();
+      }
     } catch (error) {
       console.error("Exception playing video:", error);
       return Promise.reject(error);
@@ -77,7 +81,7 @@ const VideoPlayer = forwardRef<any, VideoPlayerProps>(({
     if (!isVideoReady) {
       console.log("Video not ready yet, setting pending seek time:", time);
       setPendingSeek(time);
-      return Promise.resolve(); // Return a resolved promise to prevent errors
+      return Promise.resolve();
     }
     
     try {
@@ -89,7 +93,6 @@ const VideoPlayer = forwardRef<any, VideoPlayerProps>(({
     }
   };
 
-  // Expose methods to parent via ref
   useImperativeHandle(ref, () => ({
     play: enhancedPlay,
     pause,
@@ -98,7 +101,6 @@ const VideoPlayer = forwardRef<any, VideoPlayerProps>(({
     getDuration
   }));
 
-  // Force video element to load when src changes
   useEffect(() => {
     if (videoRef.current && src) {
       console.log("Video source changed, loading new source");
@@ -107,7 +109,6 @@ const VideoPlayer = forwardRef<any, VideoPlayerProps>(({
     }
   }, [src]);
   
-  // Handle video ready state
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -116,13 +117,11 @@ const VideoPlayer = forwardRef<any, VideoPlayerProps>(({
       console.log("Video can play event fired");
       setIsVideoReady(true);
       
-      // Handle any pending operations
       if (pendingSeek !== null) {
         console.log(`Handling pending seek to ${pendingSeek}s`);
         seekToTime(pendingSeek);
         setPendingSeek(null);
         
-        // If we also have a pending play, handle it after a short delay
         if (pendingPlay) {
           setTimeout(() => {
             console.log("Handling pending play after seek");
@@ -144,7 +143,6 @@ const VideoPlayer = forwardRef<any, VideoPlayerProps>(({
     };
   }, [pendingSeek, pendingPlay, seekToTime]);
 
-  // Display error message if video has an error
   useEffect(() => {
     if (hasError && errorMessage) {
       toast.error(`Video error: ${errorMessage}`);
@@ -159,7 +157,6 @@ const VideoPlayer = forwardRef<any, VideoPlayerProps>(({
         className
       )}
     >
-      {/* Video element */}
       <video
         ref={videoRef}
         className="w-full h-full object-contain"
@@ -171,16 +168,13 @@ const VideoPlayer = forwardRef<any, VideoPlayerProps>(({
         Your browser doesn't support HTML5 video.
       </video>
 
-      {/* Loading indicator */}
       {isBuffering && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/30">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
         </div>
       )}
 
-      {/* Video controls */}
       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4 transition-opacity opacity-0 group-hover:opacity-100">
-        {/* Timeline with markers */}
         <VideoTimeline 
           currentTime={currentTime}
           duration={duration}
@@ -204,7 +198,6 @@ const VideoPlayer = forwardRef<any, VideoPlayerProps>(({
         />
       </div>
 
-      {/* Large play button overlay (visible when paused) */}
       <PlayOverlay isVisible={!isPlaying && !isBuffering} onClick={togglePlay} />
     </div>
   );

@@ -1,9 +1,8 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Play, Pause, Volume2, VolumeX, Maximize, ChevronRight, ChevronLeft } from "lucide-react";
-import { formatTime } from "@/hooks/video/utils";
+import { formatTime } from "@/hooks/video-player/utils";
 
 interface VideoControlsProps {
   isPlaying: boolean;
@@ -112,3 +111,4 @@ const VideoControls: React.FC<VideoControlsProps> = ({
 };
 
 export default VideoControls;
+
