@@ -1,14 +1,10 @@
 
-import React, { useRef, useImperativeHandle, forwardRef, useEffect } from "react";
+import React, { useRef, useImperativeHandle, forwardRef } from "react";
 import { cn } from "@/lib/utils";
-import { useVideoPlayer } from "@/hooks/video-player/use-video-player";
-import { useEnhancedPlayer } from "@/hooks/video-player/use-enhanced-player";
+import { useVideoPlayer } from "@/hooks/use-video-player";
+import VideoControls from "./VideoControls";
+import VideoTimeline from "./VideoTimeline";
 import PlayOverlay from "./PlayOverlay";
-import BufferingIndicator from "./BufferingIndicator";
-import VideoFrame from "./VideoFrame";
-import VideoPlayerControls from "./VideoPlayerControls";
-import { VideoPlayerProvider } from "./context/VideoPlayerContext";
-import { toast } from "sonner";
 
 interface VideoPlayerProps {
   src?: string;
@@ -24,111 +20,67 @@ const VideoPlayer = forwardRef<any, VideoPlayerProps>(({
   markers = []
 }, ref) => {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [state, actions] = useVideoPlayer(videoRef, onTimeUpdate);
-  const { isPlaying, isBuffering, hasError, errorMessage, isRecovering } = state;
+  const [
+    { isPlaying, currentTime, duration, volume, isMuted },
+    { play, pause, seekToTime, togglePlay, handleTimeChange, handleVolumeChange, toggleMute, toggleFullscreen, jumpTime, getCurrentTime, getDuration }
+  ] = useVideoPlayer(videoRef, onTimeUpdate);
 
-  // Use the enhanced player hook to manage video readiness and pending operations
-  const {
-    isVideoReady,
-    pendingSeek,
-    setPendingSeek,
-    pendingPlay,
-    setPendingPlay,
-    enhancedPlay,
-    enhancedSeek
-  } = useEnhancedPlayer(videoRef, actions, errorMessage);
-
+  // Expose methods to parent via ref
   useImperativeHandle(ref, () => ({
-    play: enhancedPlay,
-    pause: actions.pause,
-    seekToTime: enhancedSeek,
-    getCurrentTime: actions.getCurrentTime,
-    getDuration: actions.getDuration
+    play,
+    pause,
+    seekToTime,
+    getCurrentTime,
+    getDuration
   }));
 
-  useEffect(() => {
-    if (videoRef.current && src) {
-      console.log("Video source changed, loading new source");
-      // Reset any pending operations
-      setPendingSeek(null);
-      setPendingPlay(false);
-      videoRef.current.load();
-    }
-  }, [src, setPendingSeek, setPendingPlay]);
-  
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-    
-    const handleCanPlay = () => {
-      console.log("Video can play event fired");
-      
-      if (pendingSeek !== null) {
-        console.log(`Handling pending seek to ${pendingSeek}s`);
-        enhancedSeek(pendingSeek);
-        
-        if (pendingPlay) {
-          setTimeout(() => {
-            console.log("Handling pending play after seek");
-            enhancedPlay().catch(err => console.error("Failed to play after seek:", err));
-            setPendingPlay(false);
-          }, 800);
-        }
-      } else if (pendingPlay) {
-        console.log("Handling pending play");
-        enhancedPlay().catch(err => console.error("Failed to handle pending play:", err));
-        setPendingPlay(false);
-      }
-    };
-    
-    video.addEventListener("canplay", handleCanPlay);
-    video.addEventListener("loadeddata", handleCanPlay);
-    
-    return () => {
-      video.removeEventListener("canplay", handleCanPlay);
-      video.removeEventListener("loadeddata", handleCanPlay);
-    };
-  }, [pendingSeek, pendingPlay, enhancedSeek, enhancedPlay, setPendingPlay]);
-
-  useEffect(() => {
-    if (hasError && errorMessage) {
-      toast.error(`Video error: ${errorMessage}`);
-      console.error(`Video playback error: ${errorMessage}`);
-    }
-  }, [hasError, errorMessage]);
-
-  const contextValue = {
-    state,
-    actions,
-    isVideoReady,
-    pendingPlay,
-    setPendingPlay,
-    pendingSeek,
-    setPendingSeek,
-    enhancedPlay,
-    enhancedSeek
-  };
-
   return (
-    <VideoPlayerProvider {...contextValue}>
-      <div 
-        id="video-container"
-        className={cn(
-          "video-player-container rounded-xl overflow-hidden bg-black relative group",
-          className
-        )}
+    <div 
+      id="video-container"
+      className={cn(
+        "video-player-container rounded-xl overflow-hidden bg-black relative group",
+        className
+      )}
+    >
+      {/* Video element */}
+      <video
+        ref={videoRef}
+        className="w-full h-full object-contain"
+        onClick={togglePlay}
+        src={src}
       >
-        <VideoFrame ref={videoRef} src={src} />
-        <BufferingIndicator 
-          isBuffering={isBuffering} 
-          hasError={hasError} 
-          errorMessage={errorMessage} 
-          isRecovering={isRecovering}
+        Your browser doesn't support HTML5 video.
+      </video>
+
+      {/* Video controls */}
+      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4 transition-opacity opacity-0 group-hover:opacity-100">
+        {/* Timeline with markers */}
+        <VideoTimeline 
+          currentTime={currentTime}
+          duration={duration}
+          markers={markers}
+          onTimeChange={handleTimeChange}
+          onMarkerClick={seekToTime}
         />
-        <VideoPlayerControls markers={markers} />
-        <PlayOverlay isVisible={!isPlaying && !isBuffering && !hasError && !isRecovering} onClick={actions.togglePlay} />
+        
+        <VideoControls 
+          isPlaying={isPlaying}
+          currentTime={currentTime}
+          duration={duration}
+          volume={volume}
+          isMuted={isMuted}
+          onPlayPause={togglePlay}
+          onTimeChange={handleTimeChange}
+          onVolumeChange={handleVolumeChange}
+          onToggleMute={toggleMute}
+          onToggleFullscreen={toggleFullscreen}
+          onJumpTime={jumpTime}
+        />
       </div>
-    </VideoPlayerProvider>
+
+      {/* Large play button overlay (visible when paused) */}
+      <PlayOverlay isVisible={!isPlaying} onClick={togglePlay} />
+    </div>
   );
 });
 

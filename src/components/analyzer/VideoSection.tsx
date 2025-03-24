@@ -8,7 +8,7 @@ import { BookmarkIcon } from "lucide-react";
 import VideoPlayer from "@/components/video/VideoPlayer";
 import { toast } from "sonner";
 import { Marker } from "@/types/analyzer";
-import { formatTime } from "@/hooks/video-player/utils";
+import { formatVideoTime } from "@/components/video/utils";
 
 interface VideoSectionProps {
   videoUrl?: string;
@@ -33,21 +33,6 @@ const VideoSection: React.FC<VideoSectionProps> = ({
   onNewMarkerLabelChange,
   onAddMarker,
 }) => {
-  // Prepare markers for the video player in the expected format
-  const formattedMarkers = markers.map(m => ({
-    time: m.time,
-    label: m.label,
-    color: m.color
-  }));
-
-  const handleAddMarker = () => {
-    if (!videoUrl) {
-      toast.error("Please upload a video first");
-      return;
-    }
-    onAddMarker();
-  };
-
   return (
     <>
       {/* Video Player */}
@@ -58,7 +43,7 @@ const VideoSection: React.FC<VideoSectionProps> = ({
               ref={videoPlayerRef}
               src={videoUrl} 
               onTimeUpdate={onTimeUpdate}
-              markers={formattedMarkers}
+              markers={markers}
             />
           ) : (
             <div className="aspect-video flex items-center justify-center bg-muted">
@@ -82,7 +67,7 @@ const VideoSection: React.FC<VideoSectionProps> = ({
         <Card className="flex-1">
           <CardContent className="pt-6">
             <h3 className="text-sm font-medium mb-2">Current Time</h3>
-            <div className="text-2xl font-mono">{formatTime(currentTime)}</div>
+            <div className="text-2xl font-mono">{formatVideoTime(currentTime)}</div>
           </CardContent>
         </Card>
         
@@ -96,7 +81,7 @@ const VideoSection: React.FC<VideoSectionProps> = ({
                 placeholder="Marker label"
                 className="flex-1"
               />
-              <Button onClick={handleAddMarker} disabled={!videoUrl}>
+              <Button onClick={onAddMarker} disabled={!videoUrl}>
                 <BookmarkIcon className="h-4 w-4 mr-2" />
                 Mark
               </Button>

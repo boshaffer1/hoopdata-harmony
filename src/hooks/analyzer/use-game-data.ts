@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { GameData, GameSituation } from "@/types/analyzer";
 import { toast } from "sonner";
@@ -5,7 +6,6 @@ import { toast } from "sonner";
 export const useGameData = (videoPlayerRef: React.RefObject<any>) => {
   const [data, setData] = useState<GameData[]>([]);
   const [selectedClip, setSelectedClip] = useState<GameData | null>(null);
-  const [isPlayingClip, setIsPlayingClip] = useState(false);
 
   const handleFileLoaded = (loadedData: any) => {
     try {
@@ -14,6 +14,8 @@ export const useGameData = (videoPlayerRef: React.RefObject<any>) => {
       }
       
       const processedData = loadedData.map((item: any) => {
+        // Map CSV fields to required GameData structure
+        // Handle various CSV formats and field names for flexibility
         const playName = item["Play Name"] || item["Notes"] || item["CHAD NOTES"] || "";
         const startTime = item["Start time"] || "0";
         const duration = item["Duration"] || "0";
@@ -23,6 +25,7 @@ export const useGameData = (videoPlayerRef: React.RefObject<any>) => {
         const notes = item["Notes"] || "";
         const timeline = item["Timeline"] || "";
         
+        // Process and validate the data
         const processedItem: GameData = {
           "Play Name": playName,
           "Start time": startTime,
@@ -34,6 +37,7 @@ export const useGameData = (videoPlayerRef: React.RefObject<any>) => {
           "Timeline": timeline
         };
 
+        // Validate Players JSON format
         try {
           if (processedItem.Players && processedItem.Players !== "[]") {
             JSON.parse(processedItem.Players);
@@ -55,6 +59,7 @@ export const useGameData = (videoPlayerRef: React.RefObject<any>) => {
     }
   };
 
+  // Helper function to determine situation from CSV
   const getSituationFromCSV = (item: any): GameSituation => {
     if (item["Situation"] === "SLOB") return "slob";
     if (item["Situation"] === "BLOB") return "blob";
@@ -64,6 +69,7 @@ export const useGameData = (videoPlayerRef: React.RefObject<any>) => {
     return "other";
   };
 
+  // Helper function to determine outcome from CSV
   const getOutcomeFromCSV = (item: any) => {
     if (item["Shooting"]?.includes("3")) return "scored";
     if (item["Shooting"]?.includes("2")) return "scored";
@@ -72,9 +78,11 @@ export const useGameData = (videoPlayerRef: React.RefObject<any>) => {
     return "other";
   };
 
+  // Helper function to extract players from CSV
   const getPlayersFromCSV = (item: any): string => {
     const players = [];
     
+    // Process Atlanta Hawks players
     if (item["Atlanta Hawks"]) {
       const hawksPlayers = item["Atlanta Hawks"].split(",");
       for (const player of hawksPlayers) {
@@ -88,6 +96,7 @@ export const useGameData = (videoPlayerRef: React.RefObject<any>) => {
       }
     }
     
+    // Process Orlando Magic players
     if (item["Orlando Magic"]) {
       const magicPlayers = item["Orlando Magic"].split(",");
       for (const player of magicPlayers) {
@@ -104,91 +113,31 @@ export const useGameData = (videoPlayerRef: React.RefObject<any>) => {
     return JSON.stringify(players);
   };
 
-  const playClip = async (item: GameData) => {
+  const playClip = (item: GameData) => {
     if (!videoPlayerRef.current) {
-      console.warn("Video player reference not available");
-      toast.error("Video player not ready");
-      return Promise.reject("Video player not available");
+      return;
     }
     
-    if (isPlayingClip) {
-      console.log("Already playing a clip, cancelling new request");
-      toast.info("Already playing a clip");
-      return Promise.reject("Already playing a clip");
-    }
+    const startTime = parseFloat(item["Start time"] || "0");
+    const duration = parseFloat(item["Duration"] || "0");
     
-    setIsPlayingClip(true);
+    videoPlayerRef.current.seekToTime(startTime);
+    videoPlayerRef.current.play();
+      
     setSelectedClip(item);
-    
-    try {
-      const startTime = parseFloat(item["Start time"] || "0");
-      const duration = parseFloat(item["Duration"] || "0");
       
-      console.log(`Playing clip: "${item["Play Name"]}" at ${startTime}s for ${duration}s`);
-      
-      try {
-        videoPlayerRef.current.pause();
-        await new Promise(resolve => setTimeout(resolve, 300));
-      } catch (error) {
-        console.log("Error pausing before seek, continuing:", error);
-      }
-      
-      try {
-        console.log("Seeking to position:", startTime);
-        await videoPlayerRef.current.seekToTime(startTime);
-        
-        await new Promise(resolve => setTimeout(resolve, 800));
-        
-        console.log("Current position after seek:", videoPlayerRef.current.getCurrentTime());
-      } catch (error) {
-        console.error("Error seeking to position:", error);
-        toast.error("Failed to seek to clip position");
-        setIsPlayingClip(false);
-        return Promise.reject(error);
-      }
-      
-      try {
-        console.log("Seek completed, now playing video");
-        await videoPlayerRef.current.play();
-      } catch (error) {
-        console.error("Error playing clip:", error);
-        toast.error("Failed to play clip");
-        setIsPlayingClip(false);
-        return Promise.reject(error);
-      }
-      
-      if (duration > 0) {
-        setTimeout(() => {
-          if (videoPlayerRef.current) {
-            try {
-              videoPlayerRef.current.pause();
-              console.log("Clip playback completed");
-            } catch (error) {
-              console.error("Error pausing after clip completion:", error);
-            } finally {
-              setIsPlayingClip(false);
-            }
-          }
-        }, duration * 1000);
-      } else {
-        setTimeout(() => {
-          setIsPlayingClip(false);
-        }, 3000);
-      }
-      
-      return Promise.resolve();
-    } catch (error) {
-      console.error("Error in clip playback flow:", error);
-      setIsPlayingClip(false);
-      toast.error("Failed to play clip");
-      return Promise.reject(error);
+    if (duration > 0) {
+      setTimeout(() => {
+        if (videoPlayerRef.current) {
+          videoPlayerRef.current.pause();
+        }
+      }, duration * 1000);
     }
   };
 
   return {
     data,
     selectedClip,
-    isPlayingClip,
     handleFileLoaded,
     playClip,
     setSelectedClip

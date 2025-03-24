@@ -1,3 +1,4 @@
+
 import { useVideo } from "./use-video";
 import { useMarkers } from "./use-markers";
 import { useGameData } from "./use-game-data";
@@ -29,7 +30,6 @@ export const useAnalyzer = () => {
   const {
     data,
     selectedClip,
-    isPlayingClip,
     handleFileLoaded: originalHandleFileLoaded,
     playClip,
     setSelectedClip
@@ -46,14 +46,19 @@ export const useAnalyzer = () => {
     saveClipsFromData
   } = useClipLibrary(videoUrl);
 
+  // Combined handlers with explicit data processing
   const handleFileLoaded = (loadedData: any) => {
+    // Process data through the original handler
     const processedData = originalHandleFileLoaded(loadedData);
     
+    // Only proceed if we have valid data
     if (processedData && processedData.length > 0) {
       console.log("Creating markers and clips from", processedData.length, "plays");
       
+      // Explicitly create markers from data - this must run
       const createdMarkers = addMarkersFromData(processedData);
       
+      // Explicitly save clips to library - this must run
       const savedClips = saveClipsFromData(processedData);
       
       toast.success(`Created ${createdMarkers.length} markers and ${savedClips.length} clips from ${processedData.length} plays`);
@@ -68,29 +73,18 @@ export const useAnalyzer = () => {
       return;
     }
     
-    if (isPlayingClip) {
-      toast.info("Already playing a clip. Wait for it to finish or pause it first.");
-      return;
-    }
+    playClip(item);
     
     const startTime = parseFloat(item["Start time"] || "0");
-    const duration = parseFloat(item["Duration"] || "0");
-    
     const minutes = Math.floor(startTime / 60);
     const seconds = Math.floor(startTime % 60);
     const formattedTime = `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
     
     toast.success(`Playing clip from ${formattedTime}`);
-    
-    setTimeout(() => {
-      playClip(item).catch(error => {
-        console.error("Failed to play clip:", error);
-        toast.error("Failed to play the clip, please try again");
-      });
-    }, 100);
   };
 
   const handlePlaySavedClip = (clip: SavedClip) => {
+    // Convert SavedClip to GameData format for playClip
     const gameDataClip: GameData = {
       "Play Name": clip.label,
       "Start time": clip.startTime.toString(),
@@ -114,7 +108,6 @@ export const useAnalyzer = () => {
     selectedClip,
     playLabel,
     savedClips,
-    isPlayingClip,
     videoPlayerRef,
     handleFileLoaded,
     handleVideoFileChange,
