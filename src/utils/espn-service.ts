@@ -1,4 +1,3 @@
-
 import { TeamRoster, Player } from "@/types/analyzer";
 
 // Extend the ESPN API types
@@ -20,6 +19,19 @@ export interface ESPNTeam {
     shortName: string;
   };
   rank?: number;
+  record?: string;
+  division?: string;
+}
+
+// Export the TeamWithConference interface for use in Scouting.tsx
+export interface TeamWithConference extends ESPNTeam {
+  conference?: {
+    id: string;
+    name: string;
+    shortName: string;
+  };
+  record?: string;
+  division?: string;
 }
 
 interface ESPNAthlete {
@@ -58,6 +70,30 @@ export interface ESPNConference {
   teams: ESPNTeam[];
 }
 
+// Type for scouting report
+export interface ScoutingReport {
+  team: {
+    id: string;
+    name: string;
+    abbreviation: string;
+    conference: string;
+    rank: string | number;
+    color: string;
+  };
+  roster: Record<string, any[]>;
+  summary: {
+    totalPlayers: number;
+    returningPlayers: number;
+    freshmen: number;
+    averageHeight: string;
+    starPlayers: {
+      name: string;
+      number?: string;
+      position?: string;
+    }[];
+  };
+}
+
 // Use class to organize ESPN-related methods
 export class ESPNService {
   // ESPN API base URLs
@@ -67,6 +103,100 @@ export class ESPNService {
   private static readonly powerConferences = [
     "ACC", "Big 12", "Big East", "Big Ten", "Pac-12", "SEC"
   ];
+  
+  /**
+   * Fetch teams by conference
+   */
+  static async getTeamsByConference(sport: string, leagueId: string): Promise<Record<string, TeamWithConference[]>> {
+    try {
+      // Fetch teams first
+      const teams = await this.fetchTeams(sport, leagueId);
+      
+      // For college basketball, group by conference
+      if (leagueId.includes('college')) {
+        const conferencesMap: Record<string, TeamWithConference[]> = {};
+        
+        // Group teams by conference name
+        teams.forEach(team => {
+          if (team.conference) {
+            const conferenceName = team.conference.name;
+            
+            if (!conferencesMap[conferenceName]) {
+              conferencesMap[conferenceName] = [];
+            }
+            
+            conferencesMap[conferenceName].push(team);
+          }
+        });
+        
+        return conferencesMap;
+      } 
+      // For pro leagues, group by division or conference
+      else {
+        const divisionsMap: Record<string, TeamWithConference[]> = {};
+        
+        // Group teams first by conference/division
+        teams.forEach(team => {
+          let groupName = "All Teams";
+          
+          // Try to get division or conference from team data
+          if (team.division) {
+            groupName = team.division;
+          } else if (team.conference && team.conference.name) {
+            groupName = team.conference.name;
+          }
+          
+          if (!divisionsMap[groupName]) {
+            divisionsMap[groupName] = [];
+          }
+          
+          divisionsMap[groupName].push(team);
+        });
+        
+        return divisionsMap;
+      }
+    } catch (error) {
+      console.error(`Error grouping teams by conference:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get scouting report for a team
+   */
+  static async getScoutingReport(sport: string, leagueId: string, teamId: string): Promise<ScoutingReport> {
+    try {
+      // Fetch team data and roster
+      const teams = await this.fetchTeams(sport, leagueId);
+      const team = teams.find(t => t.id === teamId);
+      
+      if (!team) {
+        throw new Error(`Team with ID ${teamId} not found`);
+      }
+      
+      const athletes = await this.fetchTeamRoster(sport, leagueId, teamId);
+      
+      // Generate enhanced scouting report
+      const scoutingReport = this.generateEnhancedScoutingReport(team, athletes);
+      return scoutingReport;
+    } catch (error) {
+      console.error(`Error getting scouting report:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Generate PDF of scouting report (mock implementation)
+   */
+  static async generateScoutingReportPDF(report: ScoutingReport): Promise<string> {
+    // In a real implementation, this would generate a PDF
+    // For now, we'll just return a mock URL
+    return new Promise(resolve => {
+      setTimeout(() => {
+        resolve(`https://example.com/reports/${report.team.id}_scouting_report.pdf`);
+      }, 1500);
+    });
+  }
   
   /**
    * Fetch teams from ESPN API
@@ -193,14 +323,17 @@ export class ESPNService {
       }
       if (athlete.weight) notes += `Weight: ${athlete.weight} lbs. `;
       
+      // Convert to proper Player type with required fields
       return {
+        id: `player-${athlete.id}`,
         name: athlete.displayName || `${athlete.firstName} ${athlete.lastName}`,
         number,
         position,
+        height: athlete.height ? `${Math.floor(athlete.height / 12)}'${athlete.height % 12}"` : "",
+        year: athlete.class || "",
+        hometown: athlete.hometown?.name || "",
         notes: notes.trim(),
-        // Include headshot URL if available
         headshot: athlete.headshot?.href || "",
-        // Include original ESPN data for reference
         espnId: athlete.id
       };
     });

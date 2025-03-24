@@ -67,16 +67,23 @@ export interface Player {
   height: string;
   year: string;
   hometown: string;
+  notes?: string;
   image?: string;
+  headshot?: string;
+  espnId?: string;
   stats?: PlayerStats;
 }
 
 export interface TeamRoster {
   id: string;
   name: string;
+  abbreviation?: string;
   logo?: string;
+  color?: string;
   primaryColor?: string;
   secondaryColor?: string;
+  conference?: string;
+  isCollegeTeam?: boolean;
   players: Player[];
 }
 
@@ -91,3 +98,30 @@ export interface PlayerStats {
   fg3_pct?: number;
   ft_pct?: number;
 }
+
+// Add these export constants for the form components
+export const GAME_SITUATIONS: Record<GameSituation, string> = {
+  transition: 'Transition',
+  half_court: 'Half Court',
+  ato: 'After Timeout',
+  slob: 'Sideline Out of Bounds',
+  blob: 'Baseline Out of Bounds',
+  press_break: 'Press Break',
+  zone_offense: 'Zone Offense',
+  man_offense: 'Man Offense',
+  fast_break: 'Fast Break',
+  defense: 'Defense',
+  other: 'Other'
+};
+
+export const PLAYER_ACTIONS: Record<PlayerActionType, string> = {
+  scored: 'Scored',
+  missed: 'Missed',
+  assisted: 'Assisted',
+  rebounded: 'Rebounded',
+  blocked: 'Blocked',
+  stole: 'Stole',
+  turnover: 'Turnover',
+  fouled: 'Fouled',
+  other: 'Other'
+};
