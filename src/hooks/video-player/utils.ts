@@ -124,10 +124,55 @@ export const getSupportedFormats = (): string[] => {
     { type: 'video/webm; codecs="vp9"', name: 'WebM (VP9)' },
     { type: 'video/ogg; codecs="theora"', name: 'Ogg Theora' },
     { type: 'video/mp4; codecs="hvc1"', name: 'MP4 (HEVC/H.265)' },
-    { type: 'video/mp4; codecs="av01"', name: 'MP4 (AV1)' }
+    { type: 'video/mp4; codecs="av01"', name: 'MP4 (AV1)' },
+    { type: 'video/quicktime', name: 'MOV (QuickTime)' }  // Added QuickTime MOV format
   ];
   
   return formats
     .filter(format => video.canPlayType(format.type))
     .map(format => format.name);
+};
+
+/**
+ * Check if the browser specifically supports MOV (QuickTime) format
+ */
+export const supportsMOVFormat = (): {supported: boolean, level: string} => {
+  const video = document.createElement('video');
+  const level = video.canPlayType('video/quicktime');
+  
+  return {
+    supported: level !== '' && level !== 'no',
+    level: level
+  };
+};
+
+/**
+ * Detect the video format from its file extension
+ */
+export const detectVideoFormat = (src?: string): string | null => {
+  if (!src) return null;
+  
+  const extension = src.split('.').pop()?.toLowerCase();
+  
+  switch (extension) {
+    case 'mp4':
+      return 'video/mp4';
+    case 'webm':
+      return 'video/webm';
+    case 'ogg':
+    case 'ogv':
+      return 'video/ogg';
+    case 'mov':
+      return 'video/quicktime';
+    case 'avi':
+      return 'video/x-msvideo';
+    case 'wmv':
+      return 'video/x-ms-wmv';
+    case 'flv':
+      return 'video/x-flv';
+    case '3gp':
+      return 'video/3gpp';
+    default:
+      return null;
+  }
 };

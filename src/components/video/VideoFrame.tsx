@@ -2,6 +2,7 @@
 import React, { forwardRef, useState, useEffect } from 'react';
 import { useVideoPlayerContext } from './context/VideoPlayerContext';
 import { toast } from 'sonner';
+import { getSupportedFormats } from '@/hooks/video-player/utils';
 
 interface VideoFrameProps {
   src?: string;
@@ -29,7 +30,8 @@ const VideoFrame = forwardRef<HTMLVideoElement, VideoFrameProps>(({ src }, ref) 
       { type: 'video/mp4; codecs="avc1.42E01E, mp4a.40.2"', format: 'MP4 (H.264)' },
       { type: 'video/webm; codecs="vp8, vorbis"', format: 'WebM (VP8)' },
       { type: 'video/webm; codecs="vp9"', format: 'WebM (VP9)' },
-      { type: 'video/ogg; codecs="theora"', format: 'Ogg Theora' }
+      { type: 'video/ogg; codecs="theora"', format: 'Ogg Theora' },
+      { type: 'video/quicktime', format: 'MOV (QuickTime)' } // Added QuickTime MOV format
     ];
     
     // Get file extension
@@ -46,6 +48,16 @@ const VideoFrame = forwardRef<HTMLVideoElement, VideoFrameProps>(({ src }, ref) 
     
     console.log("Supported video formats:", supportedFormats);
     
+    // Special handling for MOV files
+    if (fileExtension === 'mov') {
+      const movSupport = video.canPlayType('video/quicktime');
+      console.log("MOV format support level:", movSupport);
+      
+      if (!movSupport || movSupport === 'no' || movSupport === '') {
+        toast.warning("Your browser has limited support for MOV files. If playback fails, try converting to MP4.");
+      }
+    }
+    
     if (supportedFormats.length === 0) {
       toast.error("Your browser doesn't support common video formats");
     }
@@ -58,10 +70,23 @@ const VideoFrame = forwardRef<HTMLVideoElement, VideoFrameProps>(({ src }, ref) 
     const videoElement = e.target as HTMLVideoElement;
     const errorCode = videoElement.error?.code;
     
+    // Get file extension from src
+    const fileExtension = src?.split('.').pop()?.toLowerCase();
+    
     // Log detailed error information
     if (videoElement.error) {
       console.error("Video error code:", errorCode);
       console.error("Video error message:", videoElement.error.message);
+      console.error("File extension:", fileExtension);
+    }
+    
+    // Special handling for MOV files
+    if (fileExtension === 'mov' && errorCode === 4) {
+      toast.error(
+        "This MOV file format isn't supported by your browser. Try converting to MP4 using a converter tool.",
+        { duration: 6000 }
+      );
+      return;
     }
     
     // Handle format not supported error (MEDIA_ERR_SRC_NOT_SUPPORTED = 4)
