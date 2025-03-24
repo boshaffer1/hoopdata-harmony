@@ -97,11 +97,11 @@ export const getVideoErrorMessage = (errorCode?: number): string => {
     case 2: // MEDIA_ERR_NETWORK
       return "Network issue while loading the video";
     case 3: // MEDIA_ERR_DECODE
-      return "Error decoding the video. Try a different format like WebM.";
+      return "Audio or video decoding error. Try a different format like WebM.";
     case 4: // MEDIA_ERR_SRC_NOT_SUPPORTED
       return "This video format is not supported by your browser. Try converting to WebM.";
     default:
-      return "Playback issue detected. Attempting recovery...";
+      return "Playback issue detected. Trying an alternative format like WebM may help.";
   }
 };
 
@@ -172,7 +172,7 @@ export const detectVideoFormat = (src?: string): string | null => {
 };
 
 /**
- * Handle recovery for specific video formats that may have playback issues
+ * Attempt to recover from video playback errors
  */
 export const attemptVideoRecovery = async (
   videoElement: HTMLVideoElement, 
@@ -184,11 +184,15 @@ export const attemptVideoRecovery = async (
   // For all errors, log browser capabilities
   console.log("Browser video format support:", getSupportedFormats());
   
-  // For decoding errors (common with MOV files)
+  // For decoding errors (common with certain codecs)
   if (errorCode === 3) {
     console.log("Attempting recovery for decoding error");
     
+    // Try disabling the audio track first (fixes most audio render errors)
     try {
+      videoElement.muted = true;
+      console.log("Muted video as recovery attempt for audio render error");
+      
       // Try to reload the video
       videoElement.load();
       return true;
@@ -197,12 +201,13 @@ export const attemptVideoRecovery = async (
     }
   }
   
-  // For unsupported format errors
-  if (errorCode === 4) {
-    console.log("Unsupported format error, no automatic recovery possible");
-    return false;
+  // For general errors, try a basic reload
+  try {
+    videoElement.load();
+    return true;
+  } catch (e) {
+    console.error("General recovery attempt failed:", e);
   }
   
   return false;
 };
-

@@ -14,6 +14,7 @@ const VideoFrame = forwardRef<HTMLVideoElement, VideoFrameProps>(({ src }, ref) 
   const { isRecovering } = state;
   const [attemptedRecovery, setAttemptedRecovery] = useState(false);
   const [recoveryAttempts, setRecoveryAttempts] = useState(0);
+  const [isMutedForRecovery, setIsMutedForRecovery] = useState(false);
   const MAX_RECOVERY_ATTEMPTS = 3;
 
   // Reset recovery attempts when src changes
@@ -21,6 +22,7 @@ const VideoFrame = forwardRef<HTMLVideoElement, VideoFrameProps>(({ src }, ref) 
     if (src) {
       setAttemptedRecovery(false);
       setRecoveryAttempts(0);
+      setIsMutedForRecovery(false);
       
       // Check if this is a MOV file or MP4
       const format = detectVideoFormat(src);
@@ -43,6 +45,11 @@ const VideoFrame = forwardRef<HTMLVideoElement, VideoFrameProps>(({ src }, ref) 
       console.error("Video error message:", videoElement.error.message);
     }
     
+    // Check for specific audio render errors
+    const errorMessage = videoElement.error?.message || '';
+    const isAudioRenderError = errorMessage.includes('AUDIO_RENDERER_ERROR') || 
+                              errorMessage.toLowerCase().includes('audio render');
+    
     // For format issues, try a more specific approach
     if (videoElement.error?.code === 4) { // MEDIA_ERR_SRC_NOT_SUPPORTED
       toast.error(
@@ -55,6 +62,24 @@ const VideoFrame = forwardRef<HTMLVideoElement, VideoFrameProps>(({ src }, ref) 
           .map(format => `${format}: ${document.createElement('video').canPlayType(format)}`)
           .join(", ")
       );
+      
+      return;
+    }
+    
+    // For audio render errors, mute the video as a recovery strategy
+    if (isAudioRenderError && !isMutedForRecovery) {
+      videoElement.muted = true;
+      setIsMutedForRecovery(true);
+      
+      toast.info(
+        "Audio issue detected. Video has been muted to allow playback.",
+        { duration: 3000 }
+      );
+      
+      // Try to reload the video
+      setTimeout(() => {
+        videoElement.load();
+      }, 100);
       
       return;
     }
@@ -92,7 +117,7 @@ const VideoFrame = forwardRef<HTMLVideoElement, VideoFrameProps>(({ src }, ref) 
     } else {
       // Final error message after all attempts
       toast.error(
-        "Unable to play this video. Please try a different video file or format.",
+        "We're having trouble playing this video. Please try a different video file or convert to WebM format for better compatibility.",
         { duration: 5000 }
       );
     }

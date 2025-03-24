@@ -27,7 +27,7 @@ const BufferingIndicator: React.FC<BufferingIndicatorProps> = ({
         <div className="text-center p-4 bg-black/70 rounded-lg max-w-md">
           <p className="text-yellow-400 font-semibold mb-2">Attempting Recovery</p>
           <p className="text-white">Working to resolve playback issues...</p>
-          <p className="text-white/70 text-sm mt-2">This may take a moment.</p>
+          <p className="text-white/70 text-sm mt-2">This may take a moment. Try WebM format for better compatibility.</p>
         </div>
       )}
       
@@ -35,7 +35,7 @@ const BufferingIndicator: React.FC<BufferingIndicatorProps> = ({
         <div className="text-center p-4 bg-black/70 rounded-lg max-w-md">
           <p className="text-red-400 font-semibold mb-2">Video Playback Issue</p>
           <p className="text-white">{errorMessage}</p>
-          <p className="text-white/70 text-sm mt-2">Try refreshing the page or reloading the video.</p>
+          <p className="text-white/70 text-sm mt-2">For best compatibility, try using WebM format videos.</p>
         </div>
       )}
     </div>

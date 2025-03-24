@@ -37,15 +37,19 @@ export const useVideo = () => {
       console.log("Video file type:", fileType);
       
       // Log supported formats
-      console.log("Browser supports these video formats:", getSupportedFormats());
+      const supportedFormats = getSupportedFormats();
+      console.log("Browser supports these video formats:", supportedFormats);
       
       // Check if the browser likely supports this format
       const video = document.createElement('video');
       const supportLevel = video.canPlayType(fileType);
       console.log(`Browser support for ${fileType}: ${supportLevel}`);
       
-      if (supportLevel === "") {
-        toast.warning(`Your browser might not support ${fileType} files. If you experience playback issues, try converting to WebM format.`);
+      // Recommend WebM for better compatibility
+      if (supportLevel === "" || supportLevel === "maybe") {
+        toast.info(`For best compatibility, WebM format is recommended. Your browser supports: ${supportedFormats.join(", ")}`, {
+          duration: 5000,
+        });
       }
       
       const url = URL.createObjectURL(file);
