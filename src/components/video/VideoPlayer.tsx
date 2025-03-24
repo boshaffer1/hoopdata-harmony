@@ -6,6 +6,7 @@ import VideoControls from "./VideoControls";
 import VideoTimeline from "./VideoTimeline";
 import PlayOverlay from "./PlayOverlay";
 import { toast } from "sonner";
+import { formatTime, isVideoReady } from "@/hooks/video/utils";
 
 interface VideoPlayerProps {
   src?: string;
@@ -26,7 +27,7 @@ const VideoPlayer = forwardRef<any, VideoPlayerProps>(({
   const [pendingPlay, setPendingPlay] = useState(false);
   
   const [
-    { isPlaying, currentTime, duration, volume, isMuted },
+    { isPlaying, currentTime, duration, volume, isMuted, isBuffering, hasError, errorMessage },
     { play, pause, seekToTime, togglePlay, handleTimeChange, handleVolumeChange, toggleMute, toggleFullscreen, jumpTime, getCurrentTime, getDuration }
   ] = useVideoPlayer(videoRef, onTimeUpdate);
 
@@ -55,7 +56,7 @@ const VideoPlayer = forwardRef<any, VideoPlayerProps>(({
           })
           .catch(error => {
             console.error("Error playing video:", error);
-            toast.error("Failed to play video");
+            toast.error(errorMessage || "Failed to play video");
             return Promise.reject(error);
           });
       }
@@ -125,13 +126,13 @@ const VideoPlayer = forwardRef<any, VideoPlayerProps>(({
         if (pendingPlay) {
           setTimeout(() => {
             console.log("Handling pending play after seek");
-            play();
+            enhancedPlay();
             setPendingPlay(false);
           }, 500);
         }
       } else if (pendingPlay) {
         console.log("Handling pending play");
-        play();
+        enhancedPlay();
         setPendingPlay(false);
       }
     };
@@ -141,7 +142,14 @@ const VideoPlayer = forwardRef<any, VideoPlayerProps>(({
     return () => {
       video.removeEventListener("canplay", handleCanPlay);
     };
-  }, [pendingSeek, pendingPlay, play, seekToTime]);
+  }, [pendingSeek, pendingPlay, seekToTime]);
+
+  // Display error message if video has an error
+  useEffect(() => {
+    if (hasError && errorMessage) {
+      toast.error(`Video error: ${errorMessage}`);
+    }
+  }, [hasError, errorMessage]);
 
   return (
     <div 
@@ -161,6 +169,13 @@ const VideoPlayer = forwardRef<any, VideoPlayerProps>(({
       >
         Your browser doesn't support HTML5 video.
       </video>
+
+      {/* Loading indicator */}
+      {isBuffering && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
+        </div>
+      )}
 
       {/* Video controls */}
       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4 transition-opacity opacity-0 group-hover:opacity-100">
@@ -189,7 +204,7 @@ const VideoPlayer = forwardRef<any, VideoPlayerProps>(({
       </div>
 
       {/* Large play button overlay (visible when paused) */}
-      <PlayOverlay isVisible={!isPlaying} onClick={togglePlay} />
+      <PlayOverlay isVisible={!isPlaying && !isBuffering} onClick={togglePlay} />
     </div>
   );
 });

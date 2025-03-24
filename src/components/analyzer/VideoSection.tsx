@@ -8,7 +8,7 @@ import { BookmarkIcon } from "lucide-react";
 import VideoPlayer from "@/components/video/VideoPlayer";
 import { toast } from "sonner";
 import { Marker } from "@/types/analyzer";
-import { formatVideoTime } from "@/components/video/utils";
+import { formatTime } from "@/hooks/video/utils";
 
 interface VideoSectionProps {
   videoUrl?: string;
@@ -67,7 +67,7 @@ const VideoSection: React.FC<VideoSectionProps> = ({
         <Card className="flex-1">
           <CardContent className="pt-6">
             <h3 className="text-sm font-medium mb-2">Current Time</h3>
-            <div className="text-2xl font-mono">{formatVideoTime(currentTime)}</div>
+            <div className="text-2xl font-mono">{formatTime(currentTime)}</div>
           </CardContent>
         </Card>
         

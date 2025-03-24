@@ -1,5 +1,6 @@
 
 import { useState, useRef } from "react";
+import { clampTime, safePlayVideo, logVideoError } from "./utils";
 
 export function useVideoControls(
   videoRef: React.RefObject<HTMLVideoElement>,
@@ -20,10 +21,13 @@ export function useVideoControls(
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
   const pendingPlayRef = useRef(false);
+  const [isBuffering, setIsBuffering] = useState(false);
 
   // Play/pause actions
   const play = async () => {
     if (videoRef.current) {
+      setIsBuffering(true);
+      
       try {
         console.log("Attempting to play video");
         
@@ -34,15 +38,24 @@ export function useVideoControls(
           return;
         }
         
-        const playPromise = videoRef.current.play();
-        if (playPromise !== undefined) {
-          await playPromise;
-          setIsPlaying(true);
-          console.log("Video playing successfully");
-        }
+        return safePlayVideo(
+          videoRef.current,
+          () => {
+            setIsPlaying(true);
+            setIsBuffering(false);
+            console.log("Video playing successfully");
+          },
+          (error) => {
+            setIsPlaying(false);
+            setIsBuffering(false);
+            logVideoError(error, "play method");
+            throw error;
+          }
+        );
       } catch (error) {
-        console.error("Error playing video:", error);
         setIsPlaying(false);
+        setIsBuffering(false);
+        logVideoError(error, "play method");
         throw error;
       }
     }
@@ -53,6 +66,7 @@ export function useVideoControls(
       videoRef.current.pause();
       setIsPlaying(false);
       pendingPlayRef.current = false;
+      setIsBuffering(false);
     }
   };
 
@@ -76,7 +90,7 @@ export function useVideoControls(
   const seekToTime = (timeInSeconds: number) => {
     if (videoRef.current) {
       // Ensure time is within valid range
-      const clampedTime = Math.max(0, Math.min(timeInSeconds, videoRef.current.duration || 0));
+      const clampedTime = clampTime(timeInSeconds, videoRef.current.duration || 0);
       videoRef.current.currentTime = clampedTime;
       setCurrentTime(clampedTime);
       console.log(`Sought to ${clampedTime}s`);
@@ -85,7 +99,7 @@ export function useVideoControls(
 
   const jumpTime = (seconds: number) => {
     if (videoRef.current) {
-      const newTime = Math.min(Math.max(currentTime + seconds, 0), duration);
+      const newTime = clampTime(currentTime + seconds, duration);
       videoRef.current.currentTime = newTime;
       setCurrentTime(newTime);
     }
@@ -110,8 +124,9 @@ export function useVideoControls(
 
   const toggleMute = () => {
     if (videoRef.current) {
-      videoRef.current.muted = !isMuted;
-      setIsMuted(!isMuted);
+      const newMutedState = !isMuted;
+      videoRef.current.muted = newMutedState;
+      setIsMuted(newMutedState);
     }
   };
 
@@ -136,6 +151,7 @@ export function useVideoControls(
   return {
     volume,
     isMuted,
+    isBuffering,
     play,
     pause,
     togglePlay,

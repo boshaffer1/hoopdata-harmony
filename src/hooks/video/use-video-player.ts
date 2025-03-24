@@ -15,13 +15,16 @@ export const useVideoPlayer = (
     currentTime,
     setCurrentTime,
     duration,
-    isFullscreen
+    isFullscreen,
+    hasError,
+    errorMessage
   } = useVideoEvents(videoRef, onTimeUpdate);
   
   // Get video control functions
   const {
     volume,
     isMuted,
+    isBuffering,
     play,
     pause,
     togglePlay,
@@ -47,7 +50,10 @@ export const useVideoPlayer = (
     duration,
     volume,
     isMuted,
-    isFullscreen
+    isFullscreen,
+    isBuffering,
+    hasError,
+    errorMessage
   };
 
   const actions: VideoPlayerActions = {

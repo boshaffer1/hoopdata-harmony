@@ -6,6 +6,9 @@ export interface VideoPlayerState {
   volume: number;
   isMuted: boolean;
   isFullscreen: boolean;
+  isBuffering: boolean;
+  hasError: boolean;
+  errorMessage: string | null;
 }
 
 export interface VideoPlayerActions {

@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from "react";
+import { logVideoError } from "./utils";
 
 export function useVideoEvents(
   videoRef: React.RefObject<HTMLVideoElement>,
@@ -9,6 +10,8 @@ export function useVideoEvents(
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [hasError, setHasError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Setup video event listeners
   useEffect(() => {
@@ -23,6 +26,9 @@ export function useVideoEvents(
     const handleLoadedMetadata = () => {
       console.log("Video metadata loaded, duration:", video.duration);
       setDuration(video.duration);
+      // Reset error state on successful load
+      setHasError(false);
+      setErrorMessage(null);
     };
 
     const handleFullscreenChange = () => {
@@ -36,6 +42,9 @@ export function useVideoEvents(
     const handlePlaying = () => {
       console.log("Video playing event fired");
       setIsPlaying(true);
+      // Reset error state on successful playback
+      setHasError(false);
+      setErrorMessage(null);
     };
     
     const handlePause = () => {
@@ -44,7 +53,23 @@ export function useVideoEvents(
     };
     
     const handleError = (e: Event) => {
-      console.error("Video error:", e);
+      const videoElement = e.target as HTMLVideoElement;
+      const errorCode = videoElement.error?.code;
+      const errorMessage = getVideoErrorMessage(errorCode);
+      
+      setHasError(true);
+      setErrorMessage(errorMessage);
+      setIsPlaying(false);
+      
+      logVideoError(videoElement.error, "video event listener");
+    };
+    
+    const handleWaiting = () => {
+      console.log("Video is waiting for data");
+    };
+    
+    const handleCanPlayThrough = () => {
+      console.log("Video can play through without buffering");
     };
 
     video.addEventListener("timeupdate", handleTimeUpdate);
@@ -53,6 +78,8 @@ export function useVideoEvents(
     video.addEventListener("playing", handlePlaying);
     video.addEventListener("pause", handlePause);
     video.addEventListener("error", handleError);
+    video.addEventListener("waiting", handleWaiting);
+    video.addEventListener("canplaythrough", handleCanPlayThrough);
     document.addEventListener("fullscreenchange", handleFullscreenChange);
 
     return () => {
@@ -62,6 +89,8 @@ export function useVideoEvents(
       video.removeEventListener("playing", handlePlaying);
       video.removeEventListener("pause", handlePause);
       video.removeEventListener("error", handleError);
+      video.removeEventListener("waiting", handleWaiting);
+      video.removeEventListener("canplaythrough", handleCanPlayThrough);
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
     };
   }, [onTimeUpdate, videoRef]);
@@ -72,6 +101,24 @@ export function useVideoEvents(
     currentTime, 
     setCurrentTime,
     duration,
-    isFullscreen
+    isFullscreen,
+    hasError,
+    errorMessage
   };
+}
+
+// Helper function to get human-readable error messages
+function getVideoErrorMessage(errorCode?: number): string {
+  switch (errorCode) {
+    case 1: // MEDIA_ERR_ABORTED
+      return "Playback aborted by the user";
+    case 2: // MEDIA_ERR_NETWORK
+      return "Network error while loading the video";
+    case 3: // MEDIA_ERR_DECODE
+      return "Error decoding the video";
+    case 4: // MEDIA_ERR_SRC_NOT_SUPPORTED
+      return "Video format not supported";
+    default:
+      return "An unknown error occurred";
+  }
 }
