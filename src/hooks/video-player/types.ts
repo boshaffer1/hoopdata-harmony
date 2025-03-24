@@ -12,7 +12,7 @@ export interface VideoPlayerState {
 }
 
 export interface VideoPlayerActions {
-  play: () => Promise<void> | void;
+  play: () => Promise<void>;
   pause: () => void;
   seekToTime: (timeInSeconds: number) => void;
   togglePlay: () => void;

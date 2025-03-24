@@ -1,3 +1,4 @@
+
 import { useState, useRef } from "react";
 import { clampTime, logVideoError } from "./utils";
 
@@ -41,19 +42,28 @@ export function useVideoControls(
         return Promise.resolve(); // Resolve to prevent error handling issues
       }
       
-      // Use a more direct approach for maximum compatibility
-      try {
-        await videoRef.current.play();
+      // Always return a Promise for consistency
+      const playPromise = videoRef.current.play();
+      if (playPromise !== undefined) {
+        return playPromise
+          .then(() => {
+            setIsPlaying(true);
+            setIsBuffering(false);
+            console.log("Video playing successfully");
+          })
+          .catch((error) => {
+            setIsPlaying(false);
+            setIsBuffering(false);
+            logVideoError(error, "play method");
+            // Re-throw so caller can handle
+            console.error("Error in video play:", error);
+            return Promise.reject(error);
+          });
+      } else {
+        // For browsers that don't return a promise
         setIsPlaying(true);
         setIsBuffering(false);
-        console.log("Video playing successfully");
         return Promise.resolve();
-      } catch (error) {
-        setIsPlaying(false);
-        setIsBuffering(false);
-        logVideoError(error, "play method");
-        console.error("Error in video play:", error);
-        return Promise.reject(error);
       }
     } catch (error) {
       setIsPlaying(false);
@@ -65,14 +75,10 @@ export function useVideoControls(
 
   const pause = () => {
     if (videoRef.current) {
-      try {
-        videoRef.current.pause();
-        setIsPlaying(false);
-        pendingPlayRef.current = false;
-        setIsBuffering(false);
-      } catch (error) {
-        console.error("Error pausing video:", error);
-      }
+      videoRef.current.pause();
+      setIsPlaying(false);
+      pendingPlayRef.current = false;
+      setIsBuffering(false);
     }
   };
 

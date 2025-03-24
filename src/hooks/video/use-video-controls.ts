@@ -42,6 +42,7 @@ export function useVideoControls(
         return Promise.resolve(); // Resolve to prevent error handling issues
       }
       
+      // Always return a Promise for consistency
       const playPromise = videoRef.current.play();
       if (playPromise !== undefined) {
         return playPromise
@@ -49,6 +50,7 @@ export function useVideoControls(
             setIsPlaying(true);
             setIsBuffering(false);
             console.log("Video playing successfully");
+            return Promise.resolve();
           })
           .catch((error) => {
             setIsPlaying(false);

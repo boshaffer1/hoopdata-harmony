@@ -56,11 +56,20 @@ const VideoPlayer = forwardRef<any, VideoPlayerProps>(({
         if (playPromise !== undefined) {
           await playPromise;
           console.log("Native video.play() succeeded");
+          return Promise.resolve();
+        } else {
+          // For older browsers that don't return a promise
+          console.log("Browser didn't return a play promise, falling back");
         }
       } catch (err) {
         console.error("Native video.play() failed:", err);
-        // Fall back to our play implementation
-        return play()
+      }
+      
+      // Fall back to our play implementation
+      const playResult = play();
+      // Ensure we're always returning a Promise
+      if (playResult instanceof Promise) {
+        return playResult
           .then(() => {
             console.log("Play promise resolved successfully");
             setTimeout(() => {
@@ -68,7 +77,6 @@ const VideoPlayer = forwardRef<any, VideoPlayerProps>(({
                 console.log("Video is playing but state doesn't reflect it - fixing");
               }
             }, 300);
-            return Promise.resolve();
           })
           .catch(error => {
             console.error("Error playing video:", error);
@@ -79,11 +87,13 @@ const VideoPlayer = forwardRef<any, VideoPlayerProps>(({
             } else {
               toast.error("Failed to play video");
             }
-            return Promise.reject(error);
+            throw error;
           });
+      } else {
+        // If play() returned void, we need to return a resolved promise
+        console.log("Play method did not return a Promise");
+        return Promise.resolve();
       }
-      
-      return Promise.resolve();
     } catch (error) {
       console.error("Exception playing video:", error);
       return Promise.reject(error);
