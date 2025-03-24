@@ -30,6 +30,7 @@ export const useAnalyzer = () => {
   const {
     data,
     selectedClip,
+    isPlayingClip,
     handleFileLoaded: originalHandleFileLoaded,
     playClip,
     setSelectedClip
@@ -73,6 +74,11 @@ export const useAnalyzer = () => {
       return;
     }
     
+    if (isPlayingClip) {
+      toast.info("Already playing a clip. Wait for it to finish or pause it first.");
+      return;
+    }
+    
     playClip(item);
     
     const startTime = parseFloat(item["Start time"] || "0");
@@ -108,6 +114,7 @@ export const useAnalyzer = () => {
     selectedClip,
     playLabel,
     savedClips,
+    isPlayingClip,
     videoPlayerRef,
     handleFileLoaded,
     handleVideoFileChange,

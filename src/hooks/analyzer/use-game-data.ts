@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { GameData, GameSituation } from "@/types/analyzer";
 import { toast } from "sonner";
@@ -6,6 +5,7 @@ import { toast } from "sonner";
 export const useGameData = (videoPlayerRef: React.RefObject<any>) => {
   const [data, setData] = useState<GameData[]>([]);
   const [selectedClip, setSelectedClip] = useState<GameData | null>(null);
+  const [isPlayingClip, setIsPlayingClip] = useState(false);
 
   const handleFileLoaded = (loadedData: any) => {
     try {
@@ -111,12 +111,22 @@ export const useGameData = (videoPlayerRef: React.RefObject<any>) => {
     return JSON.stringify(players);
   };
 
-  const playClip = (item: GameData) => {
+  const playClip = async (item: GameData) => {
     if (!videoPlayerRef.current) {
       console.warn("Video player reference not available");
       toast.error("Video player not ready");
       return;
     }
+    
+    // Prevent multiple clip plays simultaneously
+    if (isPlayingClip) {
+      console.log("Already playing a clip, cancelling new request");
+      toast.info("Already playing a clip");
+      return;
+    }
+    
+    setIsPlayingClip(true);
+    setSelectedClip(item);
     
     try {
       const startTime = parseFloat(item["Start time"] || "0");
@@ -124,36 +134,48 @@ export const useGameData = (videoPlayerRef: React.RefObject<any>) => {
       
       console.log(`Playing clip: "${item["Play Name"]}" at ${startTime}s for ${duration}s`);
       
-      // First seek to the correct time
-      videoPlayerRef.current.seekToTime(startTime);
+      // First seek to the correct time and wait for it to complete
+      await videoPlayerRef.current.seekToTime(startTime)
+        .catch(error => {
+          console.error("Error seeking to position:", error);
+          toast.error("Failed to seek to clip position");
+          throw error;
+        });
       
-      // Increased delay to ensure the seek has fully completed
-      // This is critical for reliable playback
-      setTimeout(() => {
-        console.log("Seek completed, now playing video");
-        // Then play the video
-        videoPlayerRef.current.play();
-        setSelectedClip(item);
-        
-        // If duration specified, set a timer to pause at the end
-        if (duration > 0) {
-          setTimeout(() => {
-            if (videoPlayerRef.current) {
-              videoPlayerRef.current.pause();
-              console.log("Clip playback completed");
-            }
-          }, duration * 1000);
-        }
-      }, 300); // Increased from 100ms to 300ms for more reliable playback
+      // Wait for a moment to ensure the seek has completed
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      // Then play the video
+      console.log("Seek completed, now playing video");
+      await videoPlayerRef.current.play()
+        .catch(error => {
+          console.error("Error playing clip:", error);
+          toast.error("Failed to play clip");
+          throw error;
+        });
+      
+      // If duration specified, set a timer to pause at the end
+      if (duration > 0) {
+        setTimeout(() => {
+          if (videoPlayerRef.current) {
+            videoPlayerRef.current.pause();
+            console.log("Clip playback completed");
+            setIsPlayingClip(false);
+          }
+        }, duration * 1000);
+      } else {
+        setIsPlayingClip(false);
+      }
     } catch (error) {
-      console.error("Error playing clip:", error);
-      toast.error("Failed to play clip");
+      console.error("Error in clip playback flow:", error);
+      setIsPlayingClip(false);
     }
   };
 
   return {
     data,
     selectedClip,
+    isPlayingClip,
     handleFileLoaded,
     playClip,
     setSelectedClip
