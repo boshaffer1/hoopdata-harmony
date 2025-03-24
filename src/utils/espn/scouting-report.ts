@@ -171,12 +171,12 @@ export class ScoutingReportGenerator {
       },
       // Extended properties for UI
       teamName: team.displayName,
-      logo: team.logos?.[0]?.href || null,
+      logo: team.logo || null,
       conference: team.conference?.name || "N/A",
-      division: team.groups?.name || "N/A",
-      record: team.record?.items?.[0]?.summary || "N/A",
+      division: "N/A", // Since 'groups' doesn't exist on ESPNTeam
+      record: "N/A", // Since 'record.items' doesn't exist on ESPNTeam
       color: team.color || "#000000",
-      coach: team.coach?.name || "N/A",
+      coach: "N/A", // Since 'coach' doesn't exist on ESPNTeam
       strengths,
       weaknesses,
       offensiveStyle: "Uptempo offense focused on creating open three-point opportunities and attacking the rim.",
