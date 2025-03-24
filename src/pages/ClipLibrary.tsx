@@ -4,7 +4,7 @@ import Layout from "@/components/layout/Layout";
 import { FolderList } from "@/components/library/FolderList";
 import { LibraryClipList } from "@/components/library/LibraryClipList";
 import { Button } from "@/components/ui/button";
-import { Download, Upload, Info } from "lucide-react";
+import { Download, Info } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useClipLibrary } from "@/hooks/analyzer/use-clip-library";
 import { useAnalyzer } from "@/hooks/analyzer";
@@ -30,13 +30,15 @@ const ClipLibrary = () => {
     updateFolder,
     deleteFolder,
     moveClipToFolder,
-    getClipsByFolder
+    getClipsByFolder,
+    getStorageInfo
   } = useClipLibrary(undefined);
   
   const { handlePlaySavedClip } = useAnalyzer();
   const [showPersistenceInfo, setShowPersistenceInfo] = useState(false);
 
   const filteredClips = getClipsByFolder(activeFolder);
+  const storageInfo = getStorageInfo();
   
   // Handle redirecting to analyzer to play clips
   const handlePlayClip = (clip: any) => {
@@ -99,7 +101,7 @@ const ClipLibrary = () => {
             <AlertDescription>
               <p>Your clips and folders are automatically saved in your browser's local storage. They will persist even after closing the browser or turning off your device.</p>
               <p className="mt-2 text-sm">To ensure you never lose your data, you can export your library as a JSON file using the "Export Library" button.</p>
-              <p className="mt-2 text-sm font-medium">Total clips: {savedClips.length} | Total folders: {folders.length}</p>
+              <p className="mt-2 text-sm font-medium">Total clips: {savedClips.length} | Total folders: {folders.length} {storageInfo && `| Storage used: ${storageInfo.totalSizeKB} KB`}</p>
             </AlertDescription>
           </Alert>
         )}

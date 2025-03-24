@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { SavedClip, ClipFolder } from "@/types/analyzer";
+import { SavedClip, ClipFolder, GameSituation } from "@/types/analyzer";
 import { PlayerActionBadge } from "../analyzer/clips/PlayerActionBadge";
 import { formatVideoTime } from "@/components/video/utils";
 import { 
@@ -22,8 +22,9 @@ import {
   Filter, 
   Search, 
   MoreVertical, 
-  FolderPlus,
-  Upload
+  User,
+  Users,
+  SlidersHorizontal
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { 
@@ -33,7 +34,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
-import { GameSituation, GAME_SITUATIONS } from "@/types/analyzer";
+import { GAME_SITUATIONS } from "@/types/analyzer";
 import { toast } from "sonner";
 
 interface LibraryClipListProps {
@@ -57,9 +58,37 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [situationFilter, setSituationFilter] = useState<GameSituation | "all">("all");
+  const [teamFilter, setTeamFilter] = useState<string>("all");
+  const [playerFilter, setPlayerFilter] = useState<string>("all");
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // Filter clips based on search term and situation filter
+  // Extract unique teams and players from clips
+  const teamsAndPlayers = React.useMemo(() => {
+    const teams = new Set<string>();
+    const players = new Set<string>();
+    
+    clips.forEach(clip => {
+      if (clip.players) {
+        clip.players.forEach(player => {
+          // Extract team name from player name if available (format: "Team - Player")
+          const playerParts = player.playerName.split(" - ");
+          if (playerParts.length > 1) {
+            teams.add(playerParts[0]);
+            players.add(playerParts[1]);
+          } else {
+            players.add(player.playerName);
+          }
+        });
+      }
+    });
+    
+    return {
+      teams: Array.from(teams).sort(),
+      players: Array.from(players).sort()
+    };
+  }, [clips]);
+  
+  // Filter clips based on search term, situation filter, team filter, and player filter
   const filteredClips = clips.filter(clip => {
     const matchesSearch = 
       searchTerm === "" || 
@@ -71,7 +100,24 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
       situationFilter === "all" || 
       clip.situation === situationFilter;
       
-    return matchesSearch && matchesSituation;
+    const matchesTeam = 
+      teamFilter === "all" || 
+      clip.players?.some(p => {
+        const playerParts = p.playerName.split(" - ");
+        return playerParts.length > 1 && playerParts[0] === teamFilter;
+      });
+      
+    const matchesPlayer = 
+      playerFilter === "all" || 
+      clip.players?.some(p => {
+        const playerParts = p.playerName.split(" - ");
+        if (playerParts.length > 1) {
+          return playerParts[1] === playerFilter;
+        }
+        return p.playerName === playerFilter;
+      });
+      
+    return matchesSearch && matchesSituation && matchesTeam && matchesPlayer;
   });
   
   const getSituationLabel = (situation: GameSituation): string => {
@@ -97,6 +143,14 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
     return folder ? folder.name : "Unknown";
   };
 
+  const resetFilters = () => {
+    setSituationFilter("all");
+    setTeamFilter("all");
+    setPlayerFilter("all");
+    setSearchTerm("");
+    toast.success("Filters reset");
+  };
+
   return (
     <div className="space-y-4">
       {/* Search and filter bar */}
@@ -110,14 +164,30 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
             className="pl-9"
           />
         </div>
-        <div className="flex-shrink-0 w-full sm:w-48">
+
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            size="icon" 
+            onClick={resetFilters}
+            title="Reset all filters"
+          >
+            <SlidersHorizontal className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Filters row */}
+      <div className="flex flex-wrap gap-2">
+        {/* Situation filter */}
+        <div className="w-full sm:w-auto">
           <Select 
             value={situationFilter} 
             onValueChange={(val) => setSituationFilter(val as GameSituation | "all")}
           >
-            <SelectTrigger className="w-full">
+            <SelectTrigger className="w-full sm:w-48">
               <div className="flex items-center gap-2">
-                <Filter className="h-4 w-4" />
+                <Flag className="h-4 w-4" />
                 <SelectValue placeholder="Filter by situation" />
               </div>
             </SelectTrigger>
@@ -131,6 +201,61 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
             </SelectContent>
           </Select>
         </div>
+
+        {/* Team filter */}
+        <div className="w-full sm:w-auto">
+          <Select 
+            value={teamFilter} 
+            onValueChange={setTeamFilter}
+          >
+            <SelectTrigger className="w-full sm:w-48">
+              <div className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                <SelectValue placeholder="Filter by team" />
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Teams</SelectItem>
+              {teamsAndPlayers.teams.map(team => (
+                <SelectItem key={team} value={team}>
+                  {team}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Player filter */}
+        <div className="w-full sm:w-auto">
+          <Select 
+            value={playerFilter} 
+            onValueChange={setPlayerFilter}
+          >
+            <SelectTrigger className="w-full sm:w-48">
+              <div className="flex items-center gap-2">
+                <User className="h-4 w-4" />
+                <SelectValue placeholder="Filter by player" />
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Players</SelectItem>
+              {teamsAndPlayers.players.map(player => (
+                <SelectItem key={player} value={player}>
+                  {player}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Filter stats */}
+        {(situationFilter !== "all" || teamFilter !== "all" || playerFilter !== "all" || searchTerm) && (
+          <div className="w-full flex items-center">
+            <Badge variant="outline" className="text-xs">
+              {filteredClips.length} / {clips.length} clips
+            </Badge>
+          </div>
+        )}
       </div>
       
       {/* Clips list */}
@@ -255,8 +380,8 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
           <PlayCircle className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
           <h3 className="text-lg font-medium mb-1">No clips found</h3>
           <p className="text-sm text-muted-foreground">
-            {searchTerm || situationFilter !== "all" 
-              ? "No clips match your current filters. Try adjusting your search." 
+            {searchTerm || situationFilter !== "all" || teamFilter !== "all" || playerFilter !== "all"
+              ? "No clips match your current filters. Try adjusting your search or filters." 
               : activeFolder 
                 ? "This folder doesn't have any clips yet." 
                 : "You haven't saved any clips yet."}
