@@ -83,8 +83,19 @@ const ESPNImport: React.FC<ESPNImportProps> = ({
         throw new Error("League not found");
       }
 
+      // Show loading toast for better UX
+      const loadingToast = toast.loading(`Importing ${selectedTeam.displayName} roster...`);
+      
       const athletes = await ESPNService.fetchTeamRoster(league.sport, selectedLeague, selectedESPNTeam);
+      
+      if (athletes.length === 0) {
+        toast.dismiss(loadingToast);
+        toast.warning(`No players found for ${selectedTeam.displayName}. This can happen with some NCAA teams.`);
+        return;
+      }
+      
       const teamRoster = ESPNService.convertToTeamRoster(selectedTeam, athletes);
+      toast.dismiss(loadingToast);
       
       // Create the team
       const newTeam = onAddTeam(teamRoster.name);
