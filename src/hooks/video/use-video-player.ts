@@ -17,7 +17,8 @@ export const useVideoPlayer = (
     duration,
     isFullscreen,
     hasError,
-    errorMessage
+    errorMessage,
+    isRecovering
   } = useVideoEvents(videoRef, onTimeUpdate);
   
   // Get video control functions
@@ -53,7 +54,8 @@ export const useVideoPlayer = (
     isFullscreen,
     isBuffering,
     hasError,
-    errorMessage
+    errorMessage,
+    isRecovering
   };
 
   const actions: VideoPlayerActions = {

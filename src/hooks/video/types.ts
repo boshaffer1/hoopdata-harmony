@@ -9,6 +9,7 @@ export interface VideoPlayerState {
   isBuffering: boolean;
   hasError: boolean;
   errorMessage: string | null;
+  isRecovering: boolean;
 }
 
 export interface VideoPlayerActions {
