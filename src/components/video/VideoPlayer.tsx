@@ -25,7 +25,7 @@ const VideoPlayer = forwardRef<any, VideoPlayerProps>(({
 }, ref) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [state, actions] = useVideoPlayer(videoRef, onTimeUpdate);
-  const { isPlaying, isBuffering, hasError, errorMessage } = state;
+  const { isPlaying, isBuffering, hasError, errorMessage, isRecovering } = state;
 
   // Use the enhanced player hook to manage video readiness and pending operations
   const {
@@ -123,9 +123,10 @@ const VideoPlayer = forwardRef<any, VideoPlayerProps>(({
           isBuffering={isBuffering} 
           hasError={hasError} 
           errorMessage={errorMessage} 
+          isRecovering={isRecovering}
         />
         <VideoPlayerControls markers={markers} />
-        <PlayOverlay isVisible={!isPlaying && !isBuffering && !hasError} onClick={actions.togglePlay} />
+        <PlayOverlay isVisible={!isPlaying && !isBuffering && !hasError && !isRecovering} onClick={actions.togglePlay} />
       </div>
     </VideoPlayerProvider>
   );

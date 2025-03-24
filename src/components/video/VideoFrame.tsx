@@ -11,8 +11,18 @@ const VideoFrame = forwardRef<HTMLVideoElement, VideoFrameProps>(({ src }, ref) 
   const { actions, state } = useVideoPlayerContext();
   const { togglePlay } = actions;
   const [attemptedRecovery, setAttemptedRecovery] = useState(false);
+  const [recoveryAttempts, setRecoveryAttempts] = useState(0);
+  const MAX_RECOVERY_ATTEMPTS = 3;
 
-  // Enhanced error handler with improved recovery
+  // Reset recovery attempts when src changes
+  useEffect(() => {
+    if (src) {
+      setAttemptedRecovery(false);
+      setRecoveryAttempts(0);
+    }
+  }, [src]);
+
+  // Enhanced error handler with improved recovery strategies
   const handleError = (e: React.SyntheticEvent<HTMLVideoElement>) => {
     console.error("Video element error event:", e);
     const videoElement = e.target as HTMLVideoElement;
@@ -24,47 +34,74 @@ const VideoFrame = forwardRef<HTMLVideoElement, VideoFrameProps>(({ src }, ref) 
       console.error("Video error message:", videoElement.error.message);
     }
     
-    // Try to recover from decoding errors with more aggressive approach
-    if (!attemptedRecovery && videoElement) {
-      setAttemptedRecovery(true);
+    // For MOV files and decoding errors, use more aggressive recovery strategies
+    if (recoveryAttempts < MAX_RECOVERY_ATTEMPTS) {
+      setRecoveryAttempts(prev => prev + 1);
       
-      console.log("Attempting video recovery...");
-      
-      // First recovery attempt: reload source
-      setTimeout(() => {
-        if (videoElement.src) {
-          console.log("Recovery attempt 1: Reloading source");
-          const currentSrc = videoElement.src;
-          videoElement.src = "";
-          videoElement.load();
-          
-          setTimeout(() => {
-            videoElement.src = currentSrc;
+      // Different recovery strategies based on error type
+      if (errorCode === 3) { // MEDIA_ERR_DECODE
+        console.log(`Recovery attempt ${recoveryAttempts + 1} for decode error`);
+        
+        // For decoding errors, try a complete reload with a slight delay
+        setTimeout(() => {
+          if (videoElement && videoElement.src) {
+            const currentSrc = videoElement.src;
+            // Clear source and metadata
+            videoElement.removeAttribute('src');
             videoElement.load();
             
-            // Try to play after reload
-            const playPromise = videoElement.play();
-            if (playPromise !== undefined) {
-              playPromise.catch(err => {
-                console.log("Auto-play after recovery failed:", err);
-              });
+            // Create a new object URL if it's a blob URL (for local files)
+            if (currentSrc.startsWith('blob:')) {
+              // For blob URLs, we need to fetch the blob and create a new URL
+              fetch(currentSrc)
+                .then(response => response.blob())
+                .then(blob => {
+                  const newUrl = URL.createObjectURL(blob);
+                  setTimeout(() => {
+                    videoElement.src = newUrl;
+                    videoElement.load();
+                    console.log("Recreated blob URL for recovery");
+                  }, 300);
+                })
+                .catch(err => {
+                  console.error("Failed to recreate blob URL:", err);
+                  // Fall back to original URL
+                  setTimeout(() => {
+                    videoElement.src = currentSrc;
+                    videoElement.load();
+                  }, 300);
+                });
+            } else {
+              // For regular URLs, just reassign after a delay
+              setTimeout(() => {
+                videoElement.src = currentSrc;
+                videoElement.load();
+                console.log("Reloaded source for recovery");
+              }, 300);
             }
-          }, 500);
-        }
-      }, 300);
-      
-      // Show a less discouraging error message
-      toast.error(
-        "Video playback issue detected. Attempting to recover...",
-        { duration: 3000 }
-      );
-      
-      return;
+          }
+        }, 200);
+        
+        // Show a less discouraging toast message
+        toast.info(
+          "Video playback issue detected. Attempting to recover...",
+          { duration: 2000 }
+        );
+        
+        return;
+      } else if (errorCode === 4) { // MEDIA_ERR_SRC_NOT_SUPPORTED
+        // For format issues, inform but don't try to recover multiple times
+        toast.error(
+          "This video format might not be fully supported by your browser.",
+          { duration: 4000 }
+        );
+        return;
+      }
     }
     
-    // If we've already tried recovery, show a more detailed error
-    if (attemptedRecovery) {
-      let errorMessage = "Video playback error";
+    // If we've exhausted recovery attempts or it's not a recoverable error
+    if (recoveryAttempts >= MAX_RECOVERY_ATTEMPTS) {
+      let errorMessage = "Playback issue occurred";
       
       // Provide more specific error messages based on error code
       switch (errorCode) {
