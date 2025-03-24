@@ -43,8 +43,7 @@ export const useAnalyzer = () => {
     removeSavedClip,
     exportClip,
     exportLibrary,
-    saveClipsFromData,
-    addDemoClips
+    saveClipsFromData
   } = useClipLibrary(videoUrl);
 
   // Combined handlers with explicit data processing
@@ -85,12 +84,6 @@ export const useAnalyzer = () => {
   };
 
   const handlePlaySavedClip = (clip: SavedClip) => {
-    // If there's no video loaded yet, just show the clip info
-    if (!videoUrl) {
-      toast.info(`Clip: ${clip.label}${clip.notes ? ` - ${clip.notes}` : ''}`);
-      return;
-    }
-    
     // Convert SavedClip to GameData format for playClip
     const gameDataClip: GameData = {
       "Play Name": clip.label,
@@ -104,11 +97,6 @@ export const useAnalyzer = () => {
     };
     
     playSelectedClip(gameDataClip);
-  };
-  
-  // Function to add demo clips if needed
-  const addDemoClipsIfNeeded = () => {
-    return addDemoClips();
   };
 
   return {
@@ -137,7 +125,6 @@ export const useAnalyzer = () => {
     exportLibrary,
     exportAllMarkers,
     handlePlaySavedClip,
-    setSelectedClip,
-    addDemoClipsIfNeeded
+    setSelectedClip
   };
 };

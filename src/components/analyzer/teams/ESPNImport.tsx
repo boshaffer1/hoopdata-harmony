@@ -54,7 +54,6 @@ const ESPNImport: React.FC<ESPNImportProps> = ({
       }
       
       const teams = await ESPNService.fetchTeams(league.sport, leagueId);
-      console.log(`Fetched ${teams.length} teams for ${leagueId}`);
       setEspnTeams(teams);
       setSelectedESPNTeam(""); // Reset team selection when league changes
     } catch (error) {
@@ -84,51 +83,25 @@ const ESPNImport: React.FC<ESPNImportProps> = ({
         throw new Error("League not found");
       }
 
-      // Show loading toast for better UX
-      const loadingToast = toast.loading(`Importing ${selectedTeam.displayName} roster...`);
-      
-      // Fetch the team roster
       const athletes = await ESPNService.fetchTeamRoster(league.sport, selectedLeague, selectedESPNTeam);
-      
-      if (!athletes || athletes.length === 0) {
-        toast.dismiss(loadingToast);
-        toast.warning(`No players found for ${selectedTeam.displayName}. This can happen with some NCAA teams.`);
-        return;
-      }
-      
-      // Convert ESPN data to our format
       const teamRoster = ESPNService.convertToTeamRoster(selectedTeam, athletes);
-      toast.dismiss(loadingToast);
       
       // Create the team
       const newTeam = onAddTeam(teamRoster.name);
       
       // Add all players if team was created
       if (newTeam) {
-        // Track how many players were successfully added
-        let playersAdded = 0;
-        
         for (const player of teamRoster.players) {
-          if (player && player.name) {
-            onAddPlayer(newTeam.id, {
-              name: player.name,
-              number: player.number || "0",
-              position: player.position || "N/A",
-              notes: player.notes || ""
-            });
-            playersAdded++;
-          }
+          onAddPlayer(newTeam.id, {
+            name: player.name,
+            number: player.number,
+            position: player.position
+          });
         }
         
         // Set as active team
         onTeamCreated(newTeam);
-        toast.success(`Imported ${teamRoster.name} with ${playersAdded} players`);
-        
-        if (playersAdded === 0) {
-          toast.warning("No valid players were found in the roster data");
-        } else if (playersAdded < teamRoster.players.length) {
-          toast.info(`Note: ${teamRoster.players.length - playersAdded} players were skipped due to missing data`);
-        }
+        toast.success(`Imported ${teamRoster.name} with ${teamRoster.players.length} players`);
       }
     } catch (error) {
       console.error("Error importing ESPN roster:", error);
@@ -164,15 +137,11 @@ const ESPNImport: React.FC<ESPNImportProps> = ({
             disabled={isLoadingTeams || espnTeams.length === 0}
           >
             <option value="">Select a Team</option>
-            {espnTeams
-              .filter(team => team && team.displayName) // Filter out invalid teams
-              .sort((a, b) => a.displayName.localeCompare(b.displayName)) // Sort alphabetically
-              .map(team => (
-                <option key={team.id} value={team.id}>
-                  {team.displayName}
-                </option>
-              ))
-            }
+            {espnTeams.map(team => (
+              <option key={team.id} value={team.id}>
+                {team.displayName}
+              </option>
+            ))}
           </select>
           
           <Button 

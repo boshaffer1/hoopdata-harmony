@@ -360,7 +360,7 @@ const ScoutingReportPage = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <h3 className="text-lg font-medium mb-4">Scoring by Quarter</h3>
-                    <ChartContainer config={{ quarter: { color: "#3b82f6" } }} className="h-[300px]">
+                    <ChartContainer className="h-[300px]">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={scoringByQuarterData}>
                           <CartesianGrid strokeDasharray="3 3" />
@@ -375,11 +375,7 @@ const ScoutingReportPage = () => {
                   
                   <div>
                     <h3 className="text-lg font-medium mb-4">Shot Distribution</h3>
-                    <ChartContainer config={{ 
-                      "Mid-Range": { color: "#3b82f6" },
-                      "Rim": { color: "#34d399" },
-                      "Three-Point": { color: "#f97316" }
-                    }} className="h-[300px]">
+                    <ChartContainer className="h-[300px]">
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                           <Pie
@@ -502,10 +498,7 @@ const ScoutingReportPage = () => {
                           <CardDescription>Left vs Right preference</CardDescription>
                         </CardHeader>
                         <CardContent>
-                          <ChartContainer config={{
-                            "Drives Left": { color: "#3b82f6" },
-                            "Drives Right": { color: "#34d399" }
-                          }} className="h-[200px]">
+                          <ChartContainer className="h-[200px]">
                             <ResponsiveContainer width="100%" height="100%">
                               <PieChart>
                                 <Pie
@@ -535,12 +528,7 @@ const ScoutingReportPage = () => {
                           <CardDescription>Shooting style breakdown</CardDescription>
                         </CardHeader>
                         <CardContent>
-                          <ChartContainer config={{
-                            "Pull-Up": { color: "#3b82f6" },
-                            "Spot-Up": { color: "#34d399" },
-                            "Post-Up": { color: "#f97316" },
-                            "Other": { color: "#f59e0b" }
-                          }} className="h-[200px]">
+                          <ChartContainer className="h-[200px]">
                             <ResponsiveContainer width="100%" height="100%">
                               <PieChart>
                                 <Pie
@@ -572,11 +560,7 @@ const ScoutingReportPage = () => {
                           <CardDescription>Court area preferences</CardDescription>
                         </CardHeader>
                         <CardContent>
-                          <ChartContainer config={{
-                            "Mid-Range": { color: "#3b82f6" },
-                            "Rim": { color: "#34d399" },
-                            "Three-Point": { color: "#f97316" }
-                          }} className="h-[200px]">
+                          <ChartContainer className="h-[200px]">
                             <ResponsiveContainer width="100%" height="100%">
                               <PieChart>
                                 <Pie
@@ -614,7 +598,7 @@ const ScoutingReportPage = () => {
                         </CardDescription>
                       </CardHeader>
                       <CardContent>
-                        <ChartContainer config={{ quarter: { color: "#3b82f6" } }} className="h-[300px]">
+                        <ChartContainer className="h-[300px]">
                           <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={scoringByQuarterData}>
                               <CartesianGrid strokeDasharray="3 3" />
