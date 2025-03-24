@@ -6,7 +6,7 @@ import VideoControls from "./VideoControls";
 import VideoTimeline from "./VideoTimeline";
 import PlayOverlay from "./PlayOverlay";
 import { toast } from "sonner";
-import { formatTime, isVideoReady } from "@/hooks/video/utils";
+import { isVideoReady } from "@/hooks/video/utils";
 
 interface VideoPlayerProps {
   src?: string;
@@ -32,7 +32,7 @@ const VideoPlayer = forwardRef<any, VideoPlayerProps>(({
   ] = useVideoPlayer(videoRef, onTimeUpdate);
 
   // Enhanced play method with better error handling
-  const enhancedPlay = () => {
+  const enhancedPlay = async () => {
     console.log("Play method called on video player");
     if (!videoRef.current?.src) {
       console.warn("Attempted to play video but no source is set");
@@ -47,20 +47,20 @@ const VideoPlayer = forwardRef<any, VideoPlayerProps>(({
     }
     
     try {
-      const playPromise = play();
-      if (playPromise !== undefined && playPromise instanceof Promise) {
-        return playPromise
-          .then(() => {
-            console.log("Play promise resolved successfully");
-            return Promise.resolve();
-          })
-          .catch(error => {
-            console.error("Error playing video:", error);
-            toast.error(errorMessage || "Failed to play video");
-            return Promise.reject(error);
-          });
-      }
-      return Promise.resolve(); // Return a resolved promise if play() doesn't return a promise
+      return play()
+        .then(() => {
+          console.log("Play promise resolved successfully");
+          return Promise.resolve();
+        })
+        .catch(error => {
+          console.error("Error playing video:", error);
+          if (errorMessage) {
+            toast.error(`Failed to play video: ${errorMessage}`);
+          } else {
+            toast.error("Failed to play video");
+          }
+          return Promise.reject(error);
+        });
     } catch (error) {
       console.error("Exception playing video:", error);
       return Promise.reject(error);
@@ -126,13 +126,13 @@ const VideoPlayer = forwardRef<any, VideoPlayerProps>(({
         if (pendingPlay) {
           setTimeout(() => {
             console.log("Handling pending play after seek");
-            enhancedPlay();
+            enhancedPlay().catch(err => console.error("Failed to play after seek:", err));
             setPendingPlay(false);
           }, 500);
         }
       } else if (pendingPlay) {
         console.log("Handling pending play");
-        enhancedPlay();
+        enhancedPlay().catch(err => console.error("Failed to handle pending play:", err));
         setPendingPlay(false);
       }
     };
@@ -166,6 +166,7 @@ const VideoPlayer = forwardRef<any, VideoPlayerProps>(({
         onClick={togglePlay}
         src={src}
         preload="auto"
+        playsInline
       >
         Your browser doesn't support HTML5 video.
       </video>

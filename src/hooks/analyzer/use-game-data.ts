@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { GameData, GameSituation } from "@/types/analyzer";
 import { toast } from "sonner";
@@ -134,9 +135,9 @@ export const useGameData = (videoPlayerRef: React.RefObject<any>) => {
       
       console.log(`Playing clip: "${item["Play Name"]}" at ${startTime}s for ${duration}s`);
       
-      // First seek to the correct time and wait for it to complete
+      // First seek to the correct time
       await videoPlayerRef.current.seekToTime(startTime)
-        .catch(error => {
+        .catch((error: any) => {
           console.error("Error seeking to position:", error);
           toast.error("Failed to seek to clip position");
           throw error;
@@ -148,7 +149,7 @@ export const useGameData = (videoPlayerRef: React.RefObject<any>) => {
       // Then play the video
       console.log("Seek completed, now playing video");
       await videoPlayerRef.current.play()
-        .catch(error => {
+        .catch((error: any) => {
           console.error("Error playing clip:", error);
           toast.error("Failed to play clip");
           throw error;
@@ -164,11 +165,16 @@ export const useGameData = (videoPlayerRef: React.RefObject<any>) => {
           }
         }, duration * 1000);
       } else {
-        setIsPlayingClip(false);
+        // If no duration specified, we still reset the playing flag after a minimum time 
+        // to avoid locking the player
+        setTimeout(() => {
+          setIsPlayingClip(false);
+        }, 3000);
       }
     } catch (error) {
       console.error("Error in clip playback flow:", error);
       setIsPlayingClip(false);
+      toast.error("Failed to play clip");
     }
   };
 

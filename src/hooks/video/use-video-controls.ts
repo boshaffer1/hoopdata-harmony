@@ -25,39 +25,50 @@ export function useVideoControls(
 
   // Play/pause actions
   const play = async () => {
-    if (videoRef.current) {
-      setIsBuffering(true);
+    if (!videoRef.current) {
+      console.error("Video element not available");
+      return Promise.reject(new Error("Video element not available"));
+    }
+    
+    setIsBuffering(true);
+    
+    try {
+      console.log("Attempting to play video");
       
-      try {
-        console.log("Attempting to play video");
-        
-        if (videoRef.current.readyState < 2) {
-          // Video not ready to play yet, set flag to play when ready
-          console.log("Video not ready, setting pending play flag");
-          pendingPlayRef.current = true;
-          return;
-        }
-        
-        return safePlayVideo(
-          videoRef.current,
-          () => {
+      if (videoRef.current.readyState < 2) {
+        // Video not ready to play yet, set flag to play when ready
+        console.log("Video not ready, setting pending play flag");
+        pendingPlayRef.current = true;
+        return Promise.resolve(); // Resolve to prevent error handling issues
+      }
+      
+      const playPromise = videoRef.current.play();
+      if (playPromise !== undefined) {
+        return playPromise
+          .then(() => {
             setIsPlaying(true);
             setIsBuffering(false);
             console.log("Video playing successfully");
-          },
-          (error) => {
+          })
+          .catch((error) => {
             setIsPlaying(false);
             setIsBuffering(false);
             logVideoError(error, "play method");
-            throw error;
-          }
-        );
-      } catch (error) {
-        setIsPlaying(false);
+            // Re-throw so caller can handle
+            console.error("Error in video play:", error);
+            return Promise.reject(error);
+          });
+      } else {
+        // For browsers that don't return a promise
+        setIsPlaying(true);
         setIsBuffering(false);
-        logVideoError(error, "play method");
-        throw error;
+        return Promise.resolve();
       }
+    } catch (error) {
+      setIsPlaying(false);
+      setIsBuffering(false);
+      logVideoError(error, "play method");
+      return Promise.reject(error);
     }
   };
 
