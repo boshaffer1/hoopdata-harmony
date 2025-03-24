@@ -91,17 +91,7 @@ export interface Player {
   number: string;
   position: string;
   notes?: string;
-  stats?: {
-    ppg?: number;
-    rpg?: number;
-    apg?: number;
-    spg?: number;
-    bpg?: number;
-    fgPercent?: number;
-    threePointPercent?: number;
-    ftPercent?: number;
-    [key: string]: number | undefined;
-  };
+  stats?: Record<string, number>;
 }
 
 export interface TeamRoster {

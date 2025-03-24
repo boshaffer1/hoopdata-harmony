@@ -7,13 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Analyzer from "./pages/Analyzer";
-import Stats from "./pages/Stats";
-import Assistant from "./pages/Assistant";
 import Insights from "./pages/Insights";
-import MyTeam from "./pages/MyTeam";
-import PlayerDetail from "./pages/PlayerDetail";
-import Scouting from "./pages/Scouting";
-import ScoutingReport from "./pages/ScoutingReport";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,13 +22,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/analyzer" element={<Analyzer />} />
-          <Route path="/stats" element={<Stats />} />
-          <Route path="/assistant" element={<Assistant />} />
           <Route path="/insights" element={<Insights />} />
-          <Route path="/myteam" element={<MyTeam />} />
-          <Route path="/myteam/player/:teamId/:playerId" element={<PlayerDetail />} />
-          <Route path="/scouting" element={<Scouting />} />
-          <Route path="/scouting/:teamId" element={<ScoutingReport />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
