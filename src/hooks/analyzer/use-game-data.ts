@@ -127,8 +127,10 @@ export const useGameData = (videoPlayerRef: React.RefObject<any>) => {
       // First seek to the correct time
       videoPlayerRef.current.seekToTime(startTime);
       
-      // Small delay to ensure the seek has completed
+      // Increased delay to ensure the seek has fully completed
+      // This is critical for reliable playback
       setTimeout(() => {
+        console.log("Seek completed, now playing video");
         // Then play the video
         videoPlayerRef.current.play();
         setSelectedClip(item);
@@ -142,7 +144,7 @@ export const useGameData = (videoPlayerRef: React.RefObject<any>) => {
             }
           }, duration * 1000);
         }
-      }, 100);
+      }, 300); // Increased from 100ms to 300ms for more reliable playback
     } catch (error) {
       console.error("Error playing clip:", error);
       toast.error("Failed to play clip");

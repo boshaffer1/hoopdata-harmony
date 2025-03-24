@@ -13,6 +13,7 @@ interface ESPNTeam {
   color: string;
   alternateColor: string;
   logo: string;
+  conference?: string;
 }
 
 interface ESPNAthlete {

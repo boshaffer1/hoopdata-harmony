@@ -37,8 +37,10 @@ const VideoPlayer = forwardRef<any, VideoPlayerProps>(({
     
     try {
       const playPromise = play();
-      if (playPromise !== undefined) {
-        playPromise.catch(error => {
+      if (playPromise !== undefined && typeof playPromise.then === 'function') {
+        playPromise.then(() => {
+          console.log("Play promise resolved successfully");
+        }).catch(error => {
           console.error("Error playing video:", error);
           toast.error("Failed to play video");
         });
