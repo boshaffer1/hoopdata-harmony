@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { ClipFolder, Game } from "@/types/analyzer";
@@ -26,6 +27,7 @@ import {
   FileBarChart2,
   Files
 } from "lucide-react";
+import VideoPlayer from "@/components/video/VideoPlayer";
 
 interface TeamFolderStructureProps {
   folders: ClipFolder[];
@@ -68,6 +70,7 @@ export const TeamFolderStructure: React.FC<TeamFolderStructureProps> = ({
     videoUrl: '',
     dataUrl: ''
   });
+  const [activeGameId, setActiveGameId] = useState<string | null>(null);
 
   const handleAddTeam = () => {
     if (newTeamName.trim()) {
@@ -85,7 +88,6 @@ export const TeamFolderStructure: React.FC<TeamFolderStructureProps> = ({
         teamId: selectedTeamId
       });
       
-      // Find the Games folder for this team
       const gamesFolder = folders.find(f => 
         f.teamId === selectedTeamId && f.folderType === 'games'
       );
@@ -213,31 +215,61 @@ export const TeamFolderStructure: React.FC<TeamFolderStructureProps> = ({
                     {isChildExpanded && childFolder.folderType === 'games' && folderGames.length > 0 && (
                       <div className="ml-6 mt-1 space-y-1">
                         {folderGames.map(game => (
-                          <div 
-                            key={game.id}
-                            className={`flex items-center justify-between p-2 rounded-md hover:bg-muted/50 cursor-pointer`}
-                            onClick={() => {
-                              // Handle game selection - this would navigate to a game view
-                              // or select a folder containing game possessions
-                            }}
-                          >
-                            <div className="flex items-center gap-2">
-                              <FileVideo className="h-5 w-5 text-blue-400" />
-                              <span>{game.title}</span>
-                              <span className="text-xs text-muted-foreground">
-                                {new Date(game.date).toLocaleDateString()}
-                              </span>
+                          <div key={game.id}>
+                            <div 
+                              className={`flex items-center justify-between p-2 rounded-md hover:bg-muted/50 cursor-pointer ${
+                                activeGameId === game.id ? 'bg-primary/10 border border-primary/30' : 'border border-transparent'
+                              }`}
+                              onClick={() => {
+                                // Toggle game selection
+                                setActiveGameId(activeGameId === game.id ? null : game.id);
+                              }}
+                            >
+                              <div className="flex items-center gap-2">
+                                <FileVideo className="h-5 w-5 text-blue-400" />
+                                <span>{game.title}</span>
+                                <span className="text-xs text-muted-foreground">
+                                  {new Date(game.date).toLocaleDateString()}
+                                </span>
+                              </div>
+                              <div className="flex gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <Play className="h-4 w-4" />
+                                </Button>
+                              </div>
                             </div>
-                            <div className="flex gap-1">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <Play className="h-4 w-4" />
-                              </Button>
-                            </div>
+                            
+                            {/* Video player for the selected game */}
+                            {activeGameId === game.id && game.videoUrl && (
+                              <div className="mt-2 mb-4 rounded-md overflow-hidden border">
+                                <VideoPlayer 
+                                  src={game.videoUrl}
+                                  onTimeUpdate={() => {}}
+                                />
+                              </div>
+                            )}
+                            
+                            {/* Message when no video URL is available */}
+                            {activeGameId === game.id && !game.videoUrl && (
+                              <div className="mt-2 mb-4 p-4 rounded-md bg-muted text-center">
+                                <p className="text-muted-foreground">No video available for this game</p>
+                                <div className="mt-2">
+                                  <Input
+                                    type="text"
+                                    placeholder="Enter video URL"
+                                    className="max-w-xs mx-auto"
+                                    onChange={(e) => {
+                                      onUpdateGame(game.id, { videoUrl: e.target.value });
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
