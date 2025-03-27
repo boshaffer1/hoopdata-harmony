@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { FolderList } from "@/components/library/FolderList";
@@ -118,6 +119,22 @@ const ClipLibrary = () => {
       return matchesSearch && matchesSituation && matchesPlayer && matchesAction;
     });
   }, [folderClips, classicSearch, selectedSituations, selectedPlayerNames, selectedActionTypes]);
+  
+  // Add a function to check if any filters are active
+  const hasActiveFilters = React.useMemo(() => {
+    return classicSearch.trim() !== "" || 
+           selectedSituations.length > 0 || 
+           selectedPlayerNames.length > 0 || 
+           selectedActionTypes.length > 0;
+  }, [classicSearch, selectedSituations, selectedPlayerNames, selectedActionTypes]);
+  
+  // Add a function to clear all filters
+  const clearFilters = () => {
+    setClassicSearch("");
+    setSelectedSituations([]);
+    setSelectedPlayerNames([]);
+    setSelectedActionTypes([]);
+  };
   
   const storageInfo = getStorageInfo();
   const teamFolders = getTeamFolders();
