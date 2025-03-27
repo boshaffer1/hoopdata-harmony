@@ -63,6 +63,26 @@ const Analyzer = () => {
     handlePlaySavedClip(clip);
   };
 
+  // Convert SavedClip to GameData
+  const handleSavedClipToGameData = (clip: SavedClip): GameData => {
+    return {
+      "Play Name": clip.label,
+      "Start time": clip.startTime.toString(),
+      "Duration": clip.duration.toString(),
+      "Situation": clip.situation || "other",
+      "Outcome": "other",
+      "Players": JSON.stringify(clip.players || []),
+      "Notes": clip.notes || "",
+      "Timeline": clip.timeline || ""
+    };
+  };
+
+  // Create a wrapper function that accepts SavedClip and converts it for use with GameData-accepting functions
+  const handleSaveClipWrapper = (clip: SavedClip) => {
+    const gameData = handleSavedClipToGameData(clip);
+    saveClipToLibrary(gameData);
+  };
+
   return (
     <Layout className="py-6">
       <div className="mb-8">

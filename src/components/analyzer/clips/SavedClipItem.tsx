@@ -38,7 +38,7 @@ export const SavedClipItem: React.FC<SavedClipItemProps> = ({
   };
 
   return (
-    <li className="border rounded-lg p-3 hover:bg-muted/50">
+    <div className="border rounded-lg p-3 hover:bg-muted/50">
       <div className="flex justify-between items-start">
         <div className="flex-1">
           <div className="flex items-center gap-2">
@@ -97,6 +97,6 @@ export const SavedClipItem: React.FC<SavedClipItemProps> = ({
           </Button>
         </div>
       </div>
-    </li>
+    </div>
   );
 };

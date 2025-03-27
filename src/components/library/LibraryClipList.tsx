@@ -231,13 +231,13 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
           <li 
             key={clip.id} 
             className={`relative border rounded-lg transition-colors ${
-              selectedClips.includes(clip.id) ? 'bg-muted/80 border-primary/40' : ''
+              selectedClips?.includes(clip.id) ? 'bg-muted/80 border-primary/40' : ''
             }`}
           >
             {isSelectMode && (
               <div className="absolute left-2 top-1/2 transform -translate-y-1/2 z-10">
                 <Checkbox 
-                  checked={selectedClips.includes(clip.id)}
+                  checked={selectedClips?.includes(clip.id)}
                   onCheckedChange={() => toggleClipSelection(clip.id)}
                   className="h-5 w-5"
                 />
