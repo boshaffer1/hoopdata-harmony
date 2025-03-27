@@ -53,6 +53,7 @@ export interface Game {
   awayTeam: string;
   videoUrl?: string;
   dataUrl?: string;
+  teamId?: string; // Added teamId property to associate games with teams
   createdAt: string;
   updatedAt: string;
 }
