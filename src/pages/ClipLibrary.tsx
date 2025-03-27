@@ -1,16 +1,15 @@
-
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { FolderList } from "@/components/library/FolderList";
 import { LibraryClipList } from "@/components/library/LibraryClipList";
 import { TeamFolderStructure } from "@/components/library/TeamFolderStructure";
 import { Button } from "@/components/ui/button";
-import { Download, Info, Search, Filter, FolderTree, Layers } from "lucide-react";
+import { Download, Info, Search, Filter, FolderTree, Layers, Upload } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useClipLibrary } from "@/hooks/analyzer/use-clip-library";
 import { useRoster } from "@/hooks/analyzer/use-roster"; 
 import { useAnalyzer } from "@/hooks/analyzer";
-import { ExportOptions } from "@/types/analyzer";
+import { ExportOptions, SavedClip } from "@/types/analyzer";
 import {
   Tooltip,
   TooltipContent,
@@ -21,6 +20,15 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 const ClipLibrary = () => {
   const navigate = useNavigate();
@@ -45,7 +53,8 @@ const ClipLibrary = () => {
     addGame,
     updateGame,
     deleteGame,
-    getStorageInfo
+    getStorageInfo,
+    importLibrary
   } = useClipLibrary(undefined);
   
   const { rosters } = useRoster();
@@ -54,6 +63,8 @@ const ClipLibrary = () => {
   const [viewMode, setViewMode] = useState<"classic" | "teams">("classic");
   const [teamSearch, setTeamSearch] = useState("");
   const [classicSearch, setClassicSearch] = useState("");
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
 
   // Get clips based on active folder
   const filteredClips = getClipsByFolder(activeFolder);
@@ -73,7 +84,7 @@ const ClipLibrary = () => {
   const teamFolders = getTeamFolders();
   
   // Handle redirecting to analyzer to play clips
-  const handlePlayClip = (clip: any) => {
+  const handlePlayClip = (clip: SavedClip) => {
     handlePlaySavedClip(clip);
     navigate("/analyzer");
   };
@@ -128,6 +139,34 @@ const ClipLibrary = () => {
     toast.success(`Moved ${clipIds.length} clips to ${targetFolderId ? folders.find(f => f.id === targetFolderId)?.name : 'root folder'}`);
   };
   
+  const handleImportFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    setImportFile(file);
+  };
+  
+  const handleImportLibrary = async () => {
+    if (!importFile) {
+      toast.error("Please select a file to import");
+      return;
+    }
+    
+    try {
+      const fileContent = await importFile.text();
+      const importData = JSON.parse(fileContent);
+      
+      const success = importLibrary(importData);
+      
+      if (success) {
+        setIsImportDialogOpen(false);
+        setImportFile(null);
+        toast.success("Successfully imported library data");
+      }
+    } catch (error) {
+      console.error("Import error:", error);
+      toast.error("Failed to import library. Invalid file format.");
+    }
+  };
+  
   // Create initial team folder structure if not exists
   useEffect(() => {
     // For each roster, ensure there's a corresponding team folder with subfolders
@@ -164,6 +203,48 @@ const ClipLibrary = () => {
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-3xl font-display font-bold">My Clip Library</h1>
           <div className="flex gap-2">
+            <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
+              <DialogTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  <Upload className="h-4 w-4" />
+                  Import Library
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Import Clip Library</DialogTitle>
+                  <DialogDescription>
+                    Upload a previously exported library JSON file
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="py-4">
+                  <Input 
+                    type="file" 
+                    accept=".json" 
+                    onChange={handleImportFileChange}
+                  />
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Note: This will add to your existing library without overwriting it
+                  </p>
+                </div>
+                <DialogFooter>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setIsImportDialogOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button onClick={handleImportLibrary}>
+                    Import Library
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+            
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>

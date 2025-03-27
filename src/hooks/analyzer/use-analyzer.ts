@@ -46,7 +46,10 @@ export const useAnalyzer = () => {
     removeSavedClip,
     exportClip,
     exportLibrary,
-    saveClipsFromData
+    saveClipsFromData,
+    folders,
+    createFolder,
+    moveClipToFolder
   } = useClipLibrary(videoUrl);
 
   const handleFileLoaded = (loadedData: any) => {
@@ -147,6 +150,9 @@ export const useAnalyzer = () => {
     isPlayingClip,
     videoPlayerRef,
     isPlayerReady,
+    folders,
+    createFolder,
+    moveClipToFolder,
     handleFileLoaded,
     handleVideoFileChange,
     handleTimeUpdate,
