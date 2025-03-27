@@ -28,13 +28,31 @@ export interface SavedClip {
   saved: string;
   players?: PlayerAction[];
   situation?: GameSituation;
-  folderId?: string; // Added field to associate clips with folders
+  folderId?: string;
+  teamId?: string;
+  gameId?: string;
+  clipType?: "play" | "possession" | "full_game" | "other";
 }
 
 export interface ClipFolder {
   id: string;
   name: string;
   description?: string;
+  createdAt: string;
+  updatedAt: string;
+  parentId?: string; // For nested folders
+  folderType?: "team" | "plays" | "games" | "other";
+  teamId?: string; // To associate folders with specific teams
+}
+
+export interface Game {
+  id: string;
+  title: string;
+  date: string;
+  homeTeam: string;
+  awayTeam: string;
+  videoUrl?: string;
+  dataUrl?: string;
   createdAt: string;
   updatedAt: string;
 }
