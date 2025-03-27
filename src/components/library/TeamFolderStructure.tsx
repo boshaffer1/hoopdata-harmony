@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { ClipFolder, Game } from "@/types/analyzer";
@@ -24,8 +23,8 @@ import {
   Video, 
   Play, 
   FileVideo, 
-  FileCsv,
-  FileBarChart2
+  FileBarChart2,
+  Files
 } from "lucide-react";
 
 interface TeamFolderStructureProps {
@@ -91,7 +90,7 @@ export const TeamFolderStructure: React.FC<TeamFolderStructureProps> = ({
         f.teamId === selectedTeamId && f.folderType === 'games'
       );
       
-      if (gamesFolder && newGame) {
+      if (gamesFolder) {
         // Save the game full video as a clip in the library
         // This would typically call the saveClipToLibrary function
         // We'd implement this in a real-world scenario
@@ -116,12 +115,9 @@ export const TeamFolderStructure: React.FC<TeamFolderStructureProps> = ({
     }));
   };
 
-  // Function to build the folder tree
   const buildFolderTree = () => {
-    // Get root level folders (teams)
     const teamFolders = folders.filter(folder => folder.folderType === 'team');
     
-    // For each team, get its children
     return teamFolders.map(teamFolder => {
       const isExpanded = expandedFolders[teamFolder.id] || false;
       const childFolders = folders.filter(folder => folder.parentId === teamFolder.id);
@@ -176,7 +172,6 @@ export const TeamFolderStructure: React.FC<TeamFolderStructureProps> = ({
             <div className="ml-6 mt-1 space-y-1">
               {childFolders.map(childFolder => {
                 const isChildExpanded = expandedFolders[childFolder.id] || false;
-                // Get team-specific games for the Games folder
                 const folderGames = childFolder.folderType === 'games' 
                   ? games.filter(game => game.homeTeam === teamFolder.name || game.awayTeam === teamFolder.name)
                   : [];
@@ -306,7 +301,6 @@ export const TeamFolderStructure: React.FC<TeamFolderStructureProps> = ({
         </Dialog>
       </div>
 
-      {/* Team folder structure */}
       <div className="border rounded-lg p-4 space-y-2 max-h-[500px] overflow-y-auto">
         {folders.some(f => f.folderType === 'team') ? (
           buildFolderTree()
@@ -320,7 +314,6 @@ export const TeamFolderStructure: React.FC<TeamFolderStructureProps> = ({
         )}
       </div>
 
-      {/* Add Game Dialog */}
       <Dialog open={isAddGameDialogOpen} onOpenChange={setIsAddGameDialogOpen}>
         <DialogContent>
           <DialogHeader>
