@@ -11,6 +11,7 @@ import { useRoster } from "@/hooks/analyzer/use-roster";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BookmarkIcon, Library, Users, StopCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { GameData, SavedClip } from "@/types/analyzer"; // Import the types
 
 const Analyzer = () => {
   const {
@@ -55,6 +56,11 @@ const Analyzer = () => {
 
   const handleSelectRecentVideo = (url: string) => {
     setVideoUrl(url);
+  };
+
+  // Create a wrapper function to adapt SavedClip to GameData
+  const handlePlaySavedClipWrapper = (clip: SavedClip) => {
+    handlePlaySavedClip(clip);
   };
 
   return (
@@ -158,7 +164,7 @@ const Analyzer = () => {
                 onRemoveClip={removeSavedClip}
                 onExportClip={exportClip}
                 onExportLibrary={exportLibrary}
-                onPlayClip={handlePlaySavedClip}
+                onPlayClip={handlePlaySavedClipWrapper}
                 onStopClip={stopClip}
               />
             </TabsContent>

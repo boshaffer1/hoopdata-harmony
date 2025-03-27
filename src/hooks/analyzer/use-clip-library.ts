@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { SavedClip, ClipFolder, Game, ExportOptions } from "@/types/analyzer";
 import { v4 as uuidv4 } from "uuid";
@@ -8,6 +9,7 @@ export const useClipLibrary = (videoUrl?: string) => {
   const [playLabel, setPlayLabel] = useState("");
   const [folders, setFolders] = useState<ClipFolder[]>([]);
   const [games, setGames] = useState<Game[]>([]);
+  const [activeFolder, setActiveFolder] = useState<string | null>(null);
   const DEFAULT_UNNAMED_FOLDER_ID = "unnamed-clips-folder";
 
   // Load saved clips and folders from local storage
@@ -229,19 +231,50 @@ export const useClipLibrary = (videoUrl?: string) => {
     return newClips;
   };
 
-  const createFolder = (name: string, description: string) => {
+  const createFolder = (name: string, description: string, options?: Partial<ClipFolder>) => {
     const newFolder: ClipFolder = {
       id: uuidv4(),
       name,
       description,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      folderType: "other"
+      folderType: options?.folderType || "other",
+      parentId: options?.parentId,
+      teamId: options?.teamId
     };
 
     setFolders((prevFolders) => [...prevFolders, newFolder]);
     toast.success(`Folder "${name}" created`);
     return newFolder;
+  };
+
+  const createTeamFolder = (name: string, description: string) => {
+    const teamFolder = createFolder(name, description, { folderType: "team" });
+    return teamFolder;
+  };
+
+  const updateFolder = (id: string, updates: Partial<ClipFolder>) => {
+    setFolders((prevFolders) =>
+      prevFolders.map((folder) => 
+        folder.id === id 
+          ? { ...folder, ...updates, updatedAt: new Date().toISOString() } 
+          : folder
+      )
+    );
+    toast.success("Folder updated");
+  };
+
+  const deleteFolder = (id: string) => {
+    // Move all clips in this folder back to no folder
+    setSavedClips((prevClips) =>
+      prevClips.map((clip) =>
+        clip.folderId === id ? { ...clip, folderId: undefined } : clip
+      )
+    );
+    
+    // Remove the folder
+    setFolders((prevFolders) => prevFolders.filter((folder) => folder.id !== id));
+    toast.success("Folder deleted");
   };
 
   const moveClipToFolder = (clipId: string, folderId: string | null) => {
@@ -255,29 +288,136 @@ export const useClipLibrary = (videoUrl?: string) => {
     toast.success(`Clip moved to ${folder ? folder.name : 'root'}`);
   };
 
-  const addGame = (title: string, date: string, homeTeam: string, awayTeam: string, videoUrl?: string, dataUrl?: string, teamId?: string) => {
+  const bulkMoveClips = (clipIds: string[], targetFolderId: string | null) => {
+    setSavedClips((prevClips) =>
+      prevClips.map((clip) =>
+        clipIds.includes(clip.id) ? { ...clip, folderId: targetFolderId } : clip
+      )
+    );
+    
+    const folder = folders.find(f => f.id === targetFolderId);
+    toast.success(`Moved ${clipIds.length} clips to ${folder ? folder.name : 'root folder'}`);
+  };
+
+  const getClipsByFolder = (folderId: string | null) => {
+    return savedClips.filter(clip => clip.folderId === folderId);
+  };
+
+  const getTeamFolders = () => {
+    return folders.filter(folder => folder.folderType === "team");
+  };
+
+  const bulkExportClips = (clips: SavedClip[], options?: ExportOptions) => {
+    if (clips.length === 0) return;
+    
+    // For now, just export as JSON
+    const clipsJson = JSON.stringify(clips, null, 2);
+    
+    // Create a Blob from the JSON data
+    const blob = new Blob([clipsJson], { type: "application/json" });
+    
+    // Create a download link
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `clips_export_${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    
+    // Clean up by removing the link
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const addGame = (gameData: any) => {
     const newGame: Game = {
       id: uuidv4(),
-      title,
-      date,
-      homeTeam,
-      awayTeam,
-      videoUrl,
-      dataUrl,
-      teamId,
+      title: gameData.title,
+      date: gameData.date,
+      homeTeam: gameData.homeTeam,
+      awayTeam: gameData.awayTeam,
+      videoUrl: gameData.videoUrl,
+      dataUrl: gameData.dataUrl,
+      teamId: gameData.teamId,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
 
     setGames((prevGames) => [...prevGames, newGame]);
-    toast.success(`Game "${title}" created`);
+    toast.success(`Game "${newGame.title}" created`);
+    return newGame;
   };
 
   const updateGame = (id: string, updates: Partial<Game>) => {
     setGames((prevGames) =>
-      prevGames.map((game) => (game.id === id ? { ...game, ...updates } : game))
+      prevGames.map((game) => (game.id === id ? { ...game, ...updates, updatedAt: new Date().toISOString() } : game))
     );
     toast.success(`Game updated`);
+  };
+
+  const deleteGame = (id: string) => {
+    setGames((prevGames) => prevGames.filter((game) => game.id !== id));
+    toast.success("Game deleted");
+  };
+
+  const getStorageInfo = () => {
+    try {
+      const clipsSize = new Blob([JSON.stringify(savedClips)]).size;
+      const foldersSize = new Blob([JSON.stringify(folders)]).size;
+      const gamesSize = new Blob([JSON.stringify(games)]).size;
+      
+      const totalSizeBytes = clipsSize + foldersSize + gamesSize;
+      const totalSizeKB = Math.round(totalSizeBytes / 1024);
+      
+      return {
+        clipsSize,
+        foldersSize,
+        gamesSize,
+        totalSizeBytes,
+        totalSizeKB
+      };
+    } catch (error) {
+      console.error("Error calculating storage info:", error);
+      return null;
+    }
+  };
+
+  const importLibrary = (importData: any) => {
+    try {
+      if (Array.isArray(importData)) {
+        // Import clips
+        const newClips = importData.map((clipData: any) => {
+          // Ensure each clip has an id
+          if (!clipData.id) {
+            clipData.id = uuidv4();
+          }
+          return clipData;
+        });
+        
+        setSavedClips(prev => [...prev, ...newClips]);
+        return true;
+      } else if (importData.clips || importData.folders || importData.games) {
+        // Import structured data
+        if (importData.clips && Array.isArray(importData.clips)) {
+          setSavedClips(prev => [...prev, ...importData.clips]);
+        }
+        
+        if (importData.folders && Array.isArray(importData.folders)) {
+          setFolders(prev => [...prev, ...importData.folders]);
+        }
+        
+        if (importData.games && Array.isArray(importData.games)) {
+          setGames(prev => [...prev, ...importData.games]);
+        }
+        
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error("Error importing library:", error);
+      return false;
+    }
   };
 
   return {
@@ -291,9 +431,21 @@ export const useClipLibrary = (videoUrl?: string) => {
     saveClipsFromData,
     folders,
     createFolder,
+    createTeamFolder,
+    updateFolder,
+    deleteFolder,
     moveClipToFolder,
+    bulkMoveClips,
+    getClipsByFolder,
+    getTeamFolders,
+    bulkExportClips,
     games,
     addGame,
-    updateGame
+    updateGame,
+    deleteGame,
+    getStorageInfo,
+    importLibrary,
+    activeFolder,
+    setActiveFolder
   };
 };
