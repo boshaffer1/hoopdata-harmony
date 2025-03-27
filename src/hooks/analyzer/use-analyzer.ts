@@ -1,4 +1,3 @@
-
 import { useVideo } from "./use-video";
 import { useMarkers } from "./use-markers";
 import { useGameData } from "./use-game-data";
@@ -120,7 +119,6 @@ export const useAnalyzer = () => {
     playSelectedClip(gameDataClip);
   };
   
-  // Add this new function to stop clip playback
   const handleStopClip = () => {
     if (isPlayingClip) {
       if (videoPlayerRef.current) {
@@ -130,8 +128,7 @@ export const useAnalyzer = () => {
       toast.info("Clip playback stopped");
     }
   };
-  
-  // Add navigate function to redirect to analyzer page when needed
+
   const navigate = (path: string) => {
     if (typeof window !== 'undefined') {
       window.location.href = path;

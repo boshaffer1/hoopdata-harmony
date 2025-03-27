@@ -4,12 +4,12 @@ import { FolderList } from "@/components/library/FolderList";
 import { LibraryClipList } from "@/components/library/LibraryClipList";
 import { TeamFolderStructure } from "@/components/library/TeamFolderStructure";
 import { Button } from "@/components/ui/button";
-import { Download, Info, Search, Filter, FolderTree, Layers, Upload } from "lucide-react";
+import { Download, Info, Search, Filter, FolderTree, Layers, Upload, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useClipLibrary } from "@/hooks/analyzer/use-clip-library";
 import { useRoster } from "@/hooks/analyzer/use-roster"; 
 import { useAnalyzer } from "@/hooks/analyzer";
-import { ExportOptions, SavedClip } from "@/types/analyzer";
+import { ExportOptions, SavedClip, PlayerAction, GameSituation, GAME_SITUATIONS, PLAYER_ACTIONS } from "@/types/analyzer";
 import {
   Tooltip,
   TooltipContent,
@@ -29,6 +29,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 
 const ClipLibrary = () => {
   const navigate = useNavigate();
@@ -65,31 +72,61 @@ const ClipLibrary = () => {
   const [classicSearch, setClassicSearch] = useState("");
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
+  const [selectedSituations, setSelectedSituations] = useState<GameSituation[]>([]);
+  const [selectedPlayerNames, setSelectedPlayerNames] = useState<string[]>([]);
+  const [selectedActionTypes, setSelectedActionTypes] = useState<string[]>([]);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
-  // Get clips based on active folder
-  const filteredClips = getClipsByFolder(activeFolder);
+  const folderClips = getClipsByFolder(activeFolder);
   
-  // Apply search filter to clips in classic view
-  const searchFilteredClips = classicSearch.trim() 
-    ? filteredClips.filter(clip => 
+  const allPlayerNames = React.useMemo(() => {
+    const playerSet = new Set<string>();
+    folderClips.forEach(clip => {
+      if (clip.players && Array.isArray(clip.players)) {
+        clip.players.forEach(player => {
+          if (player.playerName) {
+            playerSet.add(player.playerName);
+          }
+        });
+      }
+    });
+    return Array.from(playerSet).sort();
+  }, [folderClips]);
+  
+  const filteredClips = React.useMemo(() => {
+    return folderClips.filter(clip => {
+      const matchesSearch = classicSearch.trim() === "" ||
         clip.label.toLowerCase().includes(classicSearch.toLowerCase()) ||
         clip.notes.toLowerCase().includes(classicSearch.toLowerCase()) ||
         (clip.players && clip.players.some(player => 
           player.playerName.toLowerCase().includes(classicSearch.toLowerCase())
-        ))
-      )
-    : filteredClips;
-    
+        ));
+      
+      const matchesSituation = selectedSituations.length === 0 ||
+        (clip.situation && selectedSituations.includes(clip.situation));
+      
+      const matchesPlayer = selectedPlayerNames.length === 0 ||
+        (clip.players && clip.players.some(player => 
+          selectedPlayerNames.includes(player.playerName)
+        ));
+      
+      const matchesAction = selectedActionTypes.length === 0 ||
+        (clip.players && clip.players.some(player => 
+          selectedActionTypes.includes(player.action)
+        ));
+      
+      return matchesSearch && matchesSituation && matchesPlayer && matchesAction;
+    });
+  }, [folderClips, classicSearch, selectedSituations, selectedPlayerNames, selectedActionTypes]);
+  
   const storageInfo = getStorageInfo();
   const teamFolders = getTeamFolders();
   
-  // Handle redirecting to analyzer to play clips
   const handlePlayClip = (clip: SavedClip) => {
     handlePlaySavedClip(clip);
     navigate("/analyzer");
   };
 
-  // Filter team folders based on search
   const filteredTeamFolders = teamFolders.filter(folder => 
     folder.name.toLowerCase().includes(teamSearch.toLowerCase())
   );
@@ -103,10 +140,8 @@ const ClipLibrary = () => {
       bulkExportClips(clipsToExport, options);
       toast.success(`Exported ${clipsToExport.length} clips as JSON`);
     } else {
-      // For video exports
       toast.loading(`Preparing ${clipsToExport.length} clips for export...`);
       
-      // Run exports sequentially to avoid overwhelming the browser
       const exportSequentially = async () => {
         let exportedCount = 0;
         
@@ -167,20 +202,16 @@ const ClipLibrary = () => {
     }
   };
   
-  // Create initial team folder structure if not exists
   useEffect(() => {
-    // For each roster, ensure there's a corresponding team folder with subfolders
     rosters.forEach(roster => {
       const existingTeamFolder = folders.find(
         folder => folder.folderType === 'team' && folder.name === roster.name
       );
       
       if (!existingTeamFolder) {
-        // Create team folder
         const teamFolder = createTeamFolder(roster.name, `Folder for ${roster.name} team`);
         
         if (teamFolder) {
-          // Create default subfolders
           createFolder("Plays", "Team plays", { 
             parentId: teamFolder.id,
             folderType: "plays",
@@ -303,7 +334,6 @@ const ClipLibrary = () => {
         )}
       </div>
       
-      {/* View Mode Tabs */}
       <Tabs defaultValue="classic" className="mb-6">
         <TabsList>
           <TabsTrigger 
@@ -327,7 +357,6 @@ const ClipLibrary = () => {
       
       {viewMode === "classic" ? (
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Left sidebar - Folders */}
           <div className="lg:col-span-1">
             <FolderList
               folders={folders}
@@ -339,20 +368,206 @@ const ClipLibrary = () => {
             />
           </div>
           
-          {/* Main content - Clips */}
           <div className="lg:col-span-3">
-            <div className="relative mb-4">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search clips by title, notes, or players..."
-                value={classicSearch}
-                onChange={(e) => setClassicSearch(e.target.value)}
-                className="pl-9"
-              />
+            <div className="flex flex-col gap-4 mb-4">
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search clips by title, notes, or players..."
+                    value={classicSearch}
+                    onChange={(e) => setClassicSearch(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+                
+                <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+                  <PopoverTrigger asChild>
+                    <Button 
+                      variant={hasActiveFilters ? "default" : "outline"} 
+                      className="flex items-center gap-2"
+                    >
+                      <Filter className="h-4 w-4" />
+                      {hasActiveFilters ? `Filters (${selectedSituations.length + selectedPlayerNames.length + selectedActionTypes.length})` : "Filter"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80 p-4" align="end">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-medium">Filter Clips</h4>
+                        {hasActiveFilters && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={clearFilters}
+                            className="h-8 text-xs"
+                          >
+                            Clear All
+                          </Button>
+                        )}
+                      </div>
+                      
+                      <div>
+                        <h5 className="mb-2 text-sm font-medium">Situation</h5>
+                        <div className="grid grid-cols-2 gap-2">
+                          {GAME_SITUATIONS.map((situation) => (
+                            <div 
+                              key={situation} 
+                              className="flex items-center space-x-2"
+                            >
+                              <Checkbox 
+                                id={`situation-${situation}`}
+                                checked={selectedSituations.includes(situation)}
+                                onCheckedChange={(checked) => {
+                                  if (checked) {
+                                    setSelectedSituations([...selectedSituations, situation]);
+                                  } else {
+                                    setSelectedSituations(selectedSituations.filter(s => s !== situation));
+                                  }
+                                }}
+                              />
+                              <label 
+                                htmlFor={`situation-${situation}`}
+                                className="text-sm cursor-pointer"
+                              >
+                                {situation.replace('_', ' ')}
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      {allPlayerNames.length > 0 && (
+                        <div>
+                          <h5 className="mb-2 text-sm font-medium">Players</h5>
+                          <div className="max-h-32 overflow-y-auto space-y-1">
+                            {allPlayerNames.map((playerName) => (
+                              <div 
+                                key={playerName} 
+                                className="flex items-center space-x-2"
+                              >
+                                <Checkbox 
+                                  id={`player-${playerName}`}
+                                  checked={selectedPlayerNames.includes(playerName)}
+                                  onCheckedChange={(checked) => {
+                                    if (checked) {
+                                      setSelectedPlayerNames([...selectedPlayerNames, playerName]);
+                                    } else {
+                                      setSelectedPlayerNames(selectedPlayerNames.filter(p => p !== playerName));
+                                    }
+                                  }}
+                                />
+                                <label 
+                                  htmlFor={`player-${playerName}`}
+                                  className="text-sm cursor-pointer"
+                                >
+                                  {playerName}
+                                </label>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
+                      <div>
+                        <h5 className="mb-2 text-sm font-medium">Action Types</h5>
+                        <div className="grid grid-cols-2 gap-2">
+                          {PLAYER_ACTIONS.map((action) => (
+                            <div 
+                              key={action} 
+                              className="flex items-center space-x-2"
+                            >
+                              <Checkbox 
+                                id={`action-${action}`}
+                                checked={selectedActionTypes.includes(action)}
+                                onCheckedChange={(checked) => {
+                                  if (checked) {
+                                    setSelectedActionTypes([...selectedActionTypes, action]);
+                                  } else {
+                                    setSelectedActionTypes(selectedActionTypes.filter(a => a !== action));
+                                  }
+                                }}
+                              />
+                              <label 
+                                htmlFor={`action-${action}`}
+                                className="text-sm cursor-pointer"
+                              >
+                                {action.replace('_', ' ')}
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      <Button 
+                        className="w-full mt-2" 
+                        onClick={() => setIsFilterOpen(false)}
+                      >
+                        Apply Filters
+                      </Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
+              
+              {hasActiveFilters && (
+                <div className="flex flex-wrap gap-2">
+                  {classicSearch.trim() !== "" && (
+                    <Badge variant="outline" className="flex items-center gap-1">
+                      <span>Search: {classicSearch}</span>
+                      <X 
+                        className="h-3 w-3 cursor-pointer" 
+                        onClick={() => setClassicSearch("")}
+                      />
+                    </Badge>
+                  )}
+                  
+                  {selectedSituations.map(situation => (
+                    <Badge key={situation} variant="outline" className="flex items-center gap-1">
+                      <span>{situation.replace('_', ' ')}</span>
+                      <X 
+                        className="h-3 w-3 cursor-pointer" 
+                        onClick={() => setSelectedSituations(selectedSituations.filter(s => s !== situation))}
+                      />
+                    </Badge>
+                  ))}
+                  
+                  {selectedPlayerNames.map(player => (
+                    <Badge key={player} variant="outline" className="flex items-center gap-1">
+                      <span>{player}</span>
+                      <X 
+                        className="h-3 w-3 cursor-pointer" 
+                        onClick={() => setSelectedPlayerNames(selectedPlayerNames.filter(p => p !== player))}
+                      />
+                    </Badge>
+                  ))}
+                  
+                  {selectedActionTypes.map(action => (
+                    <Badge key={action} variant="outline" className="flex items-center gap-1">
+                      <span>{action}</span>
+                      <X 
+                        className="h-3 w-3 cursor-pointer" 
+                        onClick={() => setSelectedActionTypes(selectedActionTypes.filter(a => a !== action))}
+                      />
+                    </Badge>
+                  ))}
+                  
+                  {hasActiveFilters && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={clearFilters}
+                      className="h-8 text-xs"
+                    >
+                      Clear All
+                    </Button>
+                  )}
+                </div>
+              )}
             </div>
             
             <LibraryClipList
-              clips={searchFilteredClips}
+              clips={filteredClips}
               folders={folders}
               activeFolder={activeFolder}
               onPlayClip={handlePlayClip}
@@ -367,7 +582,6 @@ const ClipLibrary = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Left sidebar - Team Folders */}
           <div className="lg:col-span-1">
             <div className="mb-4">
               <div className="relative">
@@ -396,7 +610,6 @@ const ClipLibrary = () => {
             />
           </div>
           
-          {/* Main content - Clips for selected folder/team */}
           <div className="lg:col-span-3">
             <LibraryClipList
               clips={filteredClips}

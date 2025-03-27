@@ -69,7 +69,6 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
   const [exportFormat, setExportFormat] = useState<"json" | "mp4" | "webm">("json");
   const [includeSubfolders, setIncludeSubfolders] = useState(false);
   
-  // Store last selected folder to use when creating a new folder during move operation
   const lastSelectedFolderRef = useRef<string | null>(null);
 
   const toggleSelectMode = () => {
@@ -121,7 +120,6 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
   };
   
   const handleMoveWithCreateFolder = () => {
-    // Store the currently selected folder ID (or null for root)
     lastSelectedFolderRef.current = moveToFolderId;
     setIsNewFolderDialogOpen(true);
   };
@@ -132,14 +130,11 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
       return;
     }
     
-    // Create the new folder
     const newFolder = onCreateFolder(newFolderName, newFolderDescription);
     
     if (newFolder) {
-      // Move the clips to the new folder
       onBulkMove(selectedClips, newFolder.id);
       
-      // Reset states
       setNewFolderName("");
       setNewFolderDescription("");
       setIsNewFolderDialogOpen(false);
@@ -260,7 +255,6 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
         ))}
       </ul>
 
-      {/* Bulk Move Dialog */}
       <Dialog open={isBulkMoveDialogOpen} onOpenChange={setIsBulkMoveDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -316,7 +310,6 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
         </DialogContent>
       </Dialog>
 
-      {/* New Folder Dialog */}
       <Dialog open={isNewFolderDialogOpen} onOpenChange={setIsNewFolderDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -351,7 +344,6 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
               variant="outline" 
               onClick={() => {
                 setIsNewFolderDialogOpen(false);
-                // If user was in the move dialog, keep it open
                 if (isBulkMoveDialogOpen) {
                   setMoveToFolderId(lastSelectedFolderRef.current);
                 }
@@ -366,7 +358,6 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
         </DialogContent>
       </Dialog>
 
-      {/* Bulk Export Dialog */}
       <Dialog open={isBulkExportDialogOpen} onOpenChange={setIsBulkExportDialogOpen}>
         <DialogContent>
           <DialogHeader>
