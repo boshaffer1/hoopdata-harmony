@@ -83,6 +83,38 @@ const Analyzer = () => {
     saveClipToLibrary(gameData);
   };
 
+  // We need to create a wrapper for the ClipLibrary component's onPlayClip prop
+  // This will adapt GameData to SavedClip for the onPlayClip prop
+  const handleGameDataToSavedClip = (gameData: GameData): SavedClip => {
+    // Parse players if they exist
+    let players = [];
+    try {
+      if (gameData.Players && gameData.Players !== "[]") {
+        players = JSON.parse(gameData.Players);
+      }
+    } catch (e) {
+      console.error("Error parsing players:", e);
+    }
+
+    return {
+      id: Math.random().toString(36).substring(2, 9), // Generate temporary ID if needed
+      startTime: parseFloat(gameData["Start time"]),
+      duration: parseFloat(gameData["Duration"]),
+      label: gameData["Play Name"],
+      notes: gameData["Notes"] || "",
+      timeline: gameData["Timeline"] || "",
+      saved: new Date().toISOString(),
+      players,
+      situation: gameData["Situation"]
+    };
+  };
+
+  // Create a function that accepts GameData and converts it for handlePlaySavedClip
+  const handlePlayGameData = (gameData: GameData) => {
+    const savedClip = handleGameDataToSavedClip(gameData);
+    handlePlaySavedClip(savedClip);
+  };
+
   return (
     <Layout className="py-6">
       <div className="mb-8">
@@ -139,7 +171,7 @@ const Analyzer = () => {
             selectedClip={selectedClip}
             isPlayingClip={isPlayingClip}
             onFileLoaded={handleFileLoaded}
-            onPlayClip={playClip}
+            onPlayClip={handlePlayGameData} // Use the wrapper function here
             onStopClip={stopClip}
             onExportClip={exportClip}
           />
@@ -184,7 +216,7 @@ const Analyzer = () => {
                 onRemoveClip={removeSavedClip}
                 onExportClip={exportClip}
                 onExportLibrary={exportLibrary}
-                onPlayClip={handlePlaySavedClipWrapper}
+                onPlayClip={handlePlaySavedClipWrapper} // This is the correct type now
                 onStopClip={stopClip}
               />
             </TabsContent>
