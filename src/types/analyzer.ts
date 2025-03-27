@@ -137,3 +137,10 @@ export interface TeamRoster {
   name: string;
   players: Player[];
 }
+
+// Exporting options for clips
+export interface ExportOptions {
+  includeSubfolders?: boolean;
+  format?: "json" | "mp4" | "webm";
+  quality?: "high" | "medium" | "low";
+}

@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -10,7 +9,7 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { SavedClip, ClipFolder, GameSituation } from "@/types/analyzer";
+import { SavedClip, ClipFolder, GameSituation, ExportOptions } from "@/types/analyzer";
 import { PlayerActionBadge } from "../analyzer/clips/PlayerActionBadge";
 import { formatVideoTime } from "@/components/video/utils";
 import { 
@@ -27,7 +26,12 @@ import {
   SlidersHorizontal,
   Clock,
   Calendar,
-  Table
+  Table,
+  CheckSquare,
+  SquareCheck,
+  Square,
+  Share2,
+  FolderOutput
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { 
@@ -37,6 +41,28 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { GAME_SITUATIONS } from "@/types/analyzer";
 import { toast } from "sonner";
 import {
@@ -54,6 +80,8 @@ interface LibraryClipListProps {
   onExportClip: (clip: SavedClip) => void;
   onRemoveClip: (id: string) => void;
   onMoveToFolder: (clipId: string, folderId: string | null) => void;
+  onBulkExport?: (clipIds: string[], options?: ExportOptions) => void;
+  onBulkMove?: (clipIds: string[], targetFolderId: string | null) => void;
 }
 
 export const LibraryClipList: React.FC<LibraryClipListProps> = ({
@@ -63,7 +91,9 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
   onPlayClip,
   onExportClip,
   onRemoveClip,
-  onMoveToFolder
+  onMoveToFolder,
+  onBulkExport = () => {},
+  onBulkMove = () => {}
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [situationFilter, setSituationFilter] = useState<GameSituation | "all">("all");
@@ -73,8 +103,16 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
   const [clipTypeFilter, setClipTypeFilter] = useState<string>("all");
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedClips, setSelectedClips] = useState<string[]>([]);
+  const [bulkActionMode, setBulkActionMode] = useState(false);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [moveDialogOpen, setMoveDialogOpen] = useState(false);
+  const [targetFolder, setTargetFolder] = useState<string | null>(null);
+  const [exportOptions, setExportOptions] = useState<ExportOptions>({
+    format: "json",
+    includeSubfolders: false
+  });
   
-  // Extract unique teams, players, dates from clips
   const filteredData = useMemo(() => {
     const teams = new Set<string>();
     const players = new Set<string>();
@@ -82,10 +120,8 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
     const clipTypes = new Set<string>();
     
     clips.forEach(clip => {
-      // Extract team names
       if (clip.players) {
         clip.players.forEach(player => {
-          // Extract team name from player name if available (format: "Team - Player")
           const playerParts = player.playerName.split(" - ");
           if (playerParts.length > 1) {
             teams.add(playerParts[0]);
@@ -96,11 +132,9 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
         });
       }
       
-      // Extract dates (just the date part of saved timestamp)
       const savedDate = new Date(clip.saved).toLocaleDateString();
       dates.add(savedDate);
       
-      // Add clip type
       if (clip.clipType) {
         clipTypes.add(clip.clipType);
       } else {
@@ -116,7 +150,6 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
     };
   }, [clips]);
   
-  // Filter clips based on all criteria
   const filteredClips = useMemo(() => {
     return clips.filter(clip => {
       const matchesSearch = 
@@ -168,6 +201,44 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
     dateFilter, 
     clipTypeFilter
   ]);
+
+  const toggleClipSelection = (clipId: string) => {
+    setSelectedClips(prev => 
+      prev.includes(clipId)
+        ? prev.filter(id => id !== clipId)
+        : [...prev, clipId]
+    );
+  };
+
+  const toggleAllClips = () => {
+    if (selectedClips.length === filteredClips.length) {
+      setSelectedClips([]);
+    } else {
+      setSelectedClips(filteredClips.map(clip => clip.id));
+    }
+  };
+
+  const handleBulkExport = () => {
+    if (selectedClips.length === 0) {
+      toast.error("No clips selected for export");
+      return;
+    }
+    onBulkExport(selectedClips, exportOptions);
+    setExportDialogOpen(false);
+    setSelectedClips([]);
+    setBulkActionMode(false);
+  };
+
+  const handleBulkMove = () => {
+    if (selectedClips.length === 0) {
+      toast.error("No clips selected to move");
+      return;
+    }
+    onBulkMove(selectedClips, targetFolder);
+    setMoveDialogOpen(false);
+    setSelectedClips([]);
+    setBulkActionMode(false);
+  };
   
   const getSituationLabel = (situation: GameSituation): string => {
     const labels: Record<GameSituation, string> = {
@@ -202,9 +273,13 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
     toast.success("Filters reset");
   };
 
+  const cancelBulkMode = () => {
+    setBulkActionMode(false);
+    setSelectedClips([]);
+  };
+
   return (
     <div className="space-y-4">
-      {/* Search and filter bar */}
       <div className="flex gap-2 flex-col sm:flex-row">
         <div className="relative flex-1">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -233,10 +308,192 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
           >
             <SlidersHorizontal className="h-4 w-4" />
           </Button>
+          {!bulkActionMode ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setBulkActionMode(true)}
+              className="whitespace-nowrap"
+            >
+              <CheckSquare className="h-4 w-4 mr-2" />
+              Select Multiple
+            </Button>
+          ) : (
+            <Button
+              variant="default" 
+              size="sm"
+              onClick={cancelBulkMode}
+              className="whitespace-nowrap"
+            >
+              Cancel Selection
+            </Button>
+          )}
         </div>
       </div>
 
-      {/* Expanded Filter panel - Synergy style */}
+      {bulkActionMode && (
+        <div className="flex items-center justify-between p-2 border rounded-lg bg-muted/30">
+          <div className="flex items-center gap-2">
+            <Checkbox 
+              id="select-all"
+              checked={selectedClips.length === filteredClips.length && filteredClips.length > 0}
+              onCheckedChange={toggleAllClips}
+            />
+            <Label htmlFor="select-all" className="font-medium">
+              {selectedClips.length} of {filteredClips.length} selected
+            </Label>
+          </div>
+          
+          <div className="flex gap-2">
+            <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
+              <DialogTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  disabled={selectedClips.length === 0}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Export Selected
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Export {selectedClips.length} Clips</DialogTitle>
+                  <DialogDescription>
+                    Choose your export options below
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label>Export Format</Label>
+                    <Select 
+                      value={exportOptions.format} 
+                      onValueChange={(val) => setExportOptions({...exportOptions, format: val as "json" | "mp4" | "webm"})}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select format" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="json">JSON (Metadata only)</SelectItem>
+                        <SelectItem value="webm">Video clips (WebM)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  {exportOptions.format !== "json" && (
+                    <div className="space-y-1">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox 
+                          id="include-subtitles"
+                          checked={!!exportOptions.includeSubfolders}
+                          onCheckedChange={(checked) => 
+                            setExportOptions({...exportOptions, includeSubfolders: !!checked})
+                          }
+                        />
+                        <Label htmlFor="include-subtitles">Preserve folder structure in export</Label>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setExportDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleBulkExport}>
+                    Export {selectedClips.length} Clips
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+            
+            <Dialog open={moveDialogOpen} onOpenChange={setMoveDialogOpen}>
+              <DialogTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  disabled={selectedClips.length === 0}
+                >
+                  <FolderOutput className="h-4 w-4 mr-2" />
+                  Move to Folder
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Move {selectedClips.length} Clips</DialogTitle>
+                  <DialogDescription>
+                    Select a destination folder
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label>Destination Folder</Label>
+                    <Select 
+                      value={targetFolder || ""} 
+                      onValueChange={(val) => setTargetFolder(val === "root" ? null : val)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select folder" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="root">Root (No Folder)</SelectItem>
+                        {folders.map(folder => (
+                          <SelectItem key={folder.id} value={folder.id}>
+                            {folder.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setMoveDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleBulkMove}>
+                    Move {selectedClips.length} Clips
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+            
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button 
+                  variant="destructive" 
+                  size="sm"
+                  disabled={selectedClips.length === 0}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Selected
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete {selectedClips.length} Clips</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action cannot be undone. Are you sure you want to permanently delete 
+                    these {selectedClips.length} clips?
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => {
+                      selectedClips.forEach(id => onRemoveClip(id));
+                      setSelectedClips([]);
+                      setBulkActionMode(false);
+                      toast.success(`Deleted ${selectedClips.length} clips`);
+                    }}
+                  >
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        </div>
+      )}
+
       {showFilterPanel && (
         <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
           <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
@@ -245,7 +502,6 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
           </h3>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {/* Team Filter */}
             <div>
               <Select 
                 value={teamFilter} 
@@ -268,7 +524,6 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
               </Select>
             </div>
 
-            {/* Player Filter */}
             <div>
               <Select 
                 value={playerFilter} 
@@ -291,7 +546,6 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
               </Select>
             </div>
 
-            {/* Situation Filter */}
             <div>
               <Select 
                 value={situationFilter} 
@@ -314,7 +568,6 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
               </Select>
             </div>
 
-            {/* Date Filter */}
             <div>
               <Select 
                 value={dateFilter} 
@@ -337,7 +590,6 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
               </Select>
             </div>
 
-            {/* Clip Type Filter */}
             <div>
               <Select 
                 value={clipTypeFilter} 
@@ -362,7 +614,6 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
         </div>
       )}
 
-      {/* Filter stats */}
       {(situationFilter !== "all" || teamFilter !== "all" || playerFilter !== "all" || 
         dateFilter !== "all" || clipTypeFilter !== "all" || searchTerm) && (
         <div className="flex items-center justify-between">
@@ -393,10 +644,8 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
         </div>
       )}
       
-      {/* Clips list */}
       {filteredClips.length > 0 ? (
         <>
-          {/* Accordion view for grouped clips by date - Synergy style */}
           <Accordion 
             type="single" 
             collapsible 
@@ -415,52 +664,71 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
                   {filteredClips.map((clip) => (
                     <div 
                       key={clip.id}
-                      className="border rounded-lg p-4 hover:bg-muted/50 transition-colors"
+                      className={`border rounded-lg p-4 transition-colors ${
+                        bulkActionMode && selectedClips.includes(clip.id) 
+                          ? 'bg-primary/10 border-primary' 
+                          : 'hover:bg-muted/50'
+                      }`}
+                      onClick={bulkActionMode ? () => toggleClipSelection(clip.id) : undefined}
                     >
                       <div className="flex justify-between items-start mb-2">
-                        <h3 className="font-medium">{clip.label}</h3>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Clip Actions</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => onPlayClip(clip)}>
-                              <PlayCircle className="h-4 w-4 mr-2" />
-                              Play Clip
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => onExportClip(clip)}>
-                              <Download className="h-4 w-4 mr-2" />
-                              Export Clip
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuLabel>Move to Folder</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => onMoveToFolder(clip.id, null)}>
-                              <FolderIcon className="h-4 w-4 mr-2" />
-                              None (Root)
-                            </DropdownMenuItem>
-                            {folders.map(folder => (
-                              <DropdownMenuItem 
-                                key={folder.id} 
-                                onClick={() => onMoveToFolder(clip.id, folder.id)}
-                                disabled={clip.folderId === folder.id}
-                              >
-                                <FolderIcon className="h-4 w-4 mr-2" />
-                                {folder.name}
+                        {bulkActionMode ? (
+                          <div className="flex items-center gap-2">
+                            <Checkbox 
+                              checked={selectedClips.includes(clip.id)} 
+                              onCheckedChange={() => toggleClipSelection(clip.id)}
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                            <h3 className="font-medium">{clip.label}</h3>
+                          </div>
+                        ) : (
+                          <h3 className="font-medium">{clip.label}</h3>
+                        )}
+                        
+                        {!bulkActionMode && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Clip Actions</DropdownMenuLabel>
+                              <DropdownMenuItem onClick={() => onPlayClip(clip)}>
+                                <PlayCircle className="h-4 w-4 mr-2" />
+                                Play Clip
                               </DropdownMenuItem>
-                            ))}
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem 
-                              onClick={() => onRemoveClip(clip.id)}
-                              className="text-destructive focus:text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Delete Clip
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                              <DropdownMenuItem onClick={() => onExportClip(clip)}>
+                                <Download className="h-4 w-4 mr-2" />
+                                Export Clip
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuLabel>Move to Folder</DropdownMenuLabel>
+                              <DropdownMenuItem onClick={() => onMoveToFolder(clip.id, null)}>
+                                <FolderIcon className="h-4 w-4 mr-2" />
+                                None (Root)
+                              </DropdownMenuItem>
+                              {folders.map(folder => (
+                                <DropdownMenuItem 
+                                  key={folder.id} 
+                                  onClick={() => onMoveToFolder(clip.id, folder.id)}
+                                  disabled={clip.folderId === folder.id}
+                                >
+                                  <FolderIcon className="h-4 w-4 mr-2" />
+                                  {folder.name}
+                                </DropdownMenuItem>
+                              ))}
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem 
+                                onClick={() => onRemoveClip(clip.id)}
+                                className="text-destructive focus:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete Clip
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
                       </div>
                       
                       <div className="space-y-2">
@@ -489,7 +757,6 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
                           </Badge>
                         </div>
                         
-                        {/* Display player actions */}
                         {clip.players && clip.players.length > 0 && (
                           <div className="flex flex-wrap gap-1 mt-1">
                             {clip.players.map((player, idx) => (
@@ -502,26 +769,34 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
                           </div>
                         )}
                         
-                        <div className="flex space-x-1 pt-2">
-                          <Button 
-                            variant="secondary" 
-                            size="sm"
-                            className="flex-1"
-                            onClick={() => onPlayClip(clip)}
-                          >
-                            <PlayCircle className="h-4 w-4 mr-1" />
-                            Play
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            className="flex-1"
-                            onClick={() => onExportClip(clip)}
-                          >
-                            <Download className="h-4 w-4 mr-1" />
-                            Export
-                          </Button>
-                        </div>
+                        {!bulkActionMode && (
+                          <div className="flex space-x-1 pt-2">
+                            <Button 
+                              variant="secondary" 
+                              size="sm"
+                              className="flex-1"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onPlayClip(clip);
+                              }}
+                            >
+                              <PlayCircle className="h-4 w-4 mr-1" />
+                              Play
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="flex-1"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onExportClip(clip);
+                              }}
+                            >
+                              <Download className="h-4 w-4 mr-1" />
+                              Export
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}

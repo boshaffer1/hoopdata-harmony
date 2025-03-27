@@ -10,6 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { useClipLibrary } from "@/hooks/analyzer/use-clip-library";
 import { useRoster } from "@/hooks/analyzer/use-roster"; 
 import { useAnalyzer } from "@/hooks/analyzer";
+import { ExportOptions } from "@/types/analyzer";
 import {
   Tooltip,
   TooltipContent,
@@ -19,6 +20,7 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 
 const ClipLibrary = () => {
   const navigate = useNavigate();
@@ -38,6 +40,8 @@ const ClipLibrary = () => {
     moveClipToFolder,
     getClipsByFolder,
     getTeamFolders,
+    bulkExportClips,
+    bulkMoveClips,
     addGame,
     updateGame,
     deleteGame,
@@ -78,6 +82,51 @@ const ClipLibrary = () => {
   const filteredTeamFolders = teamFolders.filter(folder => 
     folder.name.toLowerCase().includes(teamSearch.toLowerCase())
   );
+  
+  const handleBulkExport = (clipIds: string[], options?: ExportOptions) => {
+    if (!clipIds.length) return;
+    
+    const clipsToExport = savedClips.filter(clip => clipIds.includes(clip.id));
+    
+    if (options?.format === "json") {
+      bulkExportClips(clipsToExport, options);
+      toast.success(`Exported ${clipsToExport.length} clips as JSON`);
+    } else {
+      // For video exports
+      toast.loading(`Preparing ${clipsToExport.length} clips for export...`);
+      
+      // Run exports sequentially to avoid overwhelming the browser
+      const exportSequentially = async () => {
+        let exportedCount = 0;
+        
+        for (const clip of clipsToExport) {
+          try {
+            await exportClip(clip);
+            exportedCount++;
+            
+            if (exportedCount % 5 === 0 || exportedCount === clipsToExport.length) {
+              toast.dismiss();
+              toast.success(`Exported ${exportedCount}/${clipsToExport.length} clips`);
+            }
+          } catch (error) {
+            console.error(`Failed to export clip ${clip.id}:`, error);
+          }
+        }
+        
+        toast.dismiss();
+        toast.success(`Export complete. ${exportedCount} clips exported.`);
+      };
+      
+      exportSequentially();
+    }
+  };
+  
+  const handleBulkMove = (clipIds: string[], targetFolderId: string | null) => {
+    if (!clipIds.length) return;
+    
+    bulkMoveClips(clipIds, targetFolderId);
+    toast.success(`Moved ${clipIds.length} clips to ${targetFolderId ? folders.find(f => f.id === targetFolderId)?.name : 'root folder'}`);
+  };
   
   // Create initial team folder structure if not exists
   useEffect(() => {
@@ -229,6 +278,8 @@ const ClipLibrary = () => {
               onExportClip={exportClip}
               onRemoveClip={removeSavedClip}
               onMoveToFolder={moveClipToFolder}
+              onBulkExport={handleBulkExport}
+              onBulkMove={handleBulkMove}
             />
           </div>
         </div>
@@ -273,6 +324,8 @@ const ClipLibrary = () => {
               onExportClip={exportClip}
               onRemoveClip={removeSavedClip}
               onMoveToFolder={moveClipToFolder}
+              onBulkExport={handleBulkExport}
+              onBulkMove={handleBulkMove}
             />
           </div>
         </div>

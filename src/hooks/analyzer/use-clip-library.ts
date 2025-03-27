@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { GameData, SavedClip, PlayerAction, GameSituation, ClipFolder, Game, TeamRoster } from "@/types/analyzer";
+import { GameData, SavedClip, PlayerAction, GameSituation, ClipFolder, Game, TeamRoster, ExportOptions } from "@/types/analyzer";
 import { toast } from "sonner";
 import { downloadJSON, extractVideoClip } from "@/components/video/utils";
 
@@ -211,7 +211,45 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
     setSavedClips(savedClips.filter(clip => clip.id !== id));
     toast.success("Clip removed from library");
   };
+
+  const bulkExportClips = (clips: SavedClip[], options?: ExportOptions) => {
+    if (clips.length === 0) {
+      toast.error("No clips to export");
+      return;
+    }
+    
+    if (!options || options.format === "json") {
+      const exportData = {
+        clips,
+        exportedAt: new Date().toISOString(),
+        totalClips: clips.length
+      };
+      
+      const fileName = `clips-export-${new Date().toISOString().slice(0, 10)}.json`;
+      downloadJSON(exportData, fileName);
+      
+      toast.success(`Exported ${clips.length} clips as JSON`);
+    } else {
+      toast.error("Video export for multiple clips is not yet implemented");
+    }
+  };
   
+  const bulkMoveClips = (clipIds: string[], targetFolderId: string | null) => {
+    if (clipIds.length === 0) return;
+    
+    setSavedClips(prev => prev.map(clip => 
+      clipIds.includes(clip.id) 
+        ? { ...clip, folderId: targetFolderId } 
+        : clip
+    ));
+    
+    const folderName = targetFolderId 
+      ? folders.find(f => f.id === targetFolderId)?.name || "selected folder" 
+      : "root folder";
+    
+    toast.success(`Moved ${clipIds.length} clips to ${folderName}`);
+  };
+
   const exportClip = async (clip: SavedClip | GameData) => {
     if (!videoUrl) {
       toast.error("No video loaded");
@@ -313,7 +351,6 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
       return;
     }
     
-    // Only check for duplicate names at the same level
     const sameLevel = folders.filter(f => f.parentId === options.parentId);
     if (sameLevel.some(folder => folder.name.toLowerCase() === name.toLowerCase())) {
       toast.error("A folder with this name already exists at this level");
@@ -338,7 +375,6 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
     const teamFolder = createFolder(teamName, description, { folderType: "team" });
     
     if (teamFolder) {
-      // Automatically create plays and games subfolders
       createFolder("Plays", "Team plays and possessions", { 
         parentId: teamFolder.id, 
         folderType: "plays",
@@ -369,7 +405,6 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
   };
   
   const deleteFolder = (id: string) => {
-    // Get all subfolders to delete
     const getSubfolderIds = (folderId: string): string[] => {
       const directSubfolders = folders.filter(f => f.parentId === folderId);
       let allSubfolderIds = directSubfolders.map(f => f.id);
@@ -384,14 +419,12 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
     const subfolderIds = getSubfolderIds(id);
     const allFolderIds = [id, ...subfolderIds];
     
-    // Update clips that were in these folders
     setSavedClips(prev => prev.map(clip => 
       allFolderIds.includes(clip.folderId || '')
         ? { ...clip, folderId: undefined } 
         : clip
     ));
     
-    // Remove all related folders
     setFolders(prev => prev.filter(folder => !allFolderIds.includes(folder.id)));
     
     if (activeFolder === id || allFolderIds.includes(activeFolder || '')) {
@@ -419,7 +452,6 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
       return savedClips.filter(clip => clip.folderId === folderId);
     }
     
-    // Get all subfolder IDs
     const getSubfolderIds = (parentId: string): string[] => {
       const directSubfolders = folders.filter(f => f.parentId === parentId);
       let allSubfolderIds = directSubfolders.map(f => f.id);
@@ -464,14 +496,12 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
   const deleteGame = (id: string) => {
     setGames(prev => prev.filter(game => game.id !== id));
     
-    // Remove any clips that are specifically from this game
     setSavedClips(prev => prev.filter(clip => clip.gameId !== id));
     
     toast.success("Game deleted");
   };
   
   const getFolderHierarchy = () => {
-    // Map children to parent folders
     const folderMap = new Map<string | undefined, ClipFolder[]>();
     
     folders.forEach(folder => {
@@ -482,10 +512,8 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
       folderMap.get(parent)?.push(folder);
     });
     
-    // Root folders are those with no parent
     const rootFolders = folderMap.get(undefined) || [];
     
-    // Function to build the tree recursively
     const buildTree = (parentId: string | undefined): ClipFolder[] => {
       const children = folderMap.get(parentId) || [];
       return children.map(folder => ({
@@ -536,6 +564,8 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
     exportClip,
     exportLibrary,
     importLibrary,
+    bulkExportClips,
+    bulkMoveClips,
     createFolder,
     createTeamFolder,
     updateFolder,
