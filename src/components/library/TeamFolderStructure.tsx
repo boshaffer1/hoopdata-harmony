@@ -74,7 +74,23 @@ export const TeamFolderStructure: React.FC<TeamFolderStructureProps> = ({
 
   const handleAddTeam = () => {
     if (newTeamName.trim()) {
-      onCreateTeam(newTeamName, newTeamDescription);
+      const teamFolder = onCreateTeam(newTeamName, newTeamDescription);
+      
+      // Create plays and games subfolders for the team
+      if (teamFolder) {
+        onCreateFolder("Plays", "Team plays", { 
+          parentId: teamFolder.id,
+          folderType: "plays",
+          teamId: teamFolder.id
+        });
+        
+        onCreateFolder("Games", "Team games", { 
+          parentId: teamFolder.id,
+          folderType: "games",
+          teamId: teamFolder.id
+        });
+      }
+      
       setNewTeamName('');
       setNewTeamDescription('');
       setIsCreateTeamDialogOpen(false);
@@ -83,7 +99,7 @@ export const TeamFolderStructure: React.FC<TeamFolderStructureProps> = ({
 
   const handleAddGame = () => {
     if (gameData.title && gameData.homeTeam && gameData.awayTeam && selectedTeamId) {
-      const newGame = onAddGame({
+      onAddGame({
         ...gameData,
         teamId: selectedTeamId
       });
@@ -91,12 +107,6 @@ export const TeamFolderStructure: React.FC<TeamFolderStructureProps> = ({
       const gamesFolder = folders.find(f => 
         f.teamId === selectedTeamId && f.folderType === 'games'
       );
-      
-      if (gamesFolder) {
-        // Save the game full video as a clip in the library
-        // This would typically call the saveClipToLibrary function
-        // We'd implement this in a real-world scenario
-      }
       
       setGameData({
         title: '',
@@ -175,7 +185,7 @@ export const TeamFolderStructure: React.FC<TeamFolderStructureProps> = ({
               {childFolders.map(childFolder => {
                 const isChildExpanded = expandedFolders[childFolder.id] || false;
                 const folderGames = childFolder.folderType === 'games' 
-                  ? games.filter(game => game.homeTeam === teamFolder.name || game.awayTeam === teamFolder.name)
+                  ? games.filter(game => game.teamId === teamFolder.id)
                   : [];
                 
                 return (

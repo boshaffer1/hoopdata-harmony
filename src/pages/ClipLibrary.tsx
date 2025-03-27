@@ -49,8 +49,22 @@ const ClipLibrary = () => {
   const [showPersistenceInfo, setShowPersistenceInfo] = useState(false);
   const [viewMode, setViewMode] = useState<"classic" | "teams">("classic");
   const [teamSearch, setTeamSearch] = useState("");
+  const [classicSearch, setClassicSearch] = useState("");
 
+  // Get clips based on active folder
   const filteredClips = getClipsByFolder(activeFolder);
+  
+  // Apply search filter to clips in classic view
+  const searchFilteredClips = classicSearch.trim() 
+    ? filteredClips.filter(clip => 
+        clip.label.toLowerCase().includes(classicSearch.toLowerCase()) ||
+        clip.notes.toLowerCase().includes(classicSearch.toLowerCase()) ||
+        (clip.players && clip.players.some(player => 
+          player.playerName.toLowerCase().includes(classicSearch.toLowerCase())
+        ))
+      )
+    : filteredClips;
+    
   const storageInfo = getStorageInfo();
   const teamFolders = getTeamFolders();
   
@@ -64,6 +78,36 @@ const ClipLibrary = () => {
   const filteredTeamFolders = teamFolders.filter(folder => 
     folder.name.toLowerCase().includes(teamSearch.toLowerCase())
   );
+  
+  // Create initial team folder structure if not exists
+  useEffect(() => {
+    // For each roster, ensure there's a corresponding team folder with subfolders
+    rosters.forEach(roster => {
+      const existingTeamFolder = folders.find(
+        folder => folder.folderType === 'team' && folder.name === roster.name
+      );
+      
+      if (!existingTeamFolder) {
+        // Create team folder
+        const teamFolder = createTeamFolder(roster.name, `Folder for ${roster.name} team`);
+        
+        if (teamFolder) {
+          // Create default subfolders
+          createFolder("Plays", "Team plays", { 
+            parentId: teamFolder.id,
+            folderType: "plays",
+            teamId: teamFolder.id
+          });
+          
+          createFolder("Games", "Team games", { 
+            parentId: teamFolder.id,
+            folderType: "games",
+            teamId: teamFolder.id
+          });
+        }
+      }
+    });
+  }, [rosters, folders, createTeamFolder, createFolder]);
 
   return (
     <Layout className="py-6">
@@ -167,8 +211,18 @@ const ClipLibrary = () => {
           
           {/* Main content - Clips */}
           <div className="lg:col-span-3">
+            <div className="relative mb-4">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search clips by title, notes, or players..."
+                value={classicSearch}
+                onChange={(e) => setClassicSearch(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            
             <LibraryClipList
-              clips={filteredClips}
+              clips={searchFilteredClips}
               folders={folders}
               activeFolder={activeFolder}
               onPlayClip={handlePlayClip}
