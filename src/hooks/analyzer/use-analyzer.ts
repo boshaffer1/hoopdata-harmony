@@ -1,3 +1,4 @@
+
 import { useVideo } from "./use-video";
 import { useMarkers } from "./use-markers";
 import { useGameData } from "./use-game-data";
@@ -13,7 +14,9 @@ export const useAnalyzer = () => {
     handleVideoFileChange,
     handleTimeUpdate,
     seekToMarker,
-    isPlayerReady
+    isPlayerReady,
+    recentVideos,
+    setVideoUrl
   } = useVideo();
 
   const {
@@ -48,7 +51,10 @@ export const useAnalyzer = () => {
     saveClipsFromData,
     folders,
     createFolder,
-    moveClipToFolder
+    moveClipToFolder,
+    games,
+    addGame,
+    updateGame
   } = useClipLibrary(videoUrl);
 
   const handleFileLoaded = (loadedData: any) => {
@@ -94,7 +100,6 @@ export const useAnalyzer = () => {
   const handlePlaySavedClip = (clip: SavedClip) => {
     if (!videoUrl) {
       toast.error("Please upload a video first");
-      navigate("/analyzer");
       return;
     }
     
@@ -148,6 +153,8 @@ export const useAnalyzer = () => {
     videoPlayerRef,
     isPlayerReady,
     folders,
+    recentVideos,
+    setVideoUrl,
     createFolder,
     moveClipToFolder,
     handleFileLoaded,
@@ -167,6 +174,9 @@ export const useAnalyzer = () => {
     exportLibrary,
     exportAllMarkers,
     handlePlaySavedClip,
-    setSelectedClip
+    setSelectedClip,
+    games,
+    addGame,
+    updateGame
   };
 };

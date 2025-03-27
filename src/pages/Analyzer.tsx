@@ -24,6 +24,8 @@ const Analyzer = () => {
     savedClips,
     isPlayingClip,
     videoPlayerRef,
+    recentVideos,
+    setVideoUrl,
     handleFileLoaded,
     handleVideoFileChange,
     handleTimeUpdate,
@@ -51,6 +53,10 @@ const Analyzer = () => {
     removePlayer
   } = useRoster();
 
+  const handleSelectRecentVideo = (url: string) => {
+    setVideoUrl(url);
+  };
+
   return (
     <Layout className="py-6">
       <div className="mb-8">
@@ -73,6 +79,8 @@ const Analyzer = () => {
             onVideoFileChange={handleVideoFileChange}
             onNewMarkerLabelChange={setNewMarkerLabel}
             onAddMarker={addMarker}
+            recentVideos={recentVideos}
+            onSelectVideo={handleSelectRecentVideo}
           />
           
           {/* Clip control indicator and stop button */}
