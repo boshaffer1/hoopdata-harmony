@@ -31,7 +31,8 @@ import {
   SquareCheck,
   Square,
   Share2,
-  FolderOutput
+  FolderOutput,
+  FolderPlus
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { 
@@ -82,6 +83,7 @@ interface LibraryClipListProps {
   onMoveToFolder: (clipId: string, folderId: string | null) => void;
   onBulkExport?: (clipIds: string[], options?: ExportOptions) => void;
   onBulkMove?: (clipIds: string[], targetFolderId: string | null) => void;
+  onCreateFolder?: (name: string, description?: string) => ClipFolder | undefined;
 }
 
 export const LibraryClipList: React.FC<LibraryClipListProps> = ({
@@ -93,7 +95,8 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
   onRemoveClip,
   onMoveToFolder,
   onBulkExport = () => {},
-  onBulkMove = () => {}
+  onBulkMove = () => {},
+  onCreateFolder
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [situationFilter, setSituationFilter] = useState<GameSituation | "all">("all");
@@ -112,7 +115,10 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
     format: "json",
     includeSubfolders: false
   });
-  
+  const [newFolderDialogOpen, setNewFolderDialogOpen] = useState(false);
+  const [newFolderName, setNewFolderName] = useState("");
+  const [newFolderDescription, setNewFolderDescription] = useState("");
+
   const filteredData = useMemo(() => {
     const teams = new Set<string>();
     const players = new Set<string>();
@@ -149,7 +155,7 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
       clipTypes: Array.from(clipTypes).sort()
     };
   }, [clips]);
-  
+
   const filteredClips = useMemo(() => {
     return clips.filter(clip => {
       const matchesSearch = 
@@ -218,6 +224,26 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
     }
   };
 
+  const handleCreateNewFolder = () => {
+    if (!newFolderName.trim()) {
+      toast.error("Please enter a folder name");
+      return;
+    }
+    
+    if (onCreateFolder) {
+      const newFolder = onCreateFolder(newFolderName, newFolderDescription);
+      
+      if (newFolder) {
+        setTargetFolder(newFolder.id);
+        toast.success(`Created new folder: ${newFolderName}`);
+        
+        setNewFolderName("");
+        setNewFolderDescription("");
+        setNewFolderDialogOpen(false);
+      }
+    }
+  };
+
   const handleBulkExport = () => {
     if (selectedClips.length === 0) {
       toast.error("No clips selected for export");
@@ -239,7 +265,7 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
     setSelectedClips([]);
     setBulkActionMode(false);
   };
-  
+
   const getSituationLabel = (situation: GameSituation): string => {
     const labels: Record<GameSituation, string> = {
       transition: "Transition",
@@ -256,7 +282,7 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
     
     return labels[situation] || situation;
   };
-  
+
   const getFolderName = (folderId: string | undefined): string => {
     if (!folderId) return "None";
     const folder = folders.find(f => f.id === folderId);
@@ -276,6 +302,13 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
   const cancelBulkMode = () => {
     setBulkActionMode(false);
     setSelectedClips([]);
+  };
+
+  const handleClipPlay = (clip: SavedClip, e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+    }
+    onPlayClip(clip);
   };
 
   return (
@@ -441,16 +474,82 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
                             {folder.name}
                           </SelectItem>
                         ))}
+                        
+                        <SelectItem value="new-folder" className="text-primary font-medium">
+                          <div className="flex items-center">
+                            <FolderPlus className="h-4 w-4 mr-2" />
+                            Create New Folder
+                          </div>
+                        </SelectItem>
                       </SelectContent>
                     </Select>
+                    
+                    {targetFolder === "new-folder" && (
+                      <Button
+                        onClick={() => {
+                          setMoveDialogOpen(false);
+                          setNewFolderDialogOpen(true);
+                        }}
+                        variant="outline"
+                        className="mt-2 w-full"
+                      >
+                        <FolderPlus className="h-4 w-4 mr-2" />
+                        Create New Folder
+                      </Button>
+                    )}
                   </div>
                 </div>
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setMoveDialogOpen(false)}>
                     Cancel
                   </Button>
-                  <Button onClick={handleBulkMove}>
+                  <Button onClick={handleBulkMove} disabled={targetFolder === "new-folder"}>
                     Move {selectedClips.length} Clips
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+            
+            <Dialog open={newFolderDialogOpen} onOpenChange={setNewFolderDialogOpen}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Create New Folder</DialogTitle>
+                  <DialogDescription>
+                    Enter a name for your new folder
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="folder-name">Folder Name</Label>
+                    <Input
+                      id="folder-name"
+                      value={newFolderName}
+                      onChange={(e) => setNewFolderName(e.target.value)}
+                      placeholder="My New Folder"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="folder-description">Description (Optional)</Label>
+                    <Input
+                      id="folder-description"
+                      value={newFolderDescription}
+                      onChange={(e) => setNewFolderDescription(e.target.value)}
+                      placeholder="Optional description"
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setNewFolderDialogOpen(false);
+                      setMoveDialogOpen(true);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button onClick={handleCreateNewFolder}>
+                    Create Folder
                   </Button>
                 </DialogFooter>
               </DialogContent>
@@ -694,7 +793,7 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Clip Actions</DropdownMenuLabel>
-                              <DropdownMenuItem onClick={() => onPlayClip(clip)}>
+                              <DropdownMenuItem onClick={() => handleClipPlay(clip)}>
                                 <PlayCircle className="h-4 w-4 mr-2" />
                                 Play Clip
                               </DropdownMenuItem>
@@ -718,6 +817,15 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
                                   {folder.name}
                                 </DropdownMenuItem>
                               ))}
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setNewFolderDialogOpen(true);
+                                }}
+                                className="border-t border-muted mt-1 pt-1 text-primary"
+                              >
+                                <FolderPlus className="h-4 w-4 mr-2" />
+                                Create New Folder
+                              </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem 
                                 onClick={() => onRemoveClip(clip.id)}
@@ -775,10 +883,7 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
                               variant="secondary" 
                               size="sm"
                               className="flex-1"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onPlayClip(clip);
-                              }}
+                              onClick={(e) => handleClipPlay(clip, e)}
                             >
                               <PlayCircle className="h-4 w-4 mr-1" />
                               Play

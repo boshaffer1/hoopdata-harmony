@@ -13,7 +13,8 @@ export const useAnalyzer = () => {
     videoPlayerRef,
     handleVideoFileChange,
     handleTimeUpdate,
-    seekToMarker
+    seekToMarker,
+    isPlayerReady
   } = useVideo();
 
   const {
@@ -79,15 +80,29 @@ export const useAnalyzer = () => {
     
     toast.success(`Playing clip from ${formattedTime}`);
     
+    // Add a small delay to ensure the video player is ready
     setTimeout(() => {
       playClip(item).catch(error => {
         console.error("Failed to play clip:", error);
         toast.error("Failed to play the clip, please try again");
       });
-    }, 100);
+    }, 300);
   };
 
   const handlePlaySavedClip = (clip: SavedClip) => {
+    if (!videoUrl) {
+      toast.error("Please upload a video first");
+      navigate("/analyzer");
+      return;
+    }
+    
+    if (!isPlayerReady) {
+      toast.error("Video player is still initializing. Please try again in a moment.");
+      return;
+    }
+    
+    console.log("Playing saved clip:", clip);
+
     const gameDataClip: GameData = {
       "Play Name": clip.label,
       "Start time": clip.startTime.toString(),
@@ -112,6 +127,13 @@ export const useAnalyzer = () => {
       toast.info("Clip playback stopped");
     }
   };
+  
+  // Add navigate function to redirect to analyzer page when needed
+  const navigate = (path: string) => {
+    if (typeof window !== 'undefined') {
+      window.location.href = path;
+    }
+  };
 
   return {
     videoUrl,
@@ -124,6 +146,7 @@ export const useAnalyzer = () => {
     savedClips,
     isPlayingClip,
     videoPlayerRef,
+    isPlayerReady,
     handleFileLoaded,
     handleVideoFileChange,
     handleTimeUpdate,

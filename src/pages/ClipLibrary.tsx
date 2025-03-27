@@ -280,6 +280,7 @@ const ClipLibrary = () => {
               onMoveToFolder={moveClipToFolder}
               onBulkExport={handleBulkExport}
               onBulkMove={handleBulkMove}
+              onCreateFolder={createFolder}
             />
           </div>
         </div>
@@ -326,6 +327,7 @@ const ClipLibrary = () => {
               onMoveToFolder={moveClipToFolder}
               onBulkExport={handleBulkExport}
               onBulkMove={handleBulkMove}
+              onCreateFolder={createFolder}
             />
           </div>
         </div>
