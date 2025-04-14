@@ -4,6 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { SavedClip, GameData, PlayerAction, GameSituation } from "@/types/analyzer";
 import { ClipForm } from "./clips/ClipForm";
 import { ClipLibraryList } from "./clips/ClipLibraryList";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 interface ClipLibraryProps {
   savedClips: SavedClip[];
@@ -11,7 +13,7 @@ interface ClipLibraryProps {
   selectedClip: GameData | null;
   isPlayingClip: boolean;
   onPlayLabelChange: (value: string) => void;
-  onSaveClip: (clip: GameData) => void;
+  onSaveClip: (clip: GameData, autoOrganize?: boolean) => void;
   onRemoveClip: (id: string) => void;
   onExportClip: (clip: SavedClip) => void;
   onExportLibrary: () => void;
@@ -34,6 +36,7 @@ const ClipLibrary: React.FC<ClipLibraryProps> = ({
 }) => {
   const [activePlayers, setActivePlayers] = useState<PlayerAction[]>([]);
   const [situation, setSituation] = useState<GameSituation>("other");
+  const [autoOrganize, setAutoOrganize] = useState<boolean>(false);
 
   // Update the active players when a clip is selected
   useEffect(() => {
@@ -73,7 +76,7 @@ const ClipLibrary: React.FC<ClipLibraryProps> = ({
   };
 
   const handleSaveClip = (clip: GameData) => {
-    onSaveClip(clip);
+    onSaveClip(clip, autoOrganize);
     setActivePlayers([]);
     setSituation("other"); // Reset to a default valid value
   };
@@ -89,7 +92,18 @@ const ClipLibrary: React.FC<ClipLibraryProps> = ({
       <CardContent>
         {/* Add to library section */}
         <div className="mb-6 p-4 border rounded-lg bg-muted/30">
-          <h3 className="text-sm font-medium mb-2">Add Current Clip to Library</h3>
+          <div className="flex justify-between items-center mb-2">
+            <h3 className="text-sm font-medium">Add Current Clip to Library</h3>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="auto-organize"
+                checked={autoOrganize}
+                onCheckedChange={setAutoOrganize}
+                size="sm"
+              />
+              <Label htmlFor="auto-organize" className="text-xs">Auto-organize by play name</Label>
+            </div>
+          </div>
           <ClipForm
             selectedClip={selectedClip}
             playLabel={playLabel}

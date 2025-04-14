@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from "react";
 import { ClipListHeader } from "./list/ClipListHeader";
 import { ClipListItem } from "./list/ClipListItem";
@@ -43,8 +42,15 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
   const [newFolderName, setNewFolderName] = useState("");
   const [newFolderDescription, setNewFolderDescription] = useState("");
   const [exportFormat, setExportFormat] = useState<"json" | "mp4" | "webm">("json");
+  const [autoOrganize, setAutoOrganize] = useState(false);
   
   const lastSelectedFolderRef = useRef<string | null>(null);
+
+  const getFolderNameForClip = (clip: SavedClip): string | undefined => {
+    if (!clip.folderId) return undefined;
+    const folder = folders.find(f => f.id === clip.folderId);
+    return folder?.name;
+  };
 
   const toggleSelectMode = () => {
     setIsSelectMode(!isSelectMode);
@@ -109,14 +115,41 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
     if (newFolder) {
       onBulkMove(selectedClips, newFolder.id);
       
+      if (autoOrganize) {
+        const selectedClipData = selectedClips.map(id => clips.find(clip => clip.id === id)).filter(Boolean) as SavedClip[];
+        
+        const labels = new Set<string>();
+        selectedClipData.forEach(clip => {
+          if (clip.label && clip.label !== "Unnamed Clip") {
+            labels.add(clip.label);
+          }
+        });
+        
+        const additionalClipIds: string[] = [];
+        labels.forEach(label => {
+          const matchingClips = clips.filter(clip => 
+            clip.label === label && 
+            !selectedClips.includes(clip.id) &&
+            clip.folderId !== newFolder.id
+          );
+          additionalClipIds.push(...matchingClips.map(clip => clip.id));
+        });
+        
+        if (additionalClipIds.length > 0) {
+          onBulkMove(additionalClipIds, newFolder.id);
+          toast.success(`Also moved ${additionalClipIds.length} additional clips with the same play names`);
+        }
+      }
+      
       setNewFolderName("");
       setNewFolderDescription("");
       setIsNewFolderDialogOpen(false);
       setIsBulkMoveDialogOpen(false);
       setIsSelectMode(false);
       setSelectedClips([]);
+      setAutoOrganize(false);
       
-      toast.success(`Created folder "${newFolder.name}" and moved ${selectedClips.length} clips`);
+      toast.success(`Created folder "${newFolder.name}" and moved clips`);
     }
   };
 
@@ -164,6 +197,7 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
             onPlay={onPlayClip}
             onExport={onExportClip}
             onRemove={onRemoveClip}
+            folderName={getFolderNameForClip(clip)}
           />
         ))}
       </ul>
@@ -187,6 +221,8 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
         onFolderNameChange={setNewFolderName}
         onFolderDescriptionChange={setNewFolderDescription}
         onCreateConfirm={handleCreateFolderAndMove}
+        autoOrganize={autoOrganize}
+        onAutoOrganizeChange={setAutoOrganize}
       />
 
       <BulkExportDialog 

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import VideoSection from "@/components/analyzer/VideoSection";
@@ -11,7 +10,7 @@ import { useRoster } from "@/hooks/analyzer/use-roster";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BookmarkIcon, Library, Users, StopCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { GameData, SavedClip } from "@/types/analyzer"; // Import the types
+import { GameData, SavedClip } from "@/types/analyzer";
 
 const Analyzer = () => {
   const {
@@ -58,12 +57,10 @@ const Analyzer = () => {
     setVideoUrl(url);
   };
 
-  // Create a wrapper function to adapt SavedClip to GameData
   const handlePlaySavedClipWrapper = (clip: SavedClip) => {
     handlePlaySavedClip(clip);
   };
 
-  // Convert SavedClip to GameData
   const handleSavedClipToGameData = (clip: SavedClip): GameData => {
     return {
       "Play Name": clip.label,
@@ -77,16 +74,12 @@ const Analyzer = () => {
     };
   };
 
-  // Create a wrapper function that accepts SavedClip and converts it for use with GameData-accepting functions
   const handleSaveClipWrapper = (clip: SavedClip) => {
     const gameData = handleSavedClipToGameData(clip);
     saveClipToLibrary(gameData);
   };
 
-  // We need to create a wrapper for the ClipLibrary component's onPlayClip prop
-  // This will adapt GameData to SavedClip for the onPlayClip prop
   const handleGameDataToSavedClip = (gameData: GameData): SavedClip => {
-    // Parse players if they exist
     let players = [];
     try {
       if (gameData.Players && gameData.Players !== "[]") {
@@ -97,7 +90,7 @@ const Analyzer = () => {
     }
 
     return {
-      id: Math.random().toString(36).substring(2, 9), // Generate temporary ID if needed
+      id: Math.random().toString(36).substring(2, 9),
       startTime: parseFloat(gameData["Start time"]),
       duration: parseFloat(gameData["Duration"]),
       label: gameData["Play Name"],
@@ -109,10 +102,13 @@ const Analyzer = () => {
     };
   };
 
-  // Create a function that accepts GameData and converts it for handlePlaySavedClip
   const handlePlayGameData = (gameData: GameData) => {
     const savedClip = handleGameDataToSavedClip(gameData);
     handlePlaySavedClip(savedClip);
+  };
+
+  const handleSaveClip = (clip: GameData, autoOrganize: boolean = false) => {
+    saveClipToLibrary(clip, autoOrganize);
   };
 
   return (
@@ -125,7 +121,6 @@ const Analyzer = () => {
       </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Video Player and Upload Section */}
         <div className="lg:col-span-2 space-y-6">
           <VideoSection 
             videoUrl={videoUrl}
@@ -141,7 +136,6 @@ const Analyzer = () => {
             onSelectVideo={handleSelectRecentVideo}
           />
           
-          {/* Clip control indicator and stop button */}
           {isPlayingClip && selectedClip && (
             <div className="bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700 rounded-md p-4 flex items-center justify-between">
               <div>
@@ -164,7 +158,6 @@ const Analyzer = () => {
             </div>
           )}
           
-          {/* Data Table */}
           <GameDataSection 
             data={data}
             videoUrl={videoUrl}
@@ -174,10 +167,10 @@ const Analyzer = () => {
             onPlayClip={handlePlayGameData}
             onStopClip={stopClip}
             onExportClip={exportClip}
+            onSaveClip={handleSaveClip}
           />
         </div>
         
-        {/* Tabs for various tools */}
         <div className="lg:col-span-1">
           <Tabs defaultValue="markers">
             <TabsList className="grid grid-cols-3 mb-6">
