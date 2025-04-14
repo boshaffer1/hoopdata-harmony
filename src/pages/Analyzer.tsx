@@ -11,6 +11,7 @@ import { useRoster } from "@/hooks/analyzer/use-roster";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BookmarkIcon, Library, Users, StopCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { SavedClip, GameData } from "@/types/analyzer";
 
 const Analyzer = () => {
   const {
@@ -50,6 +51,11 @@ const Analyzer = () => {
     addPlayer,
     removePlayer
   } = useRoster();
+  
+  // Adapter function to convert SavedClip to GameData
+  const handleLibrarySavedClipPlay = (clip: SavedClip) => {
+    handlePlaySavedClip(clip);
+  };
 
   return (
     <Layout className="py-6">
@@ -150,7 +156,7 @@ const Analyzer = () => {
                 onRemoveClip={removeSavedClip}
                 onExportClip={exportClip}
                 onExportLibrary={exportLibrary}
-                onPlayClip={handlePlaySavedClip}
+                onPlayClip={handleLibrarySavedClipPlay}
                 onStopClip={stopClip}
               />
             </TabsContent>

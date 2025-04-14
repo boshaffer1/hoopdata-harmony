@@ -2,6 +2,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { PlayCircle, Download, Trash2, Flag } from "lucide-react";
 import { SavedClip, GameSituation } from "@/types/analyzer";
 import { formatVideoTime } from "@/components/video/utils";
@@ -12,13 +13,19 @@ interface SavedClipItemProps {
   onPlay: (clip: SavedClip) => void;
   onExport: (clip: SavedClip) => void;
   onRemove: (id: string) => void;
+  selectable?: boolean;
+  isSelected?: boolean;
+  onToggleSelection?: (id: string) => void;
 }
 
 export const SavedClipItem: React.FC<SavedClipItemProps> = ({
   clip,
   onPlay,
   onExport,
-  onRemove
+  onRemove,
+  selectable = false,
+  isSelected = false,
+  onToggleSelection = () => {},
 }) => {
   const getSituationLabel = (situation: GameSituation): string => {
     const labels: Record<GameSituation, string> = {
@@ -38,8 +45,17 @@ export const SavedClipItem: React.FC<SavedClipItemProps> = ({
   };
 
   return (
-    <li className="border rounded-lg p-3 hover:bg-muted/50">
+    <li className={`border rounded-lg p-3 hover:bg-muted/50 ${isSelected ? 'bg-primary/10 border-primary/30' : ''}`}>
       <div className="flex justify-between items-start">
+        {selectable && (
+          <div className="mr-2 mt-1">
+            <Checkbox 
+              checked={isSelected}
+              onCheckedChange={() => onToggleSelection(clip.id)}
+              id={`select-clip-${clip.id}`}
+            />
+          </div>
+        )}
         <div className="flex-1">
           <div className="flex items-center gap-2">
             <h4 className="font-medium">{clip.label}</h4>

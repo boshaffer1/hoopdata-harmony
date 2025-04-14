@@ -11,6 +11,9 @@ interface ClipLibraryListProps {
   onExportClip: (clip: SavedClip) => void;
   onRemoveClip: (id: string) => void;
   onExportLibrary: () => void;
+  selectable?: boolean;
+  selectedClipIds?: string[];
+  onToggleSelection?: (id: string) => void;
 }
 
 export const ClipLibraryList: React.FC<ClipLibraryListProps> = ({
@@ -18,7 +21,10 @@ export const ClipLibraryList: React.FC<ClipLibraryListProps> = ({
   onPlayClip,
   onExportClip,
   onRemoveClip,
-  onExportLibrary
+  onExportLibrary,
+  selectable = false,
+  selectedClipIds = [],
+  onToggleSelection = () => {},
 }) => {
   if (savedClips.length === 0) {
     return (
@@ -49,6 +55,9 @@ export const ClipLibraryList: React.FC<ClipLibraryListProps> = ({
             onPlay={onPlayClip}
             onExport={onExportClip}
             onRemove={onRemoveClip}
+            selectable={selectable}
+            isSelected={selectedClipIds.includes(clip.id)}
+            onToggleSelection={onToggleSelection}
           />
         ))}
       </ul>
