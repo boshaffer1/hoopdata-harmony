@@ -1,8 +1,7 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { List, Download, Building2, Users, ChevronDown, FolderTree } from "lucide-react";
-import { SavedClip, ClipFolder } from "@/types/analyzer";
+import { SavedClip, ClipFolder, ClipType } from "@/types/analyzer";
 import { SavedClipItem } from "./SavedClipItem";
 import {
   DropdownMenu,
@@ -252,7 +251,7 @@ export const ClipLibraryList: React.FC<ClipLibraryListProps> = ({
               ...clip,
               folderId: gamesFolder.id,
               teamId: teamFolder?.id,
-              clipType: "full_game"
+              clipType: "full_game" as ClipType
             };
           } else {
             const subfolder = playSubfolders[clip.label];
@@ -262,7 +261,7 @@ export const ClipLibraryList: React.FC<ClipLibraryListProps> = ({
                 ...clip,
                 folderId: subfolder.id,
                 teamId: teamFolder?.id,
-                clipType: "play"
+                clipType: "play" as ClipType
               };
             } else if (playsFolder) {
               // Fallback to main plays folder
@@ -270,7 +269,7 @@ export const ClipLibraryList: React.FC<ClipLibraryListProps> = ({
                 ...clip,
                 folderId: playsFolder.id,
                 teamId: teamFolder?.id,
-                clipType: "play"
+                clipType: "play" as ClipType
               };
             }
           }

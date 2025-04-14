@@ -1,3 +1,4 @@
+
 export interface Marker {
   time: number;
   label: string;
@@ -17,6 +18,8 @@ export interface GameData {
   "Timeline"?: string;
 }
 
+export type ClipType = "play" | "possession" | "full_game" | "other";
+
 export interface SavedClip {
   id: string;
   startTime: number;
@@ -30,7 +33,7 @@ export interface SavedClip {
   folderId?: string;
   teamId?: string;
   gameId?: string;
-  clipType?: "play" | "possession" | "full_game" | "other";
+  clipType?: ClipType;
 }
 
 export interface ClipFolder {

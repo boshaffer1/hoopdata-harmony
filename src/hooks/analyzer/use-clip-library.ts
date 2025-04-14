@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { GameData, SavedClip, PlayerAction, GameSituation, ClipFolder, Game, TeamRoster } from "@/types/analyzer";
+import { GameData, SavedClip, PlayerAction, GameSituation, ClipFolder, Game, TeamRoster, ClipType } from "@/types/analyzer";
 import { toast } from "sonner";
 import { downloadJSON, extractVideoClip } from "@/components/video/utils";
 
@@ -694,7 +694,7 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
           ...clip,
           folderId: gamesFolder.id,
           teamId: teamFolder?.id,
-          clipType: "full_game"
+          clipType: "full_game" as ClipType
         };
       } else {
         const subfolder = playSubfolders[clip.label];
@@ -703,14 +703,14 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
             ...clip,
             folderId: subfolder.id,
             teamId: teamFolder?.id,
-            clipType: "play"
+            clipType: "play" as ClipType
           };
         } else if (playsFolder) {
           return {
             ...clip,
             folderId: playsFolder.id,
             teamId: teamFolder?.id,
-            clipType: "play"
+            clipType: "play" as ClipType
           };
         }
       }
