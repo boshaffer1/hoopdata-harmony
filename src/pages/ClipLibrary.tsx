@@ -45,7 +45,7 @@ const ClipLibrary = () => {
   } = useClipLibrary(undefined);
   
   const { rosters } = useRoster();
-  const { handlePlaySavedClip } = useAnalyzer();
+  const { handlePlaySavedClip, videoUrl } = useAnalyzer();
   const [showPersistenceInfo, setShowPersistenceInfo] = useState(false);
   const [viewMode, setViewMode] = useState<"classic" | "teams">("classic");
   const [teamSearch, setTeamSearch] = useState("");
@@ -57,7 +57,8 @@ const ClipLibrary = () => {
   // Handle redirecting to analyzer to play clips
   const handlePlayClip = (clip: any) => {
     handlePlaySavedClip(clip);
-    navigate("/analyzer");
+    // We don't navigate to analyzer anymore - playing inline
+    // navigate("/analyzer");
   };
 
   // Filter team folders based on search
@@ -179,48 +180,23 @@ const ClipLibrary = () => {
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Left sidebar - Team Folders */}
-          <div className="lg:col-span-1">
-            <div className="mb-4">
-              <div className="relative">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search teams..."
-                  value={teamSearch}
-                  onChange={(e) => setTeamSearch(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-            </div>
-            
-            <TeamFolderStructure
-              folders={folders}
-              games={games || []}
-              activeFolder={activeFolder}
-              onSelectFolder={setActiveFolder}
-              onCreateTeam={createTeamFolder}
-              onCreateFolder={createFolder}
-              onUpdateFolder={updateFolder}
-              onDeleteFolder={deleteFolder}
-              onAddGame={addGame}
-              onUpdateGame={updateGame}
-              onDeleteGame={deleteGame}
-            />
-          </div>
-          
-          {/* Main content - Clips for selected folder/team */}
-          <div className="lg:col-span-3">
-            <LibraryClipList
-              clips={filteredClips}
-              folders={folders}
-              activeFolder={activeFolder}
-              onPlayClip={handlePlayClip}
-              onExportClip={exportClip}
-              onRemoveClip={removeSavedClip}
-              onMoveToFolder={moveClipToFolder}
-            />
-          </div>
+        <div>
+          <TeamFolderStructure
+            folders={folders}
+            games={games || []}
+            savedClips={savedClips}
+            activeFolder={activeFolder}
+            videoUrl={videoUrl}
+            onSelectFolder={setActiveFolder}
+            onCreateTeam={createTeamFolder}
+            onCreateFolder={createFolder}
+            onUpdateFolder={updateFolder}
+            onDeleteFolder={deleteFolder}
+            onAddGame={addGame}
+            onUpdateGame={updateGame}
+            onDeleteGame={deleteGame}
+            onPlayClip={handlePlayClip}
+          />
         </div>
       )}
     </Layout>
