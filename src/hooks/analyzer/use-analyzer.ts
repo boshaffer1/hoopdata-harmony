@@ -54,9 +54,7 @@ export const useAnalyzer = () => {
     moveClipToFolder,
     games,
     addGame,
-    updateGame,
-    videoRegistry,
-    getVideoByUrl
+    updateGame
   } = useClipLibrary(videoUrl);
 
   const handleFileLoaded = (loadedData: any) => {
@@ -100,48 +98,11 @@ export const useAnalyzer = () => {
   };
 
   const handlePlaySavedClip = (clip: SavedClip) => {
-    // First check if the clip has a videoUrl
-    const clipVideoUrl = clip.videoUrl;
-    
-    // If we have a video URL associated with this clip
-    if (clipVideoUrl) {
-      // If it's different from the current video, load it
-      if (clipVideoUrl !== videoUrl) {
-        toast.info("Loading the associated video for this clip...");
-        setVideoUrl(clipVideoUrl);
-        // Give time for the video to load before playing
-        setTimeout(() => {
-          playSavedClipInternal(clip);
-        }, 800);
-        return;
-      }
-    }
-    
-    // If no specific video URL or it's the current one, use the current video
     if (!videoUrl) {
-      // Check the recent videos first to see if we can find a matching video
-      const clipVideoFound = recentVideos.some(video => {
-        if (video.url) {
-          setVideoUrl(video.url);
-          // Give a small delay for the video to load before attempting to play
-          setTimeout(() => {
-            playSavedClipInternal(clip);
-          }, 800);
-          return true;
-        }
-        return false;
-      });
-      
-      if (!clipVideoFound) {
-        toast.error("Please upload a video to play this clip");
-        return;
-      }
-    } else {
-      playSavedClipInternal(clip);
+      toast.error("Please upload a video first");
+      return;
     }
-  };
-  
-  const playSavedClipInternal = (clip: SavedClip) => {
+    
     if (!isPlayerReady) {
       toast.error("Video player is still initializing. Please try again in a moment.");
       return;
@@ -150,7 +111,7 @@ export const useAnalyzer = () => {
     console.log("Playing saved clip:", clip);
 
     const gameDataClip: GameData = {
-      "Play Name": clip.label || "Unnamed Clip",
+      "Play Name": clip.label,
       "Start time": clip.startTime.toString(),
       "Duration": clip.duration.toString(),
       "Notes": clip.notes || "",

@@ -49,9 +49,7 @@ const VideoSection: React.FC<VideoSectionProps> = ({
         <div className="flex justify-between items-center">
           <div>
             <CardTitle>Video Analyzer</CardTitle>
-            <CardDescription>
-              Upload and analyze game footage
-            </CardDescription>
+            <CardDescription>Upload and analyze game footage</CardDescription>
           </div>
           <div className="flex gap-2">
             {recentVideos && recentVideos.length > 0 && (
@@ -62,7 +60,7 @@ const VideoSection: React.FC<VideoSectionProps> = ({
                     className="flex items-center gap-2"
                   >
                     <Clock className="h-4 w-4" />
-                    Recent Videos ({recentVideos.length})
+                    Recent Videos
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-80" align="end">
@@ -115,7 +113,7 @@ const VideoSection: React.FC<VideoSectionProps> = ({
                 <div>
                   <p>No video loaded</p>
                   <p className="text-sm mt-2">
-                    Upload a video file or select from recent videos to start analysis
+                    Upload a video file to start analysis
                   </p>
                 </div>
               </div>

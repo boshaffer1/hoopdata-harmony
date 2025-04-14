@@ -11,7 +11,6 @@ import { useRoster } from "@/hooks/analyzer/use-roster";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BookmarkIcon, Library, Users, StopCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { GameData, SavedClip } from "@/types/analyzer"; // Import the types
 
 const Analyzer = () => {
   const {
@@ -56,63 +55,6 @@ const Analyzer = () => {
 
   const handleSelectRecentVideo = (url: string) => {
     setVideoUrl(url);
-  };
-
-  // Create a wrapper function to adapt SavedClip to GameData
-  const handlePlaySavedClipWrapper = (clip: SavedClip) => {
-    handlePlaySavedClip(clip);
-  };
-
-  // Convert SavedClip to GameData
-  const handleSavedClipToGameData = (clip: SavedClip): GameData => {
-    return {
-      "Play Name": clip.label,
-      "Start time": clip.startTime.toString(),
-      "Duration": clip.duration.toString(),
-      "Situation": clip.situation || "other",
-      "Outcome": "other",
-      "Players": JSON.stringify(clip.players || []),
-      "Notes": clip.notes || "",
-      "Timeline": clip.timeline || ""
-    };
-  };
-
-  // Create a wrapper function that accepts SavedClip and converts it for use with GameData-accepting functions
-  const handleSaveClipWrapper = (clip: SavedClip) => {
-    const gameData = handleSavedClipToGameData(clip);
-    saveClipToLibrary(gameData);
-  };
-
-  // We need to create a wrapper for the ClipLibrary component's onPlayClip prop
-  // This will adapt GameData to SavedClip for the onPlayClip prop
-  const handleGameDataToSavedClip = (gameData: GameData): SavedClip => {
-    // Parse players if they exist
-    let players = [];
-    try {
-      if (gameData.Players && gameData.Players !== "[]") {
-        players = JSON.parse(gameData.Players);
-      }
-    } catch (e) {
-      console.error("Error parsing players:", e);
-    }
-
-    return {
-      id: Math.random().toString(36).substring(2, 9), // Generate temporary ID if needed
-      startTime: parseFloat(gameData["Start time"]),
-      duration: parseFloat(gameData["Duration"]),
-      label: gameData["Play Name"],
-      notes: gameData["Notes"] || "",
-      timeline: gameData["Timeline"] || "",
-      saved: new Date().toISOString(),
-      players,
-      situation: gameData["Situation"]
-    };
-  };
-
-  // Create a function that accepts GameData and converts it for handlePlaySavedClip
-  const handlePlayGameData = (gameData: GameData) => {
-    const savedClip = handleGameDataToSavedClip(gameData);
-    handlePlaySavedClip(savedClip);
   };
 
   return (
@@ -171,7 +113,7 @@ const Analyzer = () => {
             selectedClip={selectedClip}
             isPlayingClip={isPlayingClip}
             onFileLoaded={handleFileLoaded}
-            onPlayClip={handlePlayGameData}
+            onPlayClip={playClip}
             onStopClip={stopClip}
             onExportClip={exportClip}
           />
@@ -216,7 +158,7 @@ const Analyzer = () => {
                 onRemoveClip={removeSavedClip}
                 onExportClip={exportClip}
                 onExportLibrary={exportLibrary}
-                onPlayClip={handlePlaySavedClipWrapper}
+                onPlayClip={handlePlaySavedClip}
                 onStopClip={stopClip}
               />
             </TabsContent>
