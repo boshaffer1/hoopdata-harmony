@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import VideoSection from "@/components/analyzer/VideoSection";
@@ -57,6 +58,7 @@ const Analyzer = () => {
     setVideoUrl(url);
   };
 
+  // Fix the signature to match what the component expects
   const handlePlaySavedClipWrapper = (clip: SavedClip) => {
     handlePlaySavedClip(clip);
   };
@@ -74,9 +76,9 @@ const Analyzer = () => {
     };
   };
 
-  const handleSaveClipWrapper = (clip: SavedClip) => {
-    const gameData = handleSavedClipToGameData(clip);
-    saveClipToLibrary(gameData);
+  // This function converts a SavedClip to GameData format for compatibility
+  const handleSaveClipWrapper = (gameData: GameData, autoOrganize?: boolean) => {
+    saveClipToLibrary(gameData, autoOrganize);
   };
 
   const handleGameDataToSavedClip = (gameData: GameData): SavedClip => {
@@ -102,9 +104,9 @@ const Analyzer = () => {
     };
   };
 
+  // Fix: Change the function to accept GameData instead of SavedClip
   const handlePlayGameData = (gameData: GameData) => {
-    const savedClip = handleGameDataToSavedClip(gameData);
-    handlePlaySavedClip(savedClip);
+    playClip(gameData);
   };
 
   const handleSaveClip = (clip: GameData, autoOrganize: boolean = false) => {
@@ -205,7 +207,7 @@ const Analyzer = () => {
                 selectedClip={selectedClip}
                 isPlayingClip={isPlayingClip}
                 onPlayLabelChange={setPlayLabel}
-                onSaveClip={saveClipToLibrary}
+                onSaveClip={handleSaveClipWrapper}
                 onRemoveClip={removeSavedClip}
                 onExportClip={exportClip}
                 onExportLibrary={exportLibrary}

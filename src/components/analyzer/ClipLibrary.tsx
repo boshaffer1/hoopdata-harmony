@@ -99,7 +99,6 @@ const ClipLibrary: React.FC<ClipLibraryProps> = ({
                 id="auto-organize"
                 checked={autoOrganize}
                 onCheckedChange={setAutoOrganize}
-                size="sm"
               />
               <Label htmlFor="auto-organize" className="text-xs">Auto-organize by play name</Label>
             </div>
