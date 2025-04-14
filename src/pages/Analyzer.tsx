@@ -73,7 +73,7 @@ const Analyzer = () => {
     saveClipToLibrary(gameData, autoOrganize);
   };
 
-  // Create a wrapper for playing saved clips to fix the type error
+  // Create a wrapper for playing saved clips that adapts SavedClip to what handlePlaySavedClip expects
   const handlePlayClipWrapper = (clip: SavedClip) => {
     handlePlaySavedClip(clip);
   };
@@ -92,6 +92,23 @@ const Analyzer = () => {
   // Handle creating a new folder
   const handleCreateFolder = (name: string, description: string) => {
     return createFolder(name, description);
+  };
+  
+  // This function adapts SavedClip to GameData for components expecting GameData
+  const handleLibrarySavedClipPlay = (savedClip: SavedClip) => {
+    const gameDataClip: GameData = {
+      "Play Name": savedClip.label || "Unnamed Clip",
+      "Start time": savedClip.startTime.toString(),
+      "Duration": savedClip.duration.toString(),
+      "Notes": savedClip.notes || "",
+      "Timeline": savedClip.timeline || "",
+      "Players": savedClip.players ? JSON.stringify(savedClip.players) : "[]",
+      "Situation": savedClip.situation || "other",
+      "Outcome": "other"
+    };
+    
+    // Call the playClip function which expects a GameData object
+    playClip(gameDataClip);
   };
 
   return (
@@ -152,7 +169,7 @@ const Analyzer = () => {
                 onRemoveClip={removeSavedClip}
                 onExportClip={exportClip}
                 onExportLibrary={exportLibrary}
-                onPlayClip={handlePlayClipWrapper}
+                onPlayClip={handleLibrarySavedClipPlay}
                 onStopClip={stopClip}
                 onBulkMoveClips={handleBulkMoveClips}
                 onCreateFolder={handleCreateFolder}
