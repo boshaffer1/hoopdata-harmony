@@ -50,8 +50,6 @@ export const ClipForm: React.FC<ClipFormProps> = ({
       zone_offense: "Zone Offense",
       man_offense: "Man Offense",
       fast_break: "Fast Break",
-      offense: "Offense",
-      defense: "Defense",
       other: "Other"
     };
     

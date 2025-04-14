@@ -1,3 +1,4 @@
+
 export interface Marker {
   time: number;
   label: string;
@@ -41,7 +42,7 @@ export interface ClipFolder {
   createdAt: string;
   updatedAt: string;
   parentId?: string; // For nested folders
-  folderType?: "team" | "plays" | "games" | "game" | "game-clips" | "other";
+  folderType?: "team" | "plays" | "games" | "other";
   teamId?: string; // To associate folders with specific teams
 }
 
@@ -97,8 +98,6 @@ export type GameSituation =
   | "zone_offense" 
   | "man_offense"
   | "fast_break"
-  | "offense"  // Added this
-  | "defense"  // Added this
   | "other";
 
 export const GAME_SITUATIONS: GameSituation[] = [
@@ -111,11 +110,10 @@ export const GAME_SITUATIONS: GameSituation[] = [
   "zone_offense",
   "man_offense",
   "fast_break",
-  "offense",  // Added this
-  "defense",  // Added this
   "other"
 ];
 
+// New Team Roster related types
 export interface Player {
   id: string;
   name: string;
@@ -141,6 +139,7 @@ export interface TeamRoster {
   players: Player[];
 }
 
+// Exporting options for clips
 export interface ExportOptions {
   includeSubfolders?: boolean;
   format?: "json" | "mp4" | "webm";
