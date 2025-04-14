@@ -17,7 +17,7 @@ interface LibraryPanelProps {
   onRemoveClip: (id: string) => void;
   onExportClip: (clip: SavedClip) => void;
   onExportLibrary: () => void;
-  onPlayClip: (clip: SavedClip) => void;
+  onPlayClip: (clip: SavedClip) => void; // This expects SavedClip
   onStopClip: () => void;
   onBulkMoveClips?: (clipIds: string[], targetFolderId: string | null) => void;
   onCreateFolder?: (name: string, description: string) => ClipFolder | undefined;

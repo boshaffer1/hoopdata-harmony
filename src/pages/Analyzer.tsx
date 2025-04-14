@@ -138,7 +138,7 @@ const Analyzer = () => {
           onAddMarker={addMarker}
           onSelectVideo={handleSelectRecentVideo}
           onFileLoaded={handleFileLoaded}
-          onPlayClip={handlePlayClipForVideoAnalyzer}
+          onPlayClip={handlePlayClipForVideoAnalyzer} // Fixed: Using the correct adapter function
           onStopClip={stopClip}
           onExportClip={exportClip}
           onSaveClip={handleSaveClipWrapper}

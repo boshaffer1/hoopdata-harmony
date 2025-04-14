@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from "react";
 import { ClipListHeader } from "./list/ClipListHeader";
 import { ClipListItem } from "./list/ClipListItem";
@@ -12,7 +13,7 @@ interface LibraryClipListProps {
   clips: SavedClip[];
   folders: ClipFolder[];
   activeFolder: string | null;
-  onPlayClip: (clip: SavedClip) => void;
+  onPlayClip: (clip: SavedClip) => void; // This expects SavedClip
   onExportClip: (clip: SavedClip) => void;
   onRemoveClip: (id: string) => void;
   onMoveToFolder: (clipId: string, folderId: string | null) => void;

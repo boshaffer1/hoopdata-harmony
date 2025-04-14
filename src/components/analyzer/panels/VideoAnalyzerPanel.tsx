@@ -1,4 +1,3 @@
-
 import React from "react";
 import VideoSection from "@/components/analyzer/VideoSection";
 import GameDataSection from "@/components/analyzer/GameDataSection";
@@ -22,7 +21,7 @@ interface VideoAnalyzerPanelProps {
   onAddMarker: () => void;
   onSelectVideo: (url: string) => void;
   onFileLoaded: (loadedData: any) => void;
-  onPlayClip: (item: GameData) => void;
+  onPlayClip: (item: GameData) => void; // This expects GameData
   onStopClip: () => void;
   onExportClip: (item: GameData) => void;
   onSaveClip: (clip: GameData, autoOrganize?: boolean) => void;
