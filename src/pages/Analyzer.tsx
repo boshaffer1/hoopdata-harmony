@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import Layout from "@/components/layout/Layout";
 import { useAnalyzer } from "@/hooks/analyzer/use-analyzer";
@@ -57,7 +56,6 @@ const Analyzer = () => {
     removePlayer
   } = useRoster();
 
-  // Get clip organization functions from useClipLibrary
   const { 
     folders, 
     createFolder, 
@@ -68,33 +66,14 @@ const Analyzer = () => {
     setVideoUrl(url);
   };
 
-  // Handle saving clips with auto-organize option
   const handleSaveClipWrapper = (gameData: GameData, autoOrganize?: boolean) => {
     saveClipToLibrary(gameData, autoOrganize);
   };
 
-  // Create a wrapper for playing saved clips that adapts SavedClip to what handlePlaySavedClip expects
-  const handlePlayClipWrapper = (clip: SavedClip) => {
-    handlePlaySavedClip(clip);
-  };
-
-  // Create a wrapper function that adapts GameData to the function expected by VideoAnalyzerPanel
   const handlePlayClipForVideoAnalyzer = (item: GameData) => {
-    // This is the function expected by VideoAnalyzerPanel
     playClip(item);
   };
 
-  // Handle moving multiple clips to a folder
-  const handleBulkMoveClips = (clipIds: string[], targetFolderId: string | null) => {
-    bulkMoveClips(clipIds, targetFolderId);
-  };
-
-  // Handle creating a new folder
-  const handleCreateFolder = (name: string, description: string) => {
-    return createFolder(name, description);
-  };
-  
-  // This function adapts SavedClip to GameData for components expecting GameData
   const handleLibrarySavedClipPlay = (savedClip: SavedClip) => {
     const gameDataClip: GameData = {
       "Play Name": savedClip.label || "Unnamed Clip",
@@ -107,8 +86,15 @@ const Analyzer = () => {
       "Outcome": "other"
     };
     
-    // Call the playClip function which expects a GameData object
     playClip(gameDataClip);
+  };
+
+  const handleBulkMoveClips = (clipIds: string[], targetFolderId: string | null) => {
+    bulkMoveClips(clipIds, targetFolderId);
+  };
+
+  const handleCreateFolder = (name: string, description: string) => {
+    return createFolder(name, description);
   };
 
   return (
@@ -121,7 +107,6 @@ const Analyzer = () => {
       </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Video and Game Data Section */}
         <VideoAnalyzerPanel 
           videoUrl={videoUrl}
           currentTime={currentTime}
@@ -138,13 +123,12 @@ const Analyzer = () => {
           onAddMarker={addMarker}
           onSelectVideo={handleSelectRecentVideo}
           onFileLoaded={handleFileLoaded}
-          onPlayClip={handlePlayClipForVideoAnalyzer} // Fixed: Using the correct adapter function
+          onPlayClip={handlePlayClipForVideoAnalyzer}
           onStopClip={stopClip}
           onExportClip={exportClip}
           onSaveClip={handleSaveClipWrapper}
         />
         
-        {/* Side Panel with Tabs */}
         <div className="lg:col-span-1">
           <SidePanelTabs 
             activeTab={activeTab}

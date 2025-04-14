@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { SavedClip, ClipFolder, Game, ExportOptions, GameSituation } from "@/types/analyzer";
 import { v4 as uuidv4 } from "uuid";
@@ -118,76 +117,124 @@ export const useClipLibrary = (videoUrl?: string) => {
     return unnamedFolder;
   };
 
-  // Enhanced auto-organize function that organizes by play name
   const autoOrganizeByPlayName = () => {
+    const clipsWithLabels = savedClips.filter(clip => 
+      clip.label && clip.label !== "Unnamed Clip"
+    );
+    
+    if (clipsWithLabels.length === 0) {
+      toast.info("No named clips found to organize");
+      return;
+    }
+    
     const playNames = new Set<string>();
-    savedClips.forEach(clip => {
+    clipsWithLabels.forEach(clip => {
       if (clip.label && clip.label !== "Unnamed Clip") {
         playNames.add(clip.label);
       }
     });
-
-    // Create or get the main Plays folder
+    
+    console.log(`Found ${playNames.size} unique play names to organize`);
+    
     let playsFolder = folders.find(f => f.name === "Plays" && !f.parentId);
     if (!playsFolder) {
       playsFolder = createFolder("Plays", "Auto-organized play folders", { folderType: "plays" });
     }
 
-    if (!playsFolder) return;
+    if (!playsFolder) {
+      toast.error("Failed to create main Plays folder");
+      return;
+    }
+    
+    console.log(`Using plays folder: ${playsFolder.name} (${playsFolder.id})`);
 
-    // For each unique play name, create a subfolder and move all clips with that name
+    let foldersCreated = 0;
+    let clipsMoved = 0;
+    
     playNames.forEach(playName => {
-      const existingFolder = folders.find(f => 
+      let playFolder = folders.find(f => 
         f.name === playName && f.parentId === playsFolder?.id
       );
 
-      const playFolder = existingFolder || 
-        createFolder(playName, `Clips for the "${playName}" play`, {
+      if (!playFolder) {
+        playFolder = createFolder(playName, `Clips for the "${playName}" play`, {
           parentId: playsFolder.id,
           folderType: "plays"
         });
+        
+        if (playFolder) {
+          foldersCreated++;
+          console.log(`Created folder for play: ${playName}`);
+        }
+      }
 
-      if (!playFolder) return;
-
-      // Find all clips with this play name and move them to this folder
+      if (!playFolder) {
+        console.error(`Failed to create/find folder for play: ${playName}`);
+        return;
+      }
+      
       const clipsToMove = savedClips.filter(clip => 
         clip.label === playName && clip.folderId !== playFolder.id
       );
+      
+      console.log(`Found ${clipsToMove.length} clips with play name "${playName}" to move to folder ${playFolder.id}`);
 
       clipsToMove.forEach(clip => {
         moveClipToFolder(clip.id, playFolder.id);
+        clipsMoved++;
       });
     });
+    
+    if (foldersCreated > 0 || clipsMoved > 0) {
+      const message = `Auto-organization complete: Created ${foldersCreated} folders and moved ${clipsMoved} clips`;
+      console.log(message);
+      toast.success(message);
+    } else {
+      toast.info("No new folders needed or clips to move");
+    }
 
-    // Additionally, organize by games if we have video information
-    organizeByGames();
-
+    console.log("Starting game organization");
+    
     return playsFolder.id;
   };
 
-  // New function to organize clips by game footage
   const organizeByGames = () => {
-    // Get unique video URLs from clips
     const videoUrls = new Set<string>();
     savedClips.forEach(clip => {
       if (clip.videoUrl) {
         videoUrls.add(clip.videoUrl);
       }
     });
+    
+    console.log(`Found ${videoUrls.size} unique videos to organize`);
+    
+    if (videoUrls.size === 0) {
+      toast.info("No video information found to organize by game");
+      return;
+    }
 
-    // For each video, create a game folder structure
+    let gamesCreated = 0;
+    let clipsMoved = 0;
+    
     videoUrls.forEach(url => {
       const videoInfo = getVideoByUrl(url);
-      if (!videoInfo) return;
+      if (!videoInfo) {
+        console.log(`No video info found for URL: ${url}`);
+        return;
+      }
 
-      // Create or get the main Games folder
       let gamesFolder = folders.find(f => f.name === "Games" && !f.parentId);
       if (!gamesFolder) {
         gamesFolder = createFolder("Games", "Game footage and analysis", { folderType: "games" });
+        if (gamesFolder) {
+          console.log(`Created main Games folder: ${gamesFolder.id}`);
+        }
       }
-      if (!gamesFolder) return;
+      if (!gamesFolder) {
+        console.error("Failed to create main Games folder");
+        return;
+      }
 
-      // Create a folder for this specific game/video
       const gameName = videoInfo.name || "Unnamed Game";
       let gameFolder = folders.find(f => f.name === gameName && f.parentId === gamesFolder.id);
       if (!gameFolder) {
@@ -195,16 +242,25 @@ export const useClipLibrary = (videoUrl?: string) => {
           parentId: gamesFolder.id,
           folderType: "game"
         });
+        if (gameFolder) {
+          gamesCreated++;
+          console.log(`Created game folder: ${gameName}`);
+        }
       }
-      if (!gameFolder) return;
+      if (!gameFolder) {
+        console.error(`Failed to create game folder for: ${gameName}`);
+        return;
+      }
 
-      // Create subcategory folders for this game
       let allClipsFolder = folders.find(f => f.name === "All Clips" && f.parentId === gameFolder.id);
       if (!allClipsFolder) {
         allClipsFolder = createFolder("All Clips", "All clips from this game", {
           parentId: gameFolder.id,
           folderType: "game-clips"
         });
+        if (allClipsFolder) {
+          console.log(`Created All Clips folder for game: ${gameName}`);
+        }
       }
 
       let offenseFolder = folders.find(f => f.name === "Offense" && f.parentId === gameFolder.id);
@@ -213,6 +269,9 @@ export const useClipLibrary = (videoUrl?: string) => {
           parentId: gameFolder.id,
           folderType: "game-clips"
         });
+        if (offenseFolder) {
+          console.log(`Created Offense folder for game: ${gameName}`);
+        }
       }
 
       let defenseFolder = folders.find(f => f.name === "Defense" && f.parentId === gameFolder.id);
@@ -221,42 +280,39 @@ export const useClipLibrary = (videoUrl?: string) => {
           parentId: gameFolder.id,
           folderType: "game-clips"
         });
+        if (defenseFolder) {
+          console.log(`Created Defense folder for game: ${gameName}`);
+        }
       }
 
-      // Organize clips into these folders
       const gameClips = savedClips.filter(clip => clip.videoUrl === url);
+      console.log(`Found ${gameClips.length} clips for game: ${gameName}`);
       
-      // Move all clips to "All Clips" folder
-      gameClips.forEach(clip => {
-        // Don't move clips that are already in a specific play folder
-        const isInPlayFolder = folders.some(f => 
-          f.id === clip.folderId && 
-          folders.some(parentFolder => 
-            parentFolder.id === f.parentId && 
-            parentFolder.name === "Plays"
-          )
-        );
+      if (allClipsFolder) {
+        gameClips.forEach(clip => {
+          if (!isInPlayFolder) {
+            moveClipToFolder(clip.id, allClipsFolder.id);
+            clipsMoved++;
+          }
+        });
+      }
 
-        if (!isInPlayFolder && allClipsFolder) {
-          moveClipToFolder(clip.id, allClipsFolder.id);
-        }
-      });
-
-      // Additionally, categorize by offense/defense based on situation if available
       if (offenseFolder && defenseFolder) {
         gameClips.forEach(clip => {
           if (clip.situation === "offense" && offenseFolder) {
-            // Create a copy in the offense folder
             const offenseClip = {...clip, id: uuidv4(), folderId: offenseFolder.id};
             setSavedClips(prev => [...prev, offenseClip]);
           } else if (clip.situation === "defense" && defenseFolder) {
-            // Create a copy in the defense folder
             const defenseClip = {...clip, id: uuidv4(), folderId: defenseFolder.id};
             setSavedClips(prev => [...prev, defenseClip]);
           }
         });
       }
     });
+    
+    if (gamesCreated > 0 || clipsMoved > 0) {
+      toast.success(`Game organization: Created ${gamesCreated} game folders and organized ${clipsMoved} clips`);
+    }
   };
 
   const saveClipToLibrary = (clip: any, autoOrganize = false) => {
@@ -294,7 +350,6 @@ export const useClipLibrary = (videoUrl?: string) => {
       if (isUnnamed) {
         createUnnamedClipsFolder();
       } else if (autoOrganize) {
-        // Create the plays folder structure
         let playsFolder = folders.find(f => f.name === "Plays" && !f.parentId);
         if (!playsFolder) {
           playsFolder = createFolder("Plays", "Auto-organized play folders", { folderType: "plays" });
@@ -311,14 +366,12 @@ export const useClipLibrary = (videoUrl?: string) => {
           }
           
           if (playFolder) {
-            // Update the clip's folder ID
             setSavedClips(prevClips => 
               prevClips.map(clip => 
                 clip.id === newClip.id ? { ...clip, folderId: playFolder?.id } : clip
               )
             );
             
-            // Additionally organize by game 
             if (videoUrl) {
               organizeByGames();
             }

@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import ClipLibrary from "@/components/analyzer/ClipLibrary";
 import { GameData, SavedClip, ClipFolder } from "@/types/analyzer";
 import { Button } from "@/components/ui/button";
@@ -40,13 +40,36 @@ const LibraryPanel: React.FC<LibraryPanelProps> = ({
   onCreateFolder,
   folders
 }) => {
-  // Get the autoOrganizeByPlayName function directly
+  const [isOrganizing, setIsOrganizing] = useState(false);
+  
+  // Get the auto-organize functions from useClipLibrary
   const { autoOrganizeByPlayName, organizeByGames } = useClipLibrary();
 
-  const handleRunAutoOrganize = () => {
-    autoOrganizeByPlayName();
-    organizeByGames();
-    toast.success("Auto-organized all clips by play names and games");
+  const handleRunAutoOrganize = async () => {
+    setIsOrganizing(true);
+    
+    try {
+      // First organize by play names
+      const playsFolderId = autoOrganizeByPlayName();
+      
+      // Then organize by games
+      organizeByGames();
+      
+      toast.success("Auto-organized all clips by play names and games");
+      
+      // If we have a specific folder created, we could highlight it here
+      if (playsFolderId && onBulkMoveClips) {
+        const playsFolder = folders?.find(f => f.id === playsFolderId);
+        if (playsFolder) {
+          toast.success(`Created or updated "${playsFolder.name}" folder structure`);
+        }
+      }
+    } catch (error) {
+      console.error("Error during auto-organization:", error);
+      toast.error("Failed to auto-organize clips");
+    } finally {
+      setIsOrganizing(false);
+    }
   };
 
   return (
@@ -56,10 +79,11 @@ const LibraryPanel: React.FC<LibraryPanelProps> = ({
           variant="outline" 
           size="sm" 
           onClick={handleRunAutoOrganize}
+          disabled={isOrganizing}
           className="flex items-center gap-2"
         >
-          <Wand2 className="h-4 w-4" />
-          Auto-organize All Clips
+          <Wand2 className={`h-4 w-4 ${isOrganizing ? 'animate-spin' : ''}`} />
+          {isOrganizing ? 'Organizing...' : 'Auto-organize All Clips'}
         </Button>
       </div>
       <ClipLibrary 
