@@ -151,6 +151,57 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
     console.log("Creating clips from", data.length, "plays");
     const newClips: SavedClip[] = [];
     
+    let teamFolders = folders.filter(f => f.folderType === "team");
+    let defaultTeamFolder: ClipFolder | undefined;
+    
+    if (teamFolders.length === 0) {
+      defaultTeamFolder = createTeamFolder("My Team", "Default team created during import");
+      teamFolders = [defaultTeamFolder];
+    } else {
+      defaultTeamFolder = teamFolders[0];
+    }
+    
+    let playsFolder = folders.find(f => 
+      f.parentId === defaultTeamFolder?.id && 
+      f.folderType === "plays"
+    );
+    
+    if (!playsFolder && defaultTeamFolder) {
+      playsFolder = createFolder("Plays", "Team plays and possessions", { 
+        parentId: defaultTeamFolder.id, 
+        folderType: "plays",
+        teamId: defaultTeamFolder.id 
+      });
+    }
+    
+    const clipsByName: Record<string, GameData[]> = {};
+    
+    data.forEach(item => {
+      const playName = item["Play Name"] || "";
+      if (!playName || playName === "clip" || playName.length < 3) return;
+      
+      if (!clipsByName[playName]) {
+        clipsByName[playName] = [];
+      }
+      clipsByName[playName].push(item);
+    });
+    
+    const playSubfolders: Record<string, ClipFolder> = {};
+    
+    Object.entries(clipsByName).forEach(([name, clips]) => {
+      if (clips.length > 1 && playsFolder) {
+        const playSubfolder = createFolder(name, `Clips for ${name}`, {
+          parentId: playsFolder.id,
+          folderType: "other",
+          teamId: defaultTeamFolder?.id
+        });
+        
+        if (playSubfolder) {
+          playSubfolders[name] = playSubfolder;
+        }
+      }
+    });
+    
     data.forEach(item => {
       const startTime = parseFloat(item["Start time"] || "0");
       const duration = parseFloat(item["Duration"] || "0");
@@ -177,6 +228,32 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
         label = `Clip at ${startTime.toFixed(1)}s`;
       }
       
+      const clipType = duration > 60 ? "full_game" : "play";
+      
+      let clipFolderId = undefined;
+      let teamId = undefined;
+      
+      if (defaultTeamFolder) {
+        teamId = defaultTeamFolder.id;
+        
+        if (clipType === "full_game") {
+          const gamesFolder = folders.find(f => 
+            f.parentId === defaultTeamFolder.id && 
+            f.folderType === "games"
+          );
+          
+          if (gamesFolder) {
+            clipFolderId = gamesFolder.id;
+          }
+        } else {
+          if (playSubfolders[label]) {
+            clipFolderId = playSubfolders[label].id;
+          } else if (playsFolder) {
+            clipFolderId = playsFolder.id;
+          }
+        }
+      }
+      
       const newClip: SavedClip = {
         id: `auto-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
         startTime,
@@ -186,7 +263,10 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
         timeline: item.Timeline || "",
         saved: new Date().toISOString(),
         players,
-        situation: item.Situation || "other"
+        situation: item.Situation || "other",
+        folderId: clipFolderId,
+        teamId,
+        clipType
       };
       
       newClips.push(newClip);
@@ -313,7 +393,6 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
       return;
     }
     
-    // Only check for duplicate names at the same level
     const sameLevel = folders.filter(f => f.parentId === options.parentId);
     if (sameLevel.some(folder => folder.name.toLowerCase() === name.toLowerCase())) {
       toast.error("A folder with this name already exists at this level");
@@ -338,7 +417,6 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
     const teamFolder = createFolder(teamName, description, { folderType: "team" });
     
     if (teamFolder) {
-      // Automatically create plays and games subfolders
       createFolder("Plays", "Team plays and possessions", { 
         parentId: teamFolder.id, 
         folderType: "plays",
@@ -369,7 +447,6 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
   };
   
   const deleteFolder = (id: string) => {
-    // Get all subfolders to delete
     const getSubfolderIds = (folderId: string): string[] => {
       const directSubfolders = folders.filter(f => f.parentId === folderId);
       let allSubfolderIds = directSubfolders.map(f => f.id);
@@ -384,14 +461,12 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
     const subfolderIds = getSubfolderIds(id);
     const allFolderIds = [id, ...subfolderIds];
     
-    // Update clips that were in these folders
     setSavedClips(prev => prev.map(clip => 
       allFolderIds.includes(clip.folderId || '')
         ? { ...clip, folderId: undefined } 
         : clip
     ));
     
-    // Remove all related folders
     setFolders(prev => prev.filter(folder => !allFolderIds.includes(folder.id)));
     
     if (activeFolder === id || allFolderIds.includes(activeFolder || '')) {
@@ -419,7 +494,6 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
       return savedClips.filter(clip => clip.folderId === folderId);
     }
     
-    // Get all subfolder IDs
     const getSubfolderIds = (parentId: string): string[] => {
       const directSubfolders = folders.filter(f => f.parentId === parentId);
       let allSubfolderIds = directSubfolders.map(f => f.id);
@@ -464,14 +538,12 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
   const deleteGame = (id: string) => {
     setGames(prev => prev.filter(game => game.id !== id));
     
-    // Remove any clips that are specifically from this game
     setSavedClips(prev => prev.filter(clip => clip.gameId !== id));
     
     toast.success("Game deleted");
   };
   
   const getFolderHierarchy = () => {
-    // Map children to parent folders
     const folderMap = new Map<string | undefined, ClipFolder[]>();
     
     folders.forEach(folder => {
@@ -482,10 +554,8 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
       folderMap.get(parent)?.push(folder);
     });
     
-    // Root folders are those with no parent
     const rootFolders = folderMap.get(undefined) || [];
     
-    // Function to build the tree recursively
     const buildTree = (parentId: string | undefined): ClipFolder[] => {
       const children = folderMap.get(parentId) || [];
       return children.map(folder => ({

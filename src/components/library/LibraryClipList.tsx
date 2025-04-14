@@ -6,7 +6,11 @@ import {
   DropdownMenuItem, 
   DropdownMenuLabel, 
   DropdownMenuSeparator, 
-  DropdownMenuTrigger 
+  DropdownMenuTrigger,
+  DropdownMenuGroup,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -29,7 +33,8 @@ import {
   Calendar,
   Table,
   Check,
-  MoveRight
+  MoveRight,
+  Building2,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { 
@@ -56,6 +61,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 
 interface LibraryClipListProps {
   clips: SavedClip[];
@@ -64,7 +75,7 @@ interface LibraryClipListProps {
   onPlayClip: (clip: SavedClip) => void;
   onExportClip: (clip: SavedClip) => void;
   onRemoveClip: (id: string) => void;
-  onMoveToFolder: (clipId: string, folderId: string | null) => void;
+  onMoveToFolder: (clipId: string, folderId: string | null, teamId?: string) => void;
 }
 
 export const LibraryClipList: React.FC<LibraryClipListProps> = ({
@@ -88,6 +99,8 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
   const [selectedClipIds, setSelectedClipIds] = useState<string[]>([]);
   const [showMoveDialog, setShowMoveDialog] = useState(false);
   const [targetFolderId, setTargetFolderId] = useState<string | null>(null);
+  const [targetTeamId, setTargetTeamId] = useState<string | null>(null);
+  const [moveDialogTab, setMoveDialogTab] = useState<"folders" | "teams">("folders");
   
   const filteredData = useMemo(() => {
     const teams = new Set<string>();
@@ -195,6 +208,14 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
     return labels[situation] || situation;
   };
   
+  const getTeamFolders = () => {
+    return folders.filter(folder => folder.folderType === "team");
+  };
+
+  const getSubFolders = (parentId: string) => {
+    return folders.filter(folder => folder.parentId === parentId);
+  };
+
   const getFolderName = (folderId: string | undefined): string => {
     if (!folderId) return "None";
     const folder = folders.find(f => f.id === folderId);
@@ -233,19 +254,49 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
       return;
     }
     
-    if (targetFolderId === undefined) {
+    if (moveDialogTab === "folders" && targetFolderId === undefined) {
       toast.error("Please select a destination folder");
       return;
     }
     
+    if (moveDialogTab === "teams" && targetTeamId === undefined) {
+      toast.error("Please select a destination team");
+      return;
+    }
+    
     selectedClipIds.forEach(clipId => {
-      onMoveToFolder(clipId, targetFolderId);
+      if (moveDialogTab === "folders") {
+        onMoveToFolder(clipId, targetFolderId, undefined);
+      } else {
+        const teamFolder = folders.find(f => f.id === targetTeamId);
+        if (!teamFolder) {
+          toast.error(`Team folder not found`);
+          return;
+        }
+        
+        const playsFolder = folders.find(f => 
+          f.parentId === targetTeamId && 
+          f.folderType === "plays"
+        );
+        
+        if (!playsFolder) {
+          toast.error(`Plays folder not found for team ${teamFolder.name}`);
+          return;
+        }
+        
+        onMoveToFolder(clipId, playsFolder.id, targetTeamId);
+      }
     });
     
-    toast.success(`Moved ${selectedClipIds.length} clips to ${targetFolderId ? getFolderName(targetFolderId) : "root"}`);
+    const destinationName = moveDialogTab === "folders" 
+      ? targetFolderId ? getFolderName(targetFolderId) : "root" 
+      : getFolderName(targetTeamId);
+    
+    toast.success(`Moved ${selectedClipIds.length} clips to ${destinationName}`);
     setSelectedClipIds([]);
     setShowMoveDialog(false);
     setTargetFolderId(null);
+    setTargetTeamId(null);
   };
   
   const deleteSelectedClips = () => {
@@ -471,28 +522,66 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
                 Move Selected ({selectedClipIds.length})
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="sm:max-w-md">
               <DialogHeader>
-                <DialogTitle>Move Clips to Folder</DialogTitle>
+                <DialogTitle>Move Clips</DialogTitle>
                 <DialogDescription>
-                  Select a destination folder for {selectedClipIds.length} clips
+                  Move {selectedClipIds.length} selected clips to a folder or team
                 </DialogDescription>
               </DialogHeader>
-              <div className="py-4">
-                <Select onValueChange={(value) => setTargetFolderId(value === "root" ? null : value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select destination folder" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="root">Root (No Folder)</SelectItem>
-                    {folders.map(folder => (
-                      <SelectItem key={folder.id} value={folder.id}>
-                        {folder.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              
+              <Tabs 
+                defaultValue="folders" 
+                value={moveDialogTab} 
+                onValueChange={(value) => setMoveDialogTab(value as "folders" | "teams")}
+                className="mt-4"
+              >
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="folders" className="flex items-center gap-2">
+                    <FolderIcon className="h-4 w-4" />
+                    Folders
+                  </TabsTrigger>
+                  <TabsTrigger value="teams" className="flex items-center gap-2">
+                    <Building2 className="h-4 w-4" />
+                    Teams
+                  </TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="folders" className="py-4">
+                  <Select onValueChange={(value) => setTargetFolderId(value === "root" ? null : value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select destination folder" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="root">Root (No Folder)</SelectItem>
+                      {folders.map(folder => (
+                        <SelectItem key={folder.id} value={folder.id}>
+                          {folder.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </TabsContent>
+                
+                <TabsContent value="teams" className="py-4">
+                  <Select onValueChange={setTargetTeamId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select team" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {getTeamFolders().map(team => (
+                        <SelectItem key={team.id} value={team.id}>
+                          {team.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Clips will be moved to the team's Plays folder
+                  </p>
+                </TabsContent>
+              </Tabs>
+              
               <DialogFooter>
                 <Button variant="outline" onClick={() => setShowMoveDialog(false)}>
                   Cancel
@@ -574,21 +663,66 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
                               Export Clip
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuLabel>Move to Folder</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => onMoveToFolder(clip.id, null)}>
-                              <FolderIcon className="h-4 w-4 mr-2" />
-                              None (Root)
-                            </DropdownMenuItem>
-                            {folders.map(folder => (
-                              <DropdownMenuItem 
-                                key={folder.id} 
-                                onClick={() => onMoveToFolder(clip.id, folder.id)}
-                                disabled={clip.folderId === folder.id}
-                              >
-                                <FolderIcon className="h-4 w-4 mr-2" />
-                                {folder.name}
-                              </DropdownMenuItem>
-                            ))}
+                            
+                            <DropdownMenuGroup>
+                              <DropdownMenuSub>
+                                <DropdownMenuSubTrigger>
+                                  <FolderIcon className="h-4 w-4 mr-2" />
+                                  Move to Folder
+                                </DropdownMenuSubTrigger>
+                                <DropdownMenuSubContent>
+                                  <DropdownMenuItem onClick={() => onMoveToFolder(clip.id, null)}>
+                                    <FolderIcon className="h-4 w-4 mr-2" />
+                                    None (Root)
+                                  </DropdownMenuItem>
+                                  {folders.map(folder => (
+                                    <DropdownMenuItem 
+                                      key={folder.id} 
+                                      onClick={() => onMoveToFolder(clip.id, folder.id)}
+                                      disabled={clip.folderId === folder.id}
+                                    >
+                                      <FolderIcon className="h-4 w-4 mr-2" />
+                                      {folder.name}
+                                    </DropdownMenuItem>
+                                  ))}
+                                </DropdownMenuSubContent>
+                              </DropdownMenuSub>
+                            </DropdownMenuGroup>
+                            
+                            <DropdownMenuGroup>
+                              <DropdownMenuSub>
+                                <DropdownMenuSubTrigger>
+                                  <Building2 className="h-4 w-4 mr-2" />
+                                  Move to Team
+                                </DropdownMenuSubTrigger>
+                                <DropdownMenuSubContent>
+                                  {getTeamFolders().map(team => {
+                                    const playsFolder = folders.find(f => 
+                                      f.parentId === team.id && 
+                                      f.folderType === "plays"
+                                    );
+                                    
+                                    return (
+                                      <DropdownMenuItem 
+                                        key={team.id} 
+                                        onClick={() => {
+                                          if (playsFolder) {
+                                            onMoveToFolder(clip.id, playsFolder.id, team.id);
+                                          } else {
+                                            toast.error(`No Plays folder found for team ${team.name}`);
+                                          }
+                                        }}
+                                        disabled={clip.teamId === team.id}
+                                      >
+                                        <Users className="h-4 w-4 mr-2" />
+                                        {team.name}
+                                      </DropdownMenuItem>
+                                    );
+                                  })}
+                                </DropdownMenuSubContent>
+                              </DropdownMenuSub>
+                            </DropdownMenuGroup>
+                            
                             <DropdownMenuSeparator />
                             <DropdownMenuItem 
                               onClick={() => onRemoveClip(clip.id)}

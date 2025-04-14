@@ -1,9 +1,15 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { List, Download } from "lucide-react";
+import { List, Download, Building2, Users } from "lucide-react";
 import { SavedClip } from "@/types/analyzer";
 import { SavedClipItem } from "./SavedClipItem";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface ClipLibraryListProps {
   savedClips: SavedClip[];
@@ -41,10 +47,12 @@ export const ClipLibraryList: React.FC<ClipLibraryListProps> = ({
     <>
       <div className="flex justify-between items-center">
         <h3 className="text-sm font-medium">Saved Clips</h3>
-        <Button variant="outline" size="sm" onClick={onExportLibrary}>
-          <Download className="h-4 w-4 mr-2" />
-          Export Library
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={onExportLibrary}>
+            <Download className="h-4 w-4 mr-2" />
+            Export Library
+          </Button>
+        </div>
       </div>
 
       <ul className="space-y-2 max-h-[400px] overflow-y-auto pr-2 mt-4">
