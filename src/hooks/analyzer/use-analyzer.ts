@@ -13,10 +13,7 @@ export const useAnalyzer = () => {
     videoPlayerRef,
     handleVideoFileChange,
     handleTimeUpdate,
-    seekToMarker,
-    isPlayerReady,
-    recentVideos,
-    setVideoUrl
+    seekToMarker
   } = useVideo();
 
   const {
@@ -48,17 +45,7 @@ export const useAnalyzer = () => {
     removeSavedClip,
     exportClip,
     exportLibrary,
-    saveClipsFromData,
-    folders,
-    createFolder,
-    moveClipToFolder,
-    games,
-    addGame,
-    updateGame,
-    videoRegistry,
-    getVideoByUrl,
-    autoOrganizeByPlayName,
-    organizeByGames
+    saveClipsFromData
   } = useClipLibrary(videoUrl);
 
   const handleFileLoaded = (loadedData: any) => {
@@ -92,67 +79,17 @@ export const useAnalyzer = () => {
     
     toast.success(`Playing clip from ${formattedTime}`);
     
-    // Add a small delay to ensure the video player is ready
     setTimeout(() => {
       playClip(item).catch(error => {
         console.error("Failed to play clip:", error);
         toast.error("Failed to play the clip, please try again");
       });
-    }, 300);
+    }, 100);
   };
 
   const handlePlaySavedClip = (clip: SavedClip) => {
-    // First check if the clip has a videoUrl
-    const clipVideoUrl = clip.videoUrl;
-    
-    // If we have a video URL associated with this clip
-    if (clipVideoUrl) {
-      // If it's different from the current video, load it
-      if (clipVideoUrl !== videoUrl) {
-        toast.info("Loading the associated video for this clip...");
-        setVideoUrl(clipVideoUrl);
-        // Give time for the video to load before playing
-        setTimeout(() => {
-          playSavedClipInternal(clip);
-        }, 800);
-        return;
-      }
-    }
-    
-    // If no specific video URL or it's the current one, use the current video
-    if (!videoUrl) {
-      // Check the recent videos first to see if we can find a matching video
-      const clipVideoFound = recentVideos.some(video => {
-        if (video.url) {
-          setVideoUrl(video.url);
-          // Give a small delay for the video to load before attempting to play
-          setTimeout(() => {
-            playSavedClipInternal(clip);
-          }, 800);
-          return true;
-        }
-        return false;
-      });
-      
-      if (!clipVideoFound) {
-        toast.error("Please upload a video to play this clip");
-        return;
-      }
-    } else {
-      playSavedClipInternal(clip);
-    }
-  };
-  
-  const playSavedClipInternal = (clip: SavedClip) => {
-    if (!isPlayerReady) {
-      toast.error("Video player is still initializing. Please try again in a moment.");
-      return;
-    }
-    
-    console.log("Playing saved clip:", clip);
-
     const gameDataClip: GameData = {
-      "Play Name": clip.label || "Unnamed Clip",
+      "Play Name": clip.label,
       "Start time": clip.startTime.toString(),
       "Duration": clip.duration.toString(),
       "Notes": clip.notes || "",
@@ -165,6 +102,7 @@ export const useAnalyzer = () => {
     playSelectedClip(gameDataClip);
   };
   
+  // Add this new function to stop clip playback
   const handleStopClip = () => {
     if (isPlayingClip) {
       if (videoPlayerRef.current) {
@@ -172,12 +110,6 @@ export const useAnalyzer = () => {
       }
       stopClipPlayback();
       toast.info("Clip playback stopped");
-    }
-  };
-
-  const navigate = (path: string) => {
-    if (typeof window !== 'undefined') {
-      window.location.href = path;
     }
   };
 
@@ -192,12 +124,6 @@ export const useAnalyzer = () => {
     savedClips,
     isPlayingClip,
     videoPlayerRef,
-    isPlayerReady,
-    folders,
-    recentVideos,
-    setVideoUrl,
-    createFolder,
-    moveClipToFolder,
     handleFileLoaded,
     handleVideoFileChange,
     handleTimeUpdate,
@@ -215,11 +141,6 @@ export const useAnalyzer = () => {
     exportLibrary,
     exportAllMarkers,
     handlePlaySavedClip,
-    setSelectedClip,
-    games,
-    addGame,
-    updateGame,
-    autoOrganizeByPlayName,
-    organizeByGames
+    setSelectedClip
   };
 };

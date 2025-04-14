@@ -1,3 +1,4 @@
+
 export interface Marker {
   time: number;
   label: string;
@@ -31,7 +32,6 @@ export interface SavedClip {
   teamId?: string;
   gameId?: string;
   clipType?: "play" | "possession" | "full_game" | "other";
-  videoUrl?: string; // URL to the video this clip belongs to
 }
 
 export interface ClipFolder {
@@ -41,7 +41,7 @@ export interface ClipFolder {
   createdAt: string;
   updatedAt: string;
   parentId?: string; // For nested folders
-  folderType?: "team" | "plays" | "games" | "game" | "game-clips" | "other";
+  folderType?: "team" | "plays" | "games" | "other";
   teamId?: string; // To associate folders with specific teams
 }
 
@@ -53,7 +53,6 @@ export interface Game {
   awayTeam: string;
   videoUrl?: string;
   dataUrl?: string;
-  teamId?: string; // Added teamId property to associate games with teams
   createdAt: string;
   updatedAt: string;
 }
@@ -97,8 +96,6 @@ export type GameSituation =
   | "zone_offense" 
   | "man_offense"
   | "fast_break"
-  | "offense"  // Added this
-  | "defense"  // Added this
   | "other";
 
 export const GAME_SITUATIONS: GameSituation[] = [
@@ -111,11 +108,10 @@ export const GAME_SITUATIONS: GameSituation[] = [
   "zone_offense",
   "man_offense",
   "fast_break",
-  "offense",  // Added this
-  "defense",  // Added this
   "other"
 ];
 
+// New Team Roster related types
 export interface Player {
   id: string;
   name: string;
@@ -139,10 +135,4 @@ export interface TeamRoster {
   id: string;
   name: string;
   players: Player[];
-}
-
-export interface ExportOptions {
-  includeSubfolders?: boolean;
-  format?: "json" | "mp4" | "webm";
-  quality?: "high" | "medium" | "low";
 }

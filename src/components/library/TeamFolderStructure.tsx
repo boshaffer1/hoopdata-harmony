@@ -34,8 +34,8 @@ interface TeamFolderStructureProps {
   games: Game[];
   activeFolder: string | null;
   onSelectFolder: (id: string | null) => void;
-  onCreateTeam: (name: string, description: string) => ClipFolder | undefined;
-  onCreateFolder: (name: string, description: string, options: any) => ClipFolder | undefined;
+  onCreateTeam: (name: string, description: string) => void;
+  onCreateFolder: (name: string, description: string, options: any) => void;
   onUpdateFolder: (id: string, updates: Partial<ClipFolder>) => void;
   onDeleteFolder: (id: string) => void;
   onAddGame: (gameData: any) => void;
@@ -78,13 +78,13 @@ export const TeamFolderStructure: React.FC<TeamFolderStructureProps> = ({
       
       // Create plays and games subfolders for the team
       if (teamFolder) {
-        const playsFolder = onCreateFolder("Plays", "Team plays", { 
+        onCreateFolder("Plays", "Team plays", { 
           parentId: teamFolder.id,
           folderType: "plays",
           teamId: teamFolder.id
         });
         
-        const gamesFolder = onCreateFolder("Games", "Team games", { 
+        onCreateFolder("Games", "Team games", { 
           parentId: teamFolder.id,
           folderType: "games",
           teamId: teamFolder.id
@@ -436,4 +436,3 @@ export const TeamFolderStructure: React.FC<TeamFolderStructureProps> = ({
     </div>
   );
 };
-

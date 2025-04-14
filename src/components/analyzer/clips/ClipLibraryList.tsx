@@ -1,10 +1,9 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { List, Download, Check } from "lucide-react";
+import { List, Download } from "lucide-react";
 import { SavedClip } from "@/types/analyzer";
 import { SavedClipItem } from "./SavedClipItem";
-import { Checkbox } from "@/components/ui/checkbox";
 
 interface ClipLibraryListProps {
   savedClips: SavedClip[];
@@ -12,9 +11,6 @@ interface ClipLibraryListProps {
   onExportClip: (clip: SavedClip) => void;
   onRemoveClip: (id: string) => void;
   onExportLibrary: () => void;
-  isSelectMode?: boolean;
-  selectedClips?: string[];
-  onToggleSelection?: (clipId: string) => void;
 }
 
 export const ClipLibraryList: React.FC<ClipLibraryListProps> = ({
@@ -22,10 +18,7 @@ export const ClipLibraryList: React.FC<ClipLibraryListProps> = ({
   onPlayClip,
   onExportClip,
   onRemoveClip,
-  onExportLibrary,
-  isSelectMode = false,
-  selectedClips = [],
-  onToggleSelection
+  onExportLibrary
 }) => {
   if (savedClips.length === 0) {
     return (
@@ -50,30 +43,13 @@ export const ClipLibraryList: React.FC<ClipLibraryListProps> = ({
 
       <ul className="space-y-2 max-h-[400px] overflow-y-auto pr-2 mt-4">
         {savedClips.map((clip) => (
-          <li 
+          <SavedClipItem
             key={clip.id}
-            className={`relative border rounded-lg transition-colors ${
-              selectedClips.includes(clip.id) ? 'bg-muted/80 border-primary/40' : ''
-            }`}
-          >
-            {isSelectMode && onToggleSelection && (
-              <div className="absolute left-2 top-1/2 transform -translate-y-1/2 z-10">
-                <Checkbox 
-                  checked={selectedClips.includes(clip.id)}
-                  onCheckedChange={() => onToggleSelection(clip.id)}
-                  className="h-5 w-5"
-                />
-              </div>
-            )}
-            <div className={isSelectMode ? 'pl-8' : ''}>
-              <SavedClipItem
-                clip={clip}
-                onPlay={onPlayClip}
-                onExport={onExportClip}
-                onRemove={onRemoveClip}
-              />
-            </div>
-          </li>
+            clip={clip}
+            onPlay={onPlayClip}
+            onExport={onExportClip}
+            onRemove={onRemoveClip}
+          />
         ))}
       </ul>
     </>

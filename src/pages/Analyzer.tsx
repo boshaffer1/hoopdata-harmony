@@ -1,19 +1,18 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
+import VideoSection from "@/components/analyzer/VideoSection";
+import GameDataSection from "@/components/analyzer/GameDataSection";
+import MarkersList from "@/components/analyzer/MarkersList";
+import ClipLibrary from "@/components/analyzer/ClipLibrary";
+import RosterView from "@/components/analyzer/teams/RosterView";
 import { useAnalyzer } from "@/hooks/analyzer/use-analyzer";
 import { useRoster } from "@/hooks/analyzer/use-roster";
-import VideoAnalyzerPanel from "@/components/analyzer/panels/VideoAnalyzerPanel";
-import SidePanelTabs from "@/components/analyzer/panels/SidePanelTabs";
-import MarkerPanel from "@/components/analyzer/panels/MarkerPanel";
-import LibraryPanel from "@/components/analyzer/panels/LibraryPanel";
-import RosterPanel from "@/components/analyzer/panels/RosterPanel";
-import { SavedClip, GameData } from "@/types/analyzer";
-import { useClipLibrary } from "@/hooks/analyzer/use-clip-library";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { BookmarkIcon, Library, Users, StopCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const Analyzer = () => {
-  const [activeTab, setActiveTab] = useState("markers");
-  
   const {
     videoUrl,
     currentTime,
@@ -25,8 +24,6 @@ const Analyzer = () => {
     savedClips,
     isPlayingClip,
     videoPlayerRef,
-    recentVideos,
-    setVideoUrl,
     handleFileLoaded,
     handleVideoFileChange,
     handleTimeUpdate,
@@ -43,10 +40,7 @@ const Analyzer = () => {
     exportClip,
     exportLibrary,
     exportAllMarkers,
-    handlePlaySavedClip,
-    setSelectedClip,
-    autoOrganizeByPlayName,
-    organizeByGames
+    handlePlaySavedClip
   } = useAnalyzer();
 
   const {
@@ -56,43 +50,6 @@ const Analyzer = () => {
     addPlayer,
     removePlayer
   } = useRoster();
-
-  // Get clip organization functions from useClipLibrary
-  const { 
-    folders, 
-    createFolder, 
-    bulkMoveClips 
-  } = useClipLibrary(videoUrl);
-
-  const handleSelectRecentVideo = (url: string) => {
-    setVideoUrl(url);
-  };
-
-  // Handle saving clips with auto-organize option
-  const handleSaveClipWrapper = (gameData: GameData, autoOrganize?: boolean) => {
-    saveClipToLibrary(gameData, autoOrganize);
-  };
-
-  // Create a wrapper for playing saved clips to fix the type error
-  const handlePlayClipWrapper = (clip: SavedClip) => {
-    handlePlaySavedClip(clip);
-  };
-
-  // Create a wrapper function that adapts SavedClip to GameData for VideoAnalyzerPanel
-  const handlePlayClipForVideoAnalyzer = (clip: GameData) => {
-    // This is the function expected by VideoAnalyzerPanel
-    playClip(clip);
-  };
-
-  // Handle moving multiple clips to a folder
-  const handleBulkMoveClips = (clipIds: string[], targetFolderId: string | null) => {
-    bulkMoveClips(clipIds, targetFolderId);
-  };
-
-  // Handle creating a new folder
-  const handleCreateFolder = (name: string, description: string) => {
-    return createFolder(name, description);
-  };
 
   return (
     <Layout className="py-6">
@@ -104,71 +61,110 @@ const Analyzer = () => {
       </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Video and Game Data Section */}
-        <VideoAnalyzerPanel 
-          videoUrl={videoUrl}
-          currentTime={currentTime}
-          data={data}
-          newMarkerLabel={newMarkerLabel}
-          markers={markers}
-          selectedClip={selectedClip}
-          isPlayingClip={isPlayingClip}
-          videoPlayerRef={videoPlayerRef}
-          recentVideos={recentVideos}
-          onTimeUpdate={handleTimeUpdate}
-          onVideoFileChange={handleVideoFileChange}
-          onNewMarkerLabelChange={setNewMarkerLabel}
-          onAddMarker={addMarker}
-          onSelectVideo={handleSelectRecentVideo}
-          onFileLoaded={handleFileLoaded}
-          onPlayClip={handlePlayClipForVideoAnalyzer}
-          onStopClip={stopClip}
-          onExportClip={exportClip}
-          onSaveClip={handleSaveClipWrapper}
-        />
+        {/* Video Player and Upload Section */}
+        <div className="lg:col-span-2 space-y-6">
+          <VideoSection 
+            videoUrl={videoUrl}
+            currentTime={currentTime}
+            newMarkerLabel={newMarkerLabel}
+            markers={markers}
+            videoPlayerRef={videoPlayerRef}
+            onTimeUpdate={handleTimeUpdate}
+            onVideoFileChange={handleVideoFileChange}
+            onNewMarkerLabelChange={setNewMarkerLabel}
+            onAddMarker={addMarker}
+          />
+          
+          {/* Clip control indicator and stop button */}
+          {isPlayingClip && selectedClip && (
+            <div className="bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700 rounded-md p-4 flex items-center justify-between">
+              <div>
+                <p className="font-medium">
+                  Now playing: {selectedClip["Play Name"]}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Start: {selectedClip["Start time"]}s, Duration: {selectedClip["Duration"]}s
+                </p>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={stopClip} 
+                className="bg-white dark:bg-background flex items-center gap-1"
+              >
+                <StopCircle className="h-4 w-4" />
+                Stop Clip
+              </Button>
+            </div>
+          )}
+          
+          {/* Data Table */}
+          <GameDataSection 
+            data={data}
+            videoUrl={videoUrl}
+            selectedClip={selectedClip}
+            isPlayingClip={isPlayingClip}
+            onFileLoaded={handleFileLoaded}
+            onPlayClip={playClip}
+            onStopClip={stopClip}
+            onExportClip={exportClip}
+          />
+        </div>
         
-        {/* Side Panel with Tabs */}
+        {/* Tabs for various tools */}
         <div className="lg:col-span-1">
-          <SidePanelTabs 
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-            markersPanel={
-              <MarkerPanel 
+          <Tabs defaultValue="markers">
+            <TabsList className="grid grid-cols-3 mb-6">
+              <TabsTrigger value="markers" className="flex items-center gap-2">
+                <BookmarkIcon className="h-4 w-4" />
+                <span className="hidden sm:inline">Markers</span>
+              </TabsTrigger>
+              <TabsTrigger value="library" className="flex items-center gap-2">
+                <Library className="h-4 w-4" />
+                <span className="hidden sm:inline">Library</span>
+              </TabsTrigger>
+              <TabsTrigger value="roster" className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                <span className="hidden sm:inline">Rosters</span>
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="markers" className="mt-0">
+              <MarkersList 
                 markers={markers}
                 onSeekToMarker={seekToMarker}
                 onRemoveMarker={removeMarker}
                 onMarkerNotesChange={updateMarkerNotes}
                 onExportAllMarkers={exportAllMarkers}
               />
-            }
-            libraryPanel={
-              <LibraryPanel 
+            </TabsContent>
+            
+            <TabsContent value="library" className="mt-0">
+              <ClipLibrary 
                 savedClips={savedClips}
                 playLabel={playLabel}
                 selectedClip={selectedClip}
                 isPlayingClip={isPlayingClip}
                 onPlayLabelChange={setPlayLabel}
-                onSaveClip={handleSaveClipWrapper}
+                onSaveClip={saveClipToLibrary}
                 onRemoveClip={removeSavedClip}
                 onExportClip={exportClip}
                 onExportLibrary={exportLibrary}
-                onPlayClip={handlePlayClipWrapper}
+                onPlayClip={handlePlaySavedClip}
                 onStopClip={stopClip}
-                onBulkMoveClips={handleBulkMoveClips}
-                onCreateFolder={handleCreateFolder}
-                folders={folders}
               />
-            }
-            rosterPanel={
-              <RosterPanel 
+            </TabsContent>
+            
+            <TabsContent value="roster" className="mt-0">
+              <RosterView 
                 rosters={rosters}
                 onAddTeam={addTeam}
                 onRemoveTeam={removeTeam}
                 onAddPlayer={addPlayer}
                 onRemovePlayer={removePlayer}
               />
-            }
-          />
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
     </Layout>

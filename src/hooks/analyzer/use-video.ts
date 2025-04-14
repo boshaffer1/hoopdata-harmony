@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
 import { getSupportedFormats } from "@/hooks/video-player/utils";
@@ -7,32 +8,8 @@ export const useVideo = () => {
   const [currentTime, setCurrentTime] = useState(0);
   const videoPlayerRef = useRef<any>(null);
   
-  // Add storage for recent videos
-  const [recentVideos, setRecentVideos] = useState<{url: string, name: string, timestamp: number}[]>([]);
-  
   // Monitor video player readiness
   const [isPlayerReady, setIsPlayerReady] = useState(false);
-  
-  // Load recent videos from localStorage on component mount
-  useEffect(() => {
-    try {
-      const storedVideos = localStorage.getItem('recentVideos');
-      if (storedVideos) {
-        setRecentVideos(JSON.parse(storedVideos));
-      }
-    } catch (error) {
-      console.error("Failed to load recent videos from localStorage:", error);
-    }
-  }, []);
-  
-  // Save recent videos to localStorage when they change
-  useEffect(() => {
-    try {
-      localStorage.setItem('recentVideos', JSON.stringify(recentVideos));
-    } catch (error) {
-      console.error("Failed to save recent videos to localStorage:", error);
-    }
-  }, [recentVideos]);
   
   useEffect(() => {
     // Check if video player is ready when the URL changes
@@ -77,19 +54,6 @@ export const useVideo = () => {
       
       const url = URL.createObjectURL(file);
       setVideoUrl(url);
-      
-      // Add to recent videos
-      const newVideo = {
-        url,
-        name: file.name,
-        timestamp: Date.now()
-      };
-      
-      setRecentVideos(prev => {
-        // Keep only the 10 most recent videos
-        const filtered = prev.filter(v => v.name !== file.name);
-        return [newVideo, ...filtered].slice(0, 10);
-      });
       
       toast.success(`Loaded video: ${file.name}`);
       console.log("Set new video URL:", url);
@@ -158,10 +122,8 @@ export const useVideo = () => {
     currentTime,
     videoPlayerRef,
     isPlayerReady,
-    recentVideos,
     handleVideoFileChange,
     handleTimeUpdate,
-    seekToMarker,
-    setVideoUrl
+    seekToMarker
   };
 };
