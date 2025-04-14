@@ -56,7 +56,9 @@ export const useAnalyzer = () => {
     addGame,
     updateGame,
     videoRegistry,
-    getVideoByUrl
+    getVideoByUrl,
+    autoOrganizeByPlayName,
+    organizeByGames
   } = useClipLibrary(videoUrl);
 
   const handleFileLoaded = (loadedData: any) => {
@@ -216,6 +218,8 @@ export const useAnalyzer = () => {
     setSelectedClip,
     games,
     addGame,
-    updateGame
+    updateGame,
+    autoOrganizeByPlayName,
+    organizeByGames
   };
 };

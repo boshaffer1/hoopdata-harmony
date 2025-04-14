@@ -2,6 +2,10 @@
 import React from "react";
 import ClipLibrary from "@/components/analyzer/ClipLibrary";
 import { GameData, SavedClip } from "@/types/analyzer";
+import { Button } from "@/components/ui/button";
+import { MagicWand } from "lucide-react";
+import { useClipLibrary } from "@/hooks/analyzer/use-clip-library";
+import { toast } from "sonner";
 
 interface LibraryPanelProps {
   savedClips: SavedClip[];
@@ -30,20 +34,42 @@ const LibraryPanel: React.FC<LibraryPanelProps> = ({
   onPlayClip,
   onStopClip
 }) => {
+  // Get the autoOrganizeByPlayName function directly
+  const { autoOrganizeByPlayName, organizeByGames } = useClipLibrary();
+
+  const handleRunAutoOrganize = () => {
+    autoOrganizeByPlayName();
+    organizeByGames();
+    toast.success("Auto-organized all clips by play names and games");
+  };
+
   return (
-    <ClipLibrary 
-      savedClips={savedClips}
-      playLabel={playLabel}
-      selectedClip={selectedClip}
-      isPlayingClip={isPlayingClip}
-      onPlayLabelChange={onPlayLabelChange}
-      onSaveClip={onSaveClip}
-      onRemoveClip={onRemoveClip}
-      onExportClip={onExportClip}
-      onExportLibrary={onExportLibrary}
-      onPlayClip={onPlayClip}
-      onStopClip={onStopClip}
-    />
+    <div className="space-y-4">
+      <div className="text-right">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={handleRunAutoOrganize}
+          className="flex items-center gap-2"
+        >
+          <MagicWand className="h-4 w-4" />
+          Auto-organize All Clips
+        </Button>
+      </div>
+      <ClipLibrary 
+        savedClips={savedClips}
+        playLabel={playLabel}
+        selectedClip={selectedClip}
+        isPlayingClip={isPlayingClip}
+        onPlayLabelChange={onPlayLabelChange}
+        onSaveClip={onSaveClip}
+        onRemoveClip={onRemoveClip}
+        onExportClip={onExportClip}
+        onExportLibrary={onExportLibrary}
+        onPlayClip={onPlayClip}
+        onStopClip={onStopClip}
+      />
+    </div>
   );
 };
 

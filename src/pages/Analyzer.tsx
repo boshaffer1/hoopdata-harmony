@@ -57,7 +57,7 @@ const Analyzer = () => {
     setVideoUrl(url);
   };
 
-  // Handle playing saved clips
+  // This function is now correctly typed to handle SavedClip
   const handlePlaySavedClipWrapper = (clip: SavedClip) => {
     handlePlaySavedClip(clip);
   };
