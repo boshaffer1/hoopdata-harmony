@@ -42,7 +42,10 @@ const Analyzer = () => {
     exportClip,
     exportLibrary,
     exportAllMarkers,
-    handlePlaySavedClip
+    handlePlaySavedClip,
+    setSelectedClip,
+    autoOrganizeByPlayName,
+    organizeByGames
   } = useAnalyzer();
 
   const {
@@ -60,6 +63,11 @@ const Analyzer = () => {
   // Handle saving clips with auto-organize option
   const handleSaveClipWrapper = (gameData: GameData, autoOrganize?: boolean) => {
     saveClipToLibrary(gameData, autoOrganize);
+  };
+
+  // Create a wrapper for playing saved clips to fix the type error
+  const handlePlayClipWrapper = (clip: SavedClip) => {
+    handlePlaySavedClip(clip);
   };
 
   return (
@@ -120,7 +128,7 @@ const Analyzer = () => {
                 onRemoveClip={removeSavedClip}
                 onExportClip={exportClip}
                 onExportLibrary={exportLibrary}
-                onPlayClip={handlePlaySavedClip}
+                onPlayClip={handlePlayClipWrapper}
                 onStopClip={stopClip}
               />
             }
