@@ -24,10 +24,9 @@ import {
   Video, 
   Play, 
   FileVideo, 
-  FileBarChart2,
-  Files
+  FileCsv,
+  FileBarChart2
 } from "lucide-react";
-import VideoPlayer from "@/components/video/VideoPlayer";
 
 interface TeamFolderStructureProps {
   folders: ClipFolder[];
@@ -70,27 +69,10 @@ export const TeamFolderStructure: React.FC<TeamFolderStructureProps> = ({
     videoUrl: '',
     dataUrl: ''
   });
-  const [activeGameId, setActiveGameId] = useState<string | null>(null);
 
   const handleAddTeam = () => {
     if (newTeamName.trim()) {
-      const teamFolder = onCreateTeam(newTeamName, newTeamDescription);
-      
-      // Create plays and games subfolders for the team
-      if (teamFolder) {
-        onCreateFolder("Plays", "Team plays", { 
-          parentId: teamFolder.id,
-          folderType: "plays",
-          teamId: teamFolder.id
-        });
-        
-        onCreateFolder("Games", "Team games", { 
-          parentId: teamFolder.id,
-          folderType: "games",
-          teamId: teamFolder.id
-        });
-      }
-      
+      onCreateTeam(newTeamName, newTeamDescription);
       setNewTeamName('');
       setNewTeamDescription('');
       setIsCreateTeamDialogOpen(false);
@@ -99,14 +81,21 @@ export const TeamFolderStructure: React.FC<TeamFolderStructureProps> = ({
 
   const handleAddGame = () => {
     if (gameData.title && gameData.homeTeam && gameData.awayTeam && selectedTeamId) {
-      onAddGame({
+      const newGame = onAddGame({
         ...gameData,
         teamId: selectedTeamId
       });
       
+      // Find the Games folder for this team
       const gamesFolder = folders.find(f => 
         f.teamId === selectedTeamId && f.folderType === 'games'
       );
+      
+      if (gamesFolder && newGame) {
+        // Save the game full video as a clip in the library
+        // This would typically call the saveClipToLibrary function
+        // We'd implement this in a real-world scenario
+      }
       
       setGameData({
         title: '',
@@ -127,9 +116,12 @@ export const TeamFolderStructure: React.FC<TeamFolderStructureProps> = ({
     }));
   };
 
+  // Function to build the folder tree
   const buildFolderTree = () => {
+    // Get root level folders (teams)
     const teamFolders = folders.filter(folder => folder.folderType === 'team');
     
+    // For each team, get its children
     return teamFolders.map(teamFolder => {
       const isExpanded = expandedFolders[teamFolder.id] || false;
       const childFolders = folders.filter(folder => folder.parentId === teamFolder.id);
@@ -184,8 +176,9 @@ export const TeamFolderStructure: React.FC<TeamFolderStructureProps> = ({
             <div className="ml-6 mt-1 space-y-1">
               {childFolders.map(childFolder => {
                 const isChildExpanded = expandedFolders[childFolder.id] || false;
+                // Get team-specific games for the Games folder
                 const folderGames = childFolder.folderType === 'games' 
-                  ? games.filter(game => game.teamId === teamFolder.id)
+                  ? games.filter(game => game.homeTeam === teamFolder.name || game.awayTeam === teamFolder.name)
                   : [];
                 
                 return (
@@ -225,61 +218,31 @@ export const TeamFolderStructure: React.FC<TeamFolderStructureProps> = ({
                     {isChildExpanded && childFolder.folderType === 'games' && folderGames.length > 0 && (
                       <div className="ml-6 mt-1 space-y-1">
                         {folderGames.map(game => (
-                          <div key={game.id}>
-                            <div 
-                              className={`flex items-center justify-between p-2 rounded-md hover:bg-muted/50 cursor-pointer ${
-                                activeGameId === game.id ? 'bg-primary/10 border border-primary/30' : 'border border-transparent'
-                              }`}
-                              onClick={() => {
-                                // Toggle game selection
-                                setActiveGameId(activeGameId === game.id ? null : game.id);
-                              }}
-                            >
-                              <div className="flex items-center gap-2">
-                                <FileVideo className="h-5 w-5 text-blue-400" />
-                                <span>{game.title}</span>
-                                <span className="text-xs text-muted-foreground">
-                                  {new Date(game.date).toLocaleDateString()}
-                                </span>
-                              </div>
-                              <div className="flex gap-1">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <Play className="h-4 w-4" />
-                                </Button>
-                              </div>
+                          <div 
+                            key={game.id}
+                            className={`flex items-center justify-between p-2 rounded-md hover:bg-muted/50 cursor-pointer`}
+                            onClick={() => {
+                              // Handle game selection - this would navigate to a game view
+                              // or select a folder containing game possessions
+                            }}
+                          >
+                            <div className="flex items-center gap-2">
+                              <FileVideo className="h-5 w-5 text-blue-400" />
+                              <span>{game.title}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {new Date(game.date).toLocaleDateString()}
+                              </span>
                             </div>
-                            
-                            {/* Video player for the selected game */}
-                            {activeGameId === game.id && game.videoUrl && (
-                              <div className="mt-2 mb-4 rounded-md overflow-hidden border">
-                                <VideoPlayer 
-                                  src={game.videoUrl}
-                                  onTimeUpdate={() => {}}
-                                />
-                              </div>
-                            )}
-                            
-                            {/* Message when no video URL is available */}
-                            {activeGameId === game.id && !game.videoUrl && (
-                              <div className="mt-2 mb-4 p-4 rounded-md bg-muted text-center">
-                                <p className="text-muted-foreground">No video available for this game</p>
-                                <div className="mt-2">
-                                  <Input
-                                    type="text"
-                                    placeholder="Enter video URL"
-                                    className="max-w-xs mx-auto"
-                                    onChange={(e) => {
-                                      onUpdateGame(game.id, { videoUrl: e.target.value });
-                                    }}
-                                  />
-                                </div>
-                              </div>
-                            )}
+                            <div className="flex gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <Play className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -343,6 +306,7 @@ export const TeamFolderStructure: React.FC<TeamFolderStructureProps> = ({
         </Dialog>
       </div>
 
+      {/* Team folder structure */}
       <div className="border rounded-lg p-4 space-y-2 max-h-[500px] overflow-y-auto">
         {folders.some(f => f.folderType === 'team') ? (
           buildFolderTree()
@@ -356,6 +320,7 @@ export const TeamFolderStructure: React.FC<TeamFolderStructureProps> = ({
         )}
       </div>
 
+      {/* Add Game Dialog */}
       <Dialog open={isAddGameDialogOpen} onOpenChange={setIsAddGameDialogOpen}>
         <DialogContent>
           <DialogHeader>
