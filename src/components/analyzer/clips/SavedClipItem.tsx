@@ -33,7 +33,7 @@ export const SavedClipItem: React.FC<SavedClipItemProps> = ({
   };
 
   return (
-    <div className="p-3 border rounded-lg">
+    <div className="p-3">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
         <div className="flex-grow">
           <div className="flex items-baseline gap-2">
