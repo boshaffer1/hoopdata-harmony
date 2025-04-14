@@ -24,7 +24,7 @@ import {
   Video, 
   Play, 
   FileVideo, 
-  FileCsv,
+  FileText,
   FileBarChart2
 } from "lucide-react";
 
@@ -37,7 +37,7 @@ interface TeamFolderStructureProps {
   onCreateFolder: (name: string, description: string, options: any) => void;
   onUpdateFolder: (id: string, updates: Partial<ClipFolder>) => void;
   onDeleteFolder: (id: string) => void;
-  onAddGame: (gameData: any) => void;
+  onAddGame: (gameData: any) => Game;
   onUpdateGame: (id: string, updates: any) => void;
   onDeleteGame: (id: string) => void;
 }
