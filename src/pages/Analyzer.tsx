@@ -70,6 +70,12 @@ const Analyzer = () => {
     handlePlaySavedClip(clip);
   };
 
+  // Create a wrapper function that adapts SavedClip to GameData for VideoAnalyzerPanel
+  const handlePlayClipForVideoAnalyzer = (clip: GameData) => {
+    // This is the function expected by VideoAnalyzerPanel
+    playClip(clip);
+  };
+
   return (
     <Layout className="py-6">
       <div className="mb-8">
@@ -97,7 +103,7 @@ const Analyzer = () => {
           onAddMarker={addMarker}
           onSelectVideo={handleSelectRecentVideo}
           onFileLoaded={handleFileLoaded}
-          onPlayClip={playClip}
+          onPlayClip={handlePlayClipForVideoAnalyzer}
           onStopClip={stopClip}
           onExportClip={exportClip}
           onSaveClip={handleSaveClipWrapper}
