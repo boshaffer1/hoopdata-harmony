@@ -78,10 +78,10 @@ const Analyzer = () => {
     handlePlaySavedClip(clip);
   };
 
-  // Create a wrapper function that adapts SavedClip to GameData for VideoAnalyzerPanel
-  const handlePlayClipForVideoAnalyzer = (clip: GameData) => {
+  // Create a wrapper function that adapts GameData to the function expected by VideoAnalyzerPanel
+  const handlePlayClipForVideoAnalyzer = (item: GameData) => {
     // This is the function expected by VideoAnalyzerPanel
-    playClip(clip);
+    playClip(item);
   };
 
   // Handle moving multiple clips to a folder
