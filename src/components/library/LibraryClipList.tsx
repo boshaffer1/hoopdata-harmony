@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -10,6 +9,7 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { SavedClip, ClipFolder, GameSituation } from "@/types/analyzer";
 import { PlayerActionBadge } from "../analyzer/clips/PlayerActionBadge";
 import { formatVideoTime } from "@/components/video/utils";
@@ -27,7 +27,9 @@ import {
   SlidersHorizontal,
   Clock,
   Calendar,
-  Table
+  Table,
+  Check,
+  MoveRight
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { 
@@ -45,6 +47,15 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 interface LibraryClipListProps {
   clips: SavedClip[];
@@ -74,7 +85,10 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // Extract unique teams, players, dates from clips
+  const [selectedClipIds, setSelectedClipIds] = useState<string[]>([]);
+  const [showMoveDialog, setShowMoveDialog] = useState(false);
+  const [targetFolderId, setTargetFolderId] = useState<string | null>(null);
+  
   const filteredData = useMemo(() => {
     const teams = new Set<string>();
     const players = new Set<string>();
@@ -82,10 +96,8 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
     const clipTypes = new Set<string>();
     
     clips.forEach(clip => {
-      // Extract team names
       if (clip.players) {
         clip.players.forEach(player => {
-          // Extract team name from player name if available (format: "Team - Player")
           const playerParts = player.playerName.split(" - ");
           if (playerParts.length > 1) {
             teams.add(playerParts[0]);
@@ -96,11 +108,9 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
         });
       }
       
-      // Extract dates (just the date part of saved timestamp)
       const savedDate = new Date(clip.saved).toLocaleDateString();
       dates.add(savedDate);
       
-      // Add clip type
       if (clip.clipType) {
         clipTypes.add(clip.clipType);
       } else {
@@ -116,7 +126,6 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
     };
   }, [clips]);
   
-  // Filter clips based on all criteria
   const filteredClips = useMemo(() => {
     return clips.filter(clip => {
       const matchesSearch = 
@@ -202,9 +211,61 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
     toast.success("Filters reset");
   };
 
+  const toggleClipSelection = (clipId: string) => {
+    setSelectedClipIds(prev => 
+      prev.includes(clipId) 
+        ? prev.filter(id => id !== clipId) 
+        : [...prev, clipId]
+    );
+  };
+  
+  const selectAllFilteredClips = () => {
+    if (selectedClipIds.length === filteredClips.length) {
+      setSelectedClipIds([]);
+    } else {
+      setSelectedClipIds(filteredClips.map(clip => clip.id));
+    }
+  };
+  
+  const moveSelectedClips = () => {
+    if (selectedClipIds.length === 0) {
+      toast.error("No clips selected");
+      return;
+    }
+    
+    if (targetFolderId === undefined) {
+      toast.error("Please select a destination folder");
+      return;
+    }
+    
+    selectedClipIds.forEach(clipId => {
+      onMoveToFolder(clipId, targetFolderId);
+    });
+    
+    toast.success(`Moved ${selectedClipIds.length} clips to ${targetFolderId ? getFolderName(targetFolderId) : "root"}`);
+    setSelectedClipIds([]);
+    setShowMoveDialog(false);
+    setTargetFolderId(null);
+  };
+  
+  const deleteSelectedClips = () => {
+    if (selectedClipIds.length === 0) {
+      toast.error("No clips selected");
+      return;
+    }
+    
+    if (confirm(`Are you sure you want to delete ${selectedClipIds.length} clips?`)) {
+      selectedClipIds.forEach(clipId => {
+        onRemoveClip(clipId);
+      });
+      
+      toast.success(`Deleted ${selectedClipIds.length} clips`);
+      setSelectedClipIds([]);
+    }
+  };
+
   return (
     <div className="space-y-4">
-      {/* Search and filter bar */}
       <div className="flex gap-2 flex-col sm:flex-row">
         <div className="relative flex-1">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -236,7 +297,6 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
         </div>
       </div>
 
-      {/* Expanded Filter panel - Synergy style */}
       {showFilterPanel && (
         <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
           <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
@@ -245,7 +305,6 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
           </h3>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {/* Team Filter */}
             <div>
               <Select 
                 value={teamFilter} 
@@ -268,7 +327,6 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
               </Select>
             </div>
 
-            {/* Player Filter */}
             <div>
               <Select 
                 value={playerFilter} 
@@ -291,7 +349,6 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
               </Select>
             </div>
 
-            {/* Situation Filter */}
             <div>
               <Select 
                 value={situationFilter} 
@@ -314,7 +371,6 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
               </Select>
             </div>
 
-            {/* Date Filter */}
             <div>
               <Select 
                 value={dateFilter} 
@@ -337,7 +393,6 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
               </Select>
             </div>
 
-            {/* Clip Type Filter */}
             <div>
               <Select 
                 value={clipTypeFilter} 
@@ -362,7 +417,6 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
         </div>
       )}
 
-      {/* Filter stats */}
       {(situationFilter !== "all" || teamFilter !== "all" || playerFilter !== "all" || 
         dateFilter !== "all" || clipTypeFilter !== "all" || searchTerm) && (
         <div className="flex items-center justify-between">
@@ -393,10 +447,84 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
         </div>
       )}
       
-      {/* Clips list */}
+      {filteredClips.length > 0 && (
+        <div className="flex flex-wrap gap-2 items-center border-b pb-3">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={selectAllFilteredClips}
+            className="flex items-center gap-1"
+          >
+            <Check className="h-4 w-4" />
+            {selectedClipIds.length === filteredClips.length ? "Deselect All" : "Select All"}
+          </Button>
+          
+          <Dialog open={showMoveDialog} onOpenChange={setShowMoveDialog}>
+            <DialogTrigger asChild>
+              <Button 
+                variant="outline" 
+                size="sm"
+                disabled={selectedClipIds.length === 0}
+                className="flex items-center gap-1"
+              >
+                <MoveRight className="h-4 w-4" />
+                Move Selected ({selectedClipIds.length})
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Move Clips to Folder</DialogTitle>
+                <DialogDescription>
+                  Select a destination folder for {selectedClipIds.length} clips
+                </DialogDescription>
+              </DialogHeader>
+              <div className="py-4">
+                <Select onValueChange={(value) => setTargetFolderId(value === "root" ? null : value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select destination folder" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="root">Root (No Folder)</SelectItem>
+                    {folders.map(folder => (
+                      <SelectItem key={folder.id} value={folder.id}>
+                        {folder.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowMoveDialog(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={moveSelectedClips}>
+                  Move Clips
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+          
+          <Button 
+            variant="outline" 
+            size="sm"
+            disabled={selectedClipIds.length === 0}
+            className="flex items-center gap-1 text-destructive hover:text-destructive"
+            onClick={deleteSelectedClips}
+          >
+            <Trash2 className="h-4 w-4" />
+            Delete Selected
+          </Button>
+          
+          {selectedClipIds.length > 0 && (
+            <Badge variant="outline">
+              {selectedClipIds.length} selected
+            </Badge>
+          )}
+        </div>
+      )}
+      
       {filteredClips.length > 0 ? (
         <>
-          {/* Accordion view for grouped clips by date - Synergy style */}
           <Accordion 
             type="single" 
             collapsible 
@@ -415,10 +543,20 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
                   {filteredClips.map((clip) => (
                     <div 
                       key={clip.id}
-                      className="border rounded-lg p-4 hover:bg-muted/50 transition-colors"
+                      className={`border rounded-lg p-4 hover:bg-muted/50 transition-colors ${
+                        selectedClipIds.includes(clip.id) ? 'bg-primary/10 border-primary/30' : ''
+                      }`}
                     >
                       <div className="flex justify-between items-start mb-2">
-                        <h3 className="font-medium">{clip.label}</h3>
+                        <div className="flex items-start gap-2">
+                          <Checkbox 
+                            checked={selectedClipIds.includes(clip.id)}
+                            onCheckedChange={() => toggleClipSelection(clip.id)}
+                            id={`select-clip-${clip.id}`}
+                            className="mt-1"
+                          />
+                          <h3 className="font-medium">{clip.label}</h3>
+                        </div>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -489,7 +627,6 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
                           </Badge>
                         </div>
                         
-                        {/* Display player actions */}
                         {clip.players && clip.players.length > 0 && (
                           <div className="flex flex-wrap gap-1 mt-1">
                             {clip.players.map((player, idx) => (
