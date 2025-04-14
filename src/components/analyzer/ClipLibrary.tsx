@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -65,7 +64,6 @@ const ClipLibrary: React.FC<ClipLibraryProps> = ({
   const [selectedClipIds, setSelectedClipIds] = useState<string[]>([]);
   const [organizing, setOrganizing] = useState(false);
   
-  // Get all available folders from localStorage
   const getFolders = (): ClipFolder[] => {
     try {
       const foldersData = localStorage.getItem('clipFolders');
@@ -80,7 +78,6 @@ const ClipLibrary: React.FC<ClipLibraryProps> = ({
   
   const folders = getFolders();
   
-  // Create a new folder
   const handleCreateFolder = () => {
     if (!newFolderName.trim()) {
       toast.error("Please enter a folder name");
@@ -110,7 +107,6 @@ const ClipLibrary: React.FC<ClipLibraryProps> = ({
     }
   };
   
-  // Toggle clip selection for multi-select
   const toggleClipSelection = (clipId: string) => {
     setSelectedClipIds(prev => 
       prev.includes(clipId) 
@@ -119,7 +115,6 @@ const ClipLibrary: React.FC<ClipLibraryProps> = ({
     );
   };
   
-  // Select all clips
   const selectAllClips = () => {
     if (selectedClipIds.length === savedClips.length) {
       setSelectedClipIds([]);
@@ -128,7 +123,6 @@ const ClipLibrary: React.FC<ClipLibraryProps> = ({
     }
   };
   
-  // Move selected clips to folder
   const moveSelectedClipsToFolder = () => {
     if (!selectedFolderId || selectedClipIds.length === 0) {
       toast.error("Please select a folder and at least one clip");
@@ -149,7 +143,6 @@ const ClipLibrary: React.FC<ClipLibraryProps> = ({
       setIsMovingClips(false);
       setSelectedFolderId(null);
       
-      // Refresh the page to see updates
       window.location.reload();
     } catch (error) {
       console.error("Error moving clips:", error);
@@ -157,12 +150,10 @@ const ClipLibrary: React.FC<ClipLibraryProps> = ({
     }
   };
   
-  // Auto-organize clips
   const autoOrganizeClips = () => {
     setOrganizing(true);
     
     try {
-      // Create main folders if they don't exist
       let playsFolder = folders.find(f => f.name === "Plays");
       let gamesFolder = folders.find(f => f.name === "Games");
       
@@ -192,16 +183,15 @@ const ClipLibrary: React.FC<ClipLibraryProps> = ({
         updatedFolders.push(gamesFolder);
       }
       
-      // Create offense/defense subfolders
-      let offenseFolder = folders.find(f => f.name === "Offense" && f.parentId === gamesFolder.id);
-      let defenseFolder = folders.find(f => f.name === "Defense" && f.parentId === gamesFolder.id);
+      let offenseFolder = folders.find(f => f.name === "Offense" && f.parentId === playsFolder.id);
+      let defenseFolder = folders.find(f => f.name === "Defense" && f.parentId === playsFolder.id);
       
       if (!offenseFolder) {
         offenseFolder = {
           id: `folder-offense-${Date.now()}`,
           name: "Offense",
           description: "Offensive possessions",
-          parentId: gamesFolder.id,
+          parentId: playsFolder.id,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         };
@@ -213,19 +203,19 @@ const ClipLibrary: React.FC<ClipLibraryProps> = ({
           id: `folder-defense-${Date.now()}`,
           name: "Defense",
           description: "Defensive possessions",
-          parentId: gamesFolder.id,
+          parentId: playsFolder.id,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         };
         updatedFolders.push(defenseFolder);
       }
       
-      // Save updated folders
       localStorage.setItem('clipFolders', JSON.stringify(updatedFolders));
       
-      // Organize clips by name into subfolders under Plays
       const clipsByName = savedClips.reduce((acc, clip) => {
         const name = clip.label.trim();
+        if (!name || name === "clip" || name.length < 3) return acc;
+        
         if (!acc[name]) {
           acc[name] = [];
         }
@@ -233,14 +223,11 @@ const ClipLibrary: React.FC<ClipLibraryProps> = ({
         return acc;
       }, {} as Record<string, SavedClip[]>);
       
-      // Create subfolders for each play name and move clips there
       let updatedClips = [...savedClips];
       
       Object.entries(clipsByName).forEach(([name, clips]) => {
-        // Skip if the name is empty or too generic
         if (!name || name === "clip" || name.length < 3) return;
         
-        // Create subfolder for this play name if it has multiple clips
         if (clips.length > 1) {
           const playSubfolder = {
             id: `folder-play-${name.replace(/\s+/g, '-').toLowerCase()}-${Date.now()}`,
@@ -253,21 +240,18 @@ const ClipLibrary: React.FC<ClipLibraryProps> = ({
           
           updatedFolders.push(playSubfolder);
           
-          // Move clips to this subfolder
           updatedClips = updatedClips.map(clip => 
             clip.label === name ? { ...clip, folderId: playSubfolder.id } : clip
           );
         }
       });
       
-      // Save everything
       localStorage.setItem('clipFolders', JSON.stringify(updatedFolders));
       localStorage.setItem('savedClips', JSON.stringify(updatedClips));
       
       toast.success("Clips organized into folders");
       setOrganizing(false);
       
-      // Refresh the page to see updates
       window.location.reload();
     } catch (error) {
       console.error("Error auto-organizing clips:", error);
@@ -276,7 +260,6 @@ const ClipLibrary: React.FC<ClipLibraryProps> = ({
     }
   };
   
-  // Delete selected clips
   const deleteSelectedClips = () => {
     if (selectedClipIds.length === 0) {
       toast.error("Please select at least one clip to delete");
@@ -290,7 +273,6 @@ const ClipLibrary: React.FC<ClipLibraryProps> = ({
       toast.success(`Deleted ${selectedClipIds.length} clips`);
       setSelectedClipIds([]);
       
-      // Refresh the page to see updates
       window.location.reload();
     } catch (error) {
       console.error("Error deleting clips:", error);
