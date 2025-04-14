@@ -171,7 +171,7 @@ const Analyzer = () => {
             selectedClip={selectedClip}
             isPlayingClip={isPlayingClip}
             onFileLoaded={handleFileLoaded}
-            onPlayClip={handlePlayGameData} // Use the wrapper function here
+            onPlayClip={handlePlayGameData}
             onStopClip={stopClip}
             onExportClip={exportClip}
           />
@@ -216,7 +216,7 @@ const Analyzer = () => {
                 onRemoveClip={removeSavedClip}
                 onExportClip={exportClip}
                 onExportLibrary={exportLibrary}
-                onPlayClip={handlePlaySavedClipWrapper} // This is the correct type now
+                onPlayClip={handlePlaySavedClipWrapper}
                 onStopClip={stopClip}
               />
             </TabsContent>

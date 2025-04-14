@@ -1,11 +1,9 @@
 
 import React from "react";
+import { SavedClip } from "@/types/analyzer";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { PlayCircle, Download, Trash2, Flag } from "lucide-react";
-import { SavedClip, GameSituation } from "@/types/analyzer";
-import { formatVideoTime } from "@/components/video/utils";
-import { PlayerActionBadge } from "./PlayerActionBadge";
+import { Play, Download, Trash2, Video, VideoOff } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
 
 interface SavedClipItemProps {
   clip: SavedClip;
@@ -20,78 +18,81 @@ export const SavedClipItem: React.FC<SavedClipItemProps> = ({
   onExport,
   onRemove
 }) => {
-  const getSituationLabel = (situation: GameSituation): string => {
-    const labels: Record<GameSituation, string> = {
-      transition: "Transition",
-      half_court: "Half Court",
-      ato: "After Timeout (ATO)",
-      slob: "Sideline Out of Bounds (SLOB)",
-      blob: "Baseline Out of Bounds (BLOB)",
-      press_break: "Press Break",
-      zone_offense: "Zone Offense",
-      man_offense: "Man Offense",
-      fast_break: "Fast Break",
-      other: "Other"
-    };
-    
-    return labels[situation] || situation;
+  const formattedTime = () => {
+    const minutes = Math.floor(clip.startTime / 60);
+    const seconds = Math.floor(clip.startTime % 60);
+    return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+  };
+
+  const formattedDuration = () => {
+    const minutes = Math.floor(clip.duration / 60);
+    const seconds = Math.floor(clip.duration % 60);
+    return minutes > 0 
+      ? `${minutes}m ${seconds}s` 
+      : `${seconds}s`;
   };
 
   return (
-    <div className="border rounded-lg p-3 hover:bg-muted/50">
-      <div className="flex justify-between items-start">
-        <div className="flex-1">
-          <div className="flex items-center gap-2">
-            <h4 className="font-medium">{clip.label}</h4>
-            {clip.situation && (
-              <Badge variant="secondary" className="text-xs">
-                <Flag className="h-3 w-3 mr-1" />
-                {getSituationLabel(clip.situation)}
-              </Badge>
-            )}
+    <div className="p-3 border rounded-lg">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
+        <div className="flex-grow">
+          <div className="flex items-baseline gap-2">
+            <h3 className="font-medium line-clamp-1">{clip.label}</h3>
+            <span className="text-xs text-muted-foreground">
+              {formattedTime()} ({formattedDuration()})
+            </span>
           </div>
-          <p className="text-xs text-muted-foreground">
-            {clip.timeline} • {formatVideoTime(clip.startTime)} ({formatVideoTime(clip.duration)})
-          </p>
+          
           {clip.notes && (
-            <p className="text-xs mt-1">{clip.notes}</p>
+            <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
+              {clip.notes}
+            </p>
           )}
           
-          {/* Display player actions */}
-          {clip.players && clip.players.length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-2">
-              {clip.players.map((player, idx) => (
-                <PlayerActionBadge
-                  key={idx}
-                  player={player}
-                  size="sm"
-                />
-              ))}
-            </div>
-          )}
+          <div className="flex items-center gap-2 mt-1">
+            {clip.videoUrl ? (
+              <span className="inline-flex items-center text-xs text-green-600 dark:text-green-400">
+                <Video className="h-3 w-3 mr-1" />
+                Video available
+              </span>
+            ) : (
+              <span className="inline-flex items-center text-xs text-amber-600 dark:text-amber-400">
+                <VideoOff className="h-3 w-3 mr-1" />
+                No video linked
+              </span>
+            )}
+            
+            <span className="text-xs text-muted-foreground">
+              Saved {formatDistanceToNow(new Date(clip.saved), { addSuffix: true })}
+            </span>
+          </div>
         </div>
-        <div className="flex shrink-0">
-          <Button 
-            variant="ghost" 
+        
+        <div className="flex space-x-1 self-end md:self-center">
+          <Button
+            variant="ghost"
             size="icon"
+            className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50 dark:text-green-500 dark:hover:text-green-400 dark:hover:bg-green-950/50"
             onClick={() => onPlay(clip)}
             title="Play clip"
           >
-            <PlayCircle className="h-4 w-4" />
+            <Play className="h-4 w-4" />
           </Button>
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             size="icon"
+            className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:text-blue-500 dark:hover:text-blue-400 dark:hover:bg-blue-950/50"
             onClick={() => onExport(clip)}
             title="Export clip"
           >
             <Download className="h-4 w-4" />
           </Button>
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             size="icon"
+            className="h-8 w-8 text-destructive hover:bg-destructive/10"
             onClick={() => onRemove(clip.id)}
-            title="Remove clip"
+            title="Delete clip"
           >
             <Trash2 className="h-4 w-4" />
           </Button>

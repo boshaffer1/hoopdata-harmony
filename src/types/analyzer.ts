@@ -32,6 +32,7 @@ export interface SavedClip {
   teamId?: string;
   gameId?: string;
   clipType?: "play" | "possession" | "full_game" | "other";
+  videoUrl?: string; // URL to the video this clip belongs to
 }
 
 export interface ClipFolder {

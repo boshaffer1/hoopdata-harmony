@@ -4,12 +4,22 @@ import { SavedClip, ClipFolder, Game, ExportOptions } from "@/types/analyzer";
 import { v4 as uuidv4 } from "uuid";
 import { toast } from "sonner";
 
+// Define a type for storing video metadata
+interface VideoMetadata {
+  url: string;
+  name: string;
+  timestamp: number;
+  duration?: number;
+  thumbnailUrl?: string;
+}
+
 export const useClipLibrary = (videoUrl?: string) => {
   const [savedClips, setSavedClips] = useState<SavedClip[]>([]);
   const [playLabel, setPlayLabel] = useState("");
   const [folders, setFolders] = useState<ClipFolder[]>([]);
   const [games, setGames] = useState<Game[]>([]);
   const [activeFolder, setActiveFolder] = useState<string | null>(null);
+  const [videoRegistry, setVideoRegistry] = useState<VideoMetadata[]>([]);
   const DEFAULT_UNNAMED_FOLDER_ID = "unnamed-clips-folder";
 
   // Load saved clips and folders from local storage
@@ -32,8 +42,14 @@ export const useClipLibrary = (videoUrl?: string) => {
       if (storedGames) {
         setGames(JSON.parse(storedGames));
       }
+
+      // Load video registry
+      const storedRegistry = localStorage.getItem("videoRegistry");
+      if (storedRegistry) {
+        setVideoRegistry(JSON.parse(storedRegistry));
+      }
     } catch (error) {
-      console.error("Error loading clips from local storage:", error);
+      console.error("Error loading data from local storage:", error);
     }
   }, []);
 
@@ -63,6 +79,36 @@ export const useClipLibrary = (videoUrl?: string) => {
       console.error("Error saving games to local storage:", error);
     }
   }, [games]);
+
+  // Save video registry to local storage
+  useEffect(() => {
+    try {
+      localStorage.setItem("videoRegistry", JSON.stringify(videoRegistry));
+    } catch (error) {
+      console.error("Error saving video registry to local storage:", error);
+    }
+  }, [videoRegistry]);
+
+  // Register the current video if it exists and is not already registered
+  useEffect(() => {
+    if (videoUrl) {
+      const existingVideo = videoRegistry.find(v => v.url === videoUrl);
+      if (!existingVideo) {
+        // Extract video name from URL if possible
+        const name = videoUrl.split('/').pop() || 'Unnamed Video';
+        
+        // Add to video registry
+        const newVideo: VideoMetadata = {
+          url: videoUrl,
+          name,
+          timestamp: Date.now()
+        };
+        
+        setVideoRegistry(prev => [newVideo, ...prev]);
+        console.log("Added new video to registry:", name);
+      }
+    }
+  }, [videoUrl, videoRegistry]);
 
   // Ensure the "Unnamed Clips" folder exists
   const createUnnamedClipsFolder = () => {
@@ -114,6 +160,7 @@ export const useClipLibrary = (videoUrl?: string) => {
         players: parsedPlayers,
         situation: clip.Situation || "other",
         folderId: isUnnamed ? DEFAULT_UNNAMED_FOLDER_ID : undefined,
+        videoUrl: videoUrl // Store the current video URL with the clip
       };
 
       setSavedClips(prevClips => [...prevClips, newClip]);
@@ -213,6 +260,7 @@ export const useClipLibrary = (videoUrl?: string) => {
           players: parsedPlayers,
           situation: clip.Situation || "other",
           folderId: isUnnamed ? DEFAULT_UNNAMED_FOLDER_ID : undefined,
+          videoUrl: videoUrl // Store the current video URL with the clip
         };
 
         newClips.push(newClip);
@@ -365,14 +413,16 @@ export const useClipLibrary = (videoUrl?: string) => {
       const clipsSize = new Blob([JSON.stringify(savedClips)]).size;
       const foldersSize = new Blob([JSON.stringify(folders)]).size;
       const gamesSize = new Blob([JSON.stringify(games)]).size;
+      const registrySize = new Blob([JSON.stringify(videoRegistry)]).size;
       
-      const totalSizeBytes = clipsSize + foldersSize + gamesSize;
+      const totalSizeBytes = clipsSize + foldersSize + gamesSize + registrySize;
       const totalSizeKB = Math.round(totalSizeBytes / 1024);
       
       return {
         clipsSize,
         foldersSize,
         gamesSize,
+        registrySize,
         totalSizeBytes,
         totalSizeKB
       };
@@ -396,7 +446,7 @@ export const useClipLibrary = (videoUrl?: string) => {
         
         setSavedClips(prev => [...prev, ...newClips]);
         return true;
-      } else if (importData.clips || importData.folders || importData.games) {
+      } else if (importData.clips || importData.folders || importData.games || importData.videoRegistry) {
         // Import structured data
         if (importData.clips && Array.isArray(importData.clips)) {
           setSavedClips(prev => [...prev, ...importData.clips]);
@@ -410,6 +460,10 @@ export const useClipLibrary = (videoUrl?: string) => {
           setGames(prev => [...prev, ...importData.games]);
         }
         
+        if (importData.videoRegistry && Array.isArray(importData.videoRegistry)) {
+          setVideoRegistry(prev => [...prev, ...importData.videoRegistry]);
+        }
+        
         return true;
       }
       
@@ -418,6 +472,18 @@ export const useClipLibrary = (videoUrl?: string) => {
       console.error("Error importing library:", error);
       return false;
     }
+  };
+
+  // Function to get a video by URL
+  const getVideoByUrl = (url: string) => {
+    return videoRegistry.find(v => v.url === url);
+  };
+
+  // Get all available videos for a specific folder
+  const getVideosByFolder = (folderId: string | null) => {
+    const clips = getClipsByFolder(folderId);
+    const uniqueVideoUrls = [...new Set(clips.map(clip => clip.videoUrl).filter(Boolean))];
+    return uniqueVideoUrls.map(url => getVideoByUrl(url as string)).filter(Boolean);
   };
 
   return {
@@ -446,6 +512,9 @@ export const useClipLibrary = (videoUrl?: string) => {
     getStorageInfo,
     importLibrary,
     activeFolder,
-    setActiveFolder
+    setActiveFolder,
+    videoRegistry,
+    getVideoByUrl,
+    getVideosByFolder
   };
 };

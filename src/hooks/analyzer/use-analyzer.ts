@@ -54,7 +54,9 @@ export const useAnalyzer = () => {
     moveClipToFolder,
     games,
     addGame,
-    updateGame
+    updateGame,
+    videoRegistry,
+    getVideoByUrl
   } = useClipLibrary(videoUrl);
 
   const handleFileLoaded = (loadedData: any) => {
@@ -98,7 +100,24 @@ export const useAnalyzer = () => {
   };
 
   const handlePlaySavedClip = (clip: SavedClip) => {
-    // Check if we have a video loaded
+    // First check if the clip has a videoUrl
+    const clipVideoUrl = clip.videoUrl;
+    
+    // If we have a video URL associated with this clip
+    if (clipVideoUrl) {
+      // If it's different from the current video, load it
+      if (clipVideoUrl !== videoUrl) {
+        toast.info("Loading the associated video for this clip...");
+        setVideoUrl(clipVideoUrl);
+        // Give time for the video to load before playing
+        setTimeout(() => {
+          playSavedClipInternal(clip);
+        }, 800);
+        return;
+      }
+    }
+    
+    // If no specific video URL or it's the current one, use the current video
     if (!videoUrl) {
       // Check the recent videos first to see if we can find a matching video
       const clipVideoFound = recentVideos.some(video => {
