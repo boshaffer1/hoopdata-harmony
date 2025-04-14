@@ -1,7 +1,7 @@
 
 import React from "react";
 import ClipLibrary from "@/components/analyzer/ClipLibrary";
-import { GameData, SavedClip } from "@/types/analyzer";
+import { GameData, SavedClip, ClipFolder } from "@/types/analyzer";
 import { Button } from "@/components/ui/button";
 import { Wand2 } from "lucide-react";
 import { useClipLibrary } from "@/hooks/analyzer/use-clip-library";
@@ -19,6 +19,9 @@ interface LibraryPanelProps {
   onExportLibrary: () => void;
   onPlayClip: (clip: SavedClip) => void;
   onStopClip: () => void;
+  onBulkMoveClips?: (clipIds: string[], targetFolderId: string | null) => void;
+  onCreateFolder?: (name: string, description: string) => ClipFolder | undefined;
+  folders?: ClipFolder[];
 }
 
 const LibraryPanel: React.FC<LibraryPanelProps> = ({
@@ -32,7 +35,10 @@ const LibraryPanel: React.FC<LibraryPanelProps> = ({
   onExportClip,
   onExportLibrary,
   onPlayClip,
-  onStopClip
+  onStopClip,
+  onBulkMoveClips,
+  onCreateFolder,
+  folders
 }) => {
   // Get the autoOrganizeByPlayName function directly
   const { autoOrganizeByPlayName, organizeByGames } = useClipLibrary();
@@ -68,6 +74,9 @@ const LibraryPanel: React.FC<LibraryPanelProps> = ({
         onExportLibrary={onExportLibrary}
         onPlayClip={onPlayClip}
         onStopClip={onStopClip}
+        onBulkMoveClips={onBulkMoveClips}
+        onCreateFolder={onCreateFolder}
+        folders={folders}
       />
     </div>
   );

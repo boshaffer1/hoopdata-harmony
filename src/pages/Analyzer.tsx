@@ -9,6 +9,7 @@ import MarkerPanel from "@/components/analyzer/panels/MarkerPanel";
 import LibraryPanel from "@/components/analyzer/panels/LibraryPanel";
 import RosterPanel from "@/components/analyzer/panels/RosterPanel";
 import { SavedClip, GameData } from "@/types/analyzer";
+import { useClipLibrary } from "@/hooks/analyzer/use-clip-library";
 
 const Analyzer = () => {
   const [activeTab, setActiveTab] = useState("markers");
@@ -56,6 +57,13 @@ const Analyzer = () => {
     removePlayer
   } = useRoster();
 
+  // Get clip organization functions from useClipLibrary
+  const { 
+    folders, 
+    createFolder, 
+    bulkMoveClips 
+  } = useClipLibrary(videoUrl);
+
   const handleSelectRecentVideo = (url: string) => {
     setVideoUrl(url);
   };
@@ -74,6 +82,16 @@ const Analyzer = () => {
   const handlePlayClipForVideoAnalyzer = (clip: GameData) => {
     // This is the function expected by VideoAnalyzerPanel
     playClip(clip);
+  };
+
+  // Handle moving multiple clips to a folder
+  const handleBulkMoveClips = (clipIds: string[], targetFolderId: string | null) => {
+    bulkMoveClips(clipIds, targetFolderId);
+  };
+
+  // Handle creating a new folder
+  const handleCreateFolder = (name: string, description: string) => {
+    return createFolder(name, description);
   };
 
   return (
@@ -136,6 +154,9 @@ const Analyzer = () => {
                 onExportLibrary={exportLibrary}
                 onPlayClip={handlePlayClipWrapper}
                 onStopClip={stopClip}
+                onBulkMoveClips={handleBulkMoveClips}
+                onCreateFolder={handleCreateFolder}
+                folders={folders}
               />
             }
             rosterPanel={
