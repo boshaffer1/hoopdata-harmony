@@ -1,4 +1,3 @@
-
 export interface Marker {
   time: number;
   label: string;
@@ -55,6 +54,7 @@ export interface Game {
   dataUrl?: string;
   createdAt: string;
   updatedAt: string;
+  teamId?: string; // Adding teamId to associate games with teams
 }
 
 export interface PlayerAction {
@@ -111,7 +111,6 @@ export const GAME_SITUATIONS: GameSituation[] = [
   "other"
 ];
 
-// New Team Roster related types
 export interface Player {
   id: string;
   name: string;
