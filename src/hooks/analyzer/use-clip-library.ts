@@ -1,5 +1,6 @@
+
 import { useState, useEffect } from "react";
-import { SavedClip, ClipFolder, Game, ExportOptions } from "@/types/analyzer";
+import { SavedClip, ClipFolder, Game, ExportOptions, GameSituation } from "@/types/analyzer";
 import { v4 as uuidv4 } from "uuid";
 import { toast } from "sonner";
 

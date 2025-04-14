@@ -3,7 +3,7 @@ import React from "react";
 import ClipLibrary from "@/components/analyzer/ClipLibrary";
 import { GameData, SavedClip } from "@/types/analyzer";
 import { Button } from "@/components/ui/button";
-import { MagicWand } from "lucide-react";
+import { Wand2 } from "lucide-react";
 import { useClipLibrary } from "@/hooks/analyzer/use-clip-library";
 import { toast } from "sonner";
 
@@ -52,7 +52,7 @@ const LibraryPanel: React.FC<LibraryPanelProps> = ({
           onClick={handleRunAutoOrganize}
           className="flex items-center gap-2"
         >
-          <MagicWand className="h-4 w-4" />
+          <Wand2 className="h-4 w-4" />
           Auto-organize All Clips
         </Button>
       </div>

@@ -57,11 +57,6 @@ const Analyzer = () => {
     setVideoUrl(url);
   };
 
-  // This function is now correctly typed to handle SavedClip
-  const handlePlaySavedClipWrapper = (clip: SavedClip) => {
-    handlePlaySavedClip(clip);
-  };
-
   // Handle saving clips with auto-organize option
   const handleSaveClipWrapper = (gameData: GameData, autoOrganize?: boolean) => {
     saveClipToLibrary(gameData, autoOrganize);
@@ -125,7 +120,7 @@ const Analyzer = () => {
                 onRemoveClip={removeSavedClip}
                 onExportClip={exportClip}
                 onExportLibrary={exportLibrary}
-                onPlayClip={handlePlaySavedClipWrapper}
+                onPlayClip={handlePlaySavedClip}
                 onStopClip={stopClip}
               />
             }

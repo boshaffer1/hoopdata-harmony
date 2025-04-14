@@ -42,7 +42,7 @@ export interface ClipFolder {
   createdAt: string;
   updatedAt: string;
   parentId?: string; // For nested folders
-  folderType?: "team" | "plays" | "games" | "other";
+  folderType?: "team" | "plays" | "games" | "game" | "game-clips" | "other";
   teamId?: string; // To associate folders with specific teams
 }
 
