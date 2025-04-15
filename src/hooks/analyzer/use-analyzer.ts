@@ -2,10 +2,14 @@ import { useVideo } from "./use-video";
 import { useMarkers } from "./use-markers";
 import { useGameData } from "./use-game-data";
 import { useClipLibrary } from "./use-clip-library";
+import { useAuth } from "../use-auth";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SavedClip, GameData } from "@/types/analyzer";
 
 export const useAnalyzer = () => {
+  const { user } = useAuth();
+
   const {
     videoUrl,
     currentTime,
@@ -56,6 +60,53 @@ export const useAnalyzer = () => {
       const createdMarkers = addMarkersFromData(processedData);
       
       const savedClips = saveClipsFromData(processedData);
+      
+      if (user) {
+        const uploadVideoAndData = async () => {
+          try {
+            if (videoUrl) {
+              const videoFile = await fetch(videoUrl);
+              const videoBlob = await videoFile.blob();
+              const videoFileName = `game_video_${Date.now()}.mp4`;
+              
+              const { data: uploadData, error: uploadError } = await supabase.storage
+                .from('videos')
+                .upload(videoFileName, videoBlob, {
+                  contentType: 'video/mp4',
+                });
+              
+              if (uploadError) throw uploadError;
+              
+              const { data: videoData, error: videoError } = await supabase
+                .from('video_files')
+                .insert({
+                  user_id: user.id,
+                  filename: videoFileName,
+                  file_path: uploadData?.path,
+                });
+              
+              if (videoError) throw videoError;
+              
+              const { error: csvError } = await supabase
+                .from('csv_data')
+                .insert({
+                  user_id: user.id,
+                  data: processedData,
+                  filename: `game_data_${Date.now()}.csv`
+                });
+              
+              if (csvError) throw csvError;
+              
+              toast.success(`Uploaded video and ${processedData.length} plays to Supabase`);
+            }
+          } catch (error) {
+            console.error("Error uploading to Supabase:", error);
+            toast.error("Failed to save video and data to cloud");
+          }
+        };
+        
+        uploadVideoAndData();
+      }
       
       toast.success(`Created ${createdMarkers.length} markers and ${savedClips.length} clips from ${processedData.length} plays`);
     }

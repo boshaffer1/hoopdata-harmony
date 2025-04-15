@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/use-auth";
 
 interface VideoFile {
   id: string;
@@ -39,13 +39,20 @@ const ExistingVideosSection: React.FC<ExistingVideosSectionProps> = ({
   const [csvFiles, setCsvFiles] = useState<CSVData[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'videos' | 'csv'>('videos');
+  const { user } = useAuth();
 
   const fetchVideos = async () => {
+    if (!user) {
+      setVideos([]);
+      return;
+    }
+
     setLoading(true);
     try {
       const { data, error } = await supabase
         .from('video_files')
         .select('*')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
       
       if (error) {
@@ -62,11 +69,17 @@ const ExistingVideosSection: React.FC<ExistingVideosSectionProps> = ({
   };
 
   const fetchCsvData = async () => {
+    if (!user) {
+      setCsvFiles([]);
+      return;
+    }
+
     setLoading(true);
     try {
       const { data, error } = await supabase
         .from('csv_data')
         .select('*')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
       
       if (error) {
@@ -83,15 +96,21 @@ const ExistingVideosSection: React.FC<ExistingVideosSectionProps> = ({
   };
 
   useEffect(() => {
-    fetchVideos();
-    fetchCsvData();
-  }, []);
+    if (user) {
+      fetchVideos();
+      fetchCsvData();
+    }
+  }, [user]);
 
   const handleSelectVideo = async (video: VideoFile) => {
+    if (!user) {
+      toast.error('Please log in to access videos');
+      return;
+    }
+
     try {
-      // Get a signed URL for the video file
       const { data, error } = await supabase.storage
-        .from('videos') // Change to your bucket name if different
+        .from('videos')
         .createSignedUrl(video.file_path, 3600);
       
       if (error) {
@@ -109,6 +128,11 @@ const ExistingVideosSection: React.FC<ExistingVideosSectionProps> = ({
   };
 
   const handleSelectCsv = (csvData: CSVData) => {
+    if (!user) {
+      toast.error('Please log in to access CSV data');
+      return;
+    }
+
     if (csvData.data) {
       onCsvDataSelect(csvData.data);
       toast.success(`Loaded CSV data: ${csvData.filename}`);
@@ -118,9 +142,12 @@ const ExistingVideosSection: React.FC<ExistingVideosSectionProps> = ({
   };
 
   const handleRefresh = () => {
-    fetchVideos();
-    fetchCsvData();
-    toast.info('Refreshing data from server');
+    if (user) {
+      activeTab === 'videos' ? fetchVideos() : fetchCsvData();
+      toast.info('Refreshing data from server');
+    } else {
+      toast.error('Please log in to refresh data');
+    }
   };
 
   return (
