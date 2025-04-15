@@ -608,119 +608,173 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
   };
 
   const autoOrganizeClips = () => {
-    let teamFolder = folders.find(f => f.folderType === "team");
-    
-    if (!teamFolder) {
-      teamFolder = createTeamFolder("My Team", "Default team");
+    try {
+      toast.info("Starting to organize clips...");
+      
+      // Create a "My Library" folder if it doesn't exist
+      let myLibraryFolder = folders.find(f => f.name === "My Library");
+      
+      if (!myLibraryFolder) {
+        myLibraryFolder = createFolder("My Library", "Default library folder");
+        if (!myLibraryFolder) {
+          toast.error("Failed to create My Library folder");
+          return;
+        }
+      }
+      
+      // Find or create team folder
+      let teamFolder = folders.find(f => f.folderType === "team");
+      
       if (!teamFolder) {
-        toast.error("Failed to create team folder");
-        return;
+        teamFolder = createTeamFolder("My Team", "Default team");
+        if (!teamFolder) {
+          toast.error("Failed to create team folder");
+          return;
+        }
       }
-    }
-    
-    let playsFolder = folders.find(f => 
-      f.parentId === teamFolder.id && 
-      f.folderType === "plays"
-    );
-    
-    let gamesFolder = folders.find(f => 
-      f.parentId === teamFolder.id && 
-      f.folderType === "games"
-    );
-    
-    if (!playsFolder) {
-      playsFolder = createFolder("Plays", "Team plays and possessions", { 
-        parentId: teamFolder.id, 
-        folderType: "plays",
-        teamId: teamFolder.id 
-      });
+      
+      // Find or create plays and games folders
+      let playsFolder = folders.find(f => 
+        f.parentId === teamFolder.id && 
+        f.folderType === "plays"
+      );
+      
+      let gamesFolder = folders.find(f => 
+        f.parentId === teamFolder.id && 
+        f.folderType === "games"
+      );
+      
       if (!playsFolder) {
-        toast.error("Failed to create plays folder");
-        return;
+        playsFolder = createFolder("Plays", "Team plays and possessions", { 
+          parentId: teamFolder.id, 
+          folderType: "plays",
+          teamId: teamFolder.id 
+        });
+        if (!playsFolder) {
+          toast.error("Failed to create plays folder");
+          return;
+        }
       }
-    }
-    
-    if (!gamesFolder) {
-      gamesFolder = createFolder("Games", "Full game recordings", { 
-        parentId: teamFolder.id, 
-        folderType: "games",
-        teamId: teamFolder.id 
-      });
+      
       if (!gamesFolder) {
-        toast.error("Failed to create games folder");
-        return;
-      }
-    }
-    
-    const clipsByName: Record<string, SavedClip[]> = {};
-    const fullGameClips: SavedClip[] = [];
-    
-    savedClips.forEach(clip => {
-      if (clip.duration > 60) {
-        fullGameClips.push(clip);
-      } else {
-        const name = clip.label || "Unnamed Clip";
-        if (!clipsByName[name]) {
-          clipsByName[name] = [];
+        gamesFolder = createFolder("Games", "Full game recordings", { 
+          parentId: teamFolder.id, 
+          folderType: "games",
+          teamId: teamFolder.id 
+        });
+        if (!gamesFolder) {
+          toast.error("Failed to create games folder");
+          return;
         }
-        clipsByName[name].push(clip);
       }
-    });
-    
-    const updatedFolders = [...folders];
-    const playSubfolders: Record<string, ClipFolder> = {};
-    
-    Object.entries(clipsByName).forEach(([name, clips]) => {
-      if (clips.length > 0 && playsFolder) {
-        const playSubfolder: ClipFolder = {
-          id: `folder-play-${name.replace(/\s+/g, '-').toLowerCase()}-${Date.now()}`,
-          name,
-          description: `Clips for ${name}`,
-          parentId: playsFolder.id,
-          teamId: teamFolder?.id,
-          folderType: "other",
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        };
+      
+      const clipsByName: Record<string, SavedClip[]> = {};
+      const fullGameClips: SavedClip[] = [];
+      const otherClips: SavedClip[] = [];
+      
+      // First, categorize clips
+      savedClips.forEach(clip => {
+        // Skip clips that are already organized
+        if (clip.folderId) {
+          return;
+        }
         
-        updatedFolders.push(playSubfolder);
-        playSubfolders[name] = playSubfolder;
-      }
-    });
-    
-    const updatedClips = savedClips.map(clip => {
-      if (clip.duration > 60 && gamesFolder) {
-        return {
-          ...clip,
-          folderId: gamesFolder.id,
-          teamId: teamFolder?.id,
-          clipType: "full_game" as ClipType
-        };
-      } else {
-        const subfolder = playSubfolders[clip.label];
-        if (subfolder) {
-          return {
-            ...clip,
-            folderId: subfolder.id,
-            teamId: teamFolder?.id,
-            clipType: "play" as ClipType
-          };
-        } else if (playsFolder) {
-          return {
-            ...clip,
-            folderId: playsFolder.id,
-            teamId: teamFolder?.id,
-            clipType: "play" as ClipType
-          };
+        if (clip.duration > 60) {
+          fullGameClips.push(clip);
+        } else if (clip.label && clip.label.trim() !== "") {
+          const name = clip.label;
+          if (!clipsByName[name]) {
+            clipsByName[name] = [];
+          }
+          clipsByName[name].push(clip);
+        } else {
+          otherClips.push(clip);
         }
-      }
-      return clip;
-    });
-    
-    setFolders(updatedFolders);
-    setSavedClips(updatedClips);
-    
-    toast.success("Clips organized into team folders");
+      });
+      
+      const updatedFolders = [...folders];
+      const playSubfolders: Record<string, ClipFolder> = {};
+      
+      // Create subfolders for each play name
+      Object.entries(clipsByName).forEach(([name, clips]) => {
+        if (clips.length > 0 && playsFolder) {
+          // Check if a subfolder already exists
+          let playSubfolder = folders.find(f => 
+            f.parentId === playsFolder.id && 
+            f.name === name
+          );
+          
+          // Create a new subfolder if it doesn't exist
+          if (!playSubfolder) {
+            playSubfolder = {
+              id: `folder-play-${name.replace(/\s+/g, '-').toLowerCase()}-${Date.now()}`,
+              name,
+              description: `Clips for ${name}`,
+              parentId: playsFolder.id,
+              teamId: teamFolder?.id,
+              folderType: "other",
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString()
+            };
+            
+            updatedFolders.push(playSubfolder);
+          }
+          
+          playSubfolders[name] = playSubfolder;
+        }
+      });
+      
+      // Update clips with folder and team IDs
+      const updatedClips = savedClips.map(clip => {
+        // Skip clips that are already organized
+        if (clip.folderId) {
+          return clip;
+        }
+        
+        // First, add to My Library if not already in a folder
+        let updatedClip = { ...clip, folderId: myLibraryFolder?.id };
+        
+        // Then, organize by type
+        if (clip.duration > 60 && gamesFolder) {
+          // Place full games in the Games folder
+          updatedClip = {
+            ...updatedClip,
+            folderId: gamesFolder.id,
+            teamId: teamFolder?.id,
+            clipType: "full_game" as ClipType
+          };
+        } else if (clip.label && clip.label.trim() !== "") {
+          const subfolder = playSubfolders[clip.label];
+          if (subfolder) {
+            // Place in play subfolder
+            updatedClip = {
+              ...updatedClip, 
+              folderId: subfolder.id,
+              teamId: teamFolder?.id,
+              clipType: "play" as ClipType
+            };
+          } else if (playsFolder) {
+            // Fallback to main plays folder
+            updatedClip = {
+              ...updatedClip,
+              folderId: playsFolder.id,
+              teamId: teamFolder?.id,
+              clipType: "play" as ClipType
+            };
+          }
+        }
+        
+        return updatedClip;
+      });
+      
+      setFolders(updatedFolders);
+      setSavedClips(updatedClips);
+      
+      toast.success("Clips organized into My Library and team folders");
+    } catch (error) {
+      console.error("Error auto-organizing clips:", error);
+      toast.error("Failed to organize clips");
+    }
   };
 
   return {

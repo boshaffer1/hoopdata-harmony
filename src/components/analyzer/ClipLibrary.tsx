@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { SavedClip, GameData } from "@/types/analyzer";
@@ -61,6 +60,14 @@ const ClipLibrary: React.FC<ClipLibraryProps> = ({
     }
   };
 
+  const handleSelectAllClips = () => {
+    if (selectedClipIds.length === savedClips.length) {
+      setSelectedClipIds([]);
+    } else {
+      setSelectedClipIds(savedClips.map(clip => clip.id));
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="space-y-4">
@@ -100,6 +107,22 @@ const ClipLibrary: React.FC<ClipLibraryProps> = ({
       </div>
 
       <div className="border-t pt-6">
+        {selectionMode && (
+          <div className="mb-4">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleSelectAllClips}
+              className="mr-2"
+            >
+              {selectedClipIds.length === savedClips.length ? "Deselect All" : "Select All"}
+            </Button>
+            <span className="text-sm text-muted-foreground">
+              {selectedClipIds.length} of {savedClips.length} selected
+            </span>
+          </div>
+        )}
+        
         <ClipLibraryList
           savedClips={savedClips}
           onPlayClip={onPlayClip}
