@@ -674,11 +674,7 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
       
       // First, categorize clips
       savedClips.forEach(clip => {
-        // Skip clips that are already organized
-        if (clip.folderId) {
-          return;
-        }
-        
+        // Include all clips for reorganization, even those already in folders
         if (clip.duration > 60) {
           fullGameClips.push(clip);
         } else if (clip.label && clip.label.trim() !== "") {
@@ -726,12 +722,8 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
       
       // Update clips with folder and team IDs
       const updatedClips = savedClips.map(clip => {
-        // Skip clips that are already organized
-        if (clip.folderId) {
-          return clip;
-        }
-        
-        // First, add to My Library if not already in a folder
+        // Always update all clips to ensure proper organization
+        // First, add to My Library as the base folder
         let updatedClip = { ...clip, folderId: myLibraryFolder?.id };
         
         // Then, organize by type

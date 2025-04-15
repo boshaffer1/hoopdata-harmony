@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { SavedClip, GameData } from "@/types/analyzer";
@@ -68,19 +69,37 @@ const ClipLibrary: React.FC<ClipLibraryProps> = ({
     }
   };
 
+  const handleAutoOrganize = () => {
+    if (onAutoOrganize) {
+      onAutoOrganize();
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <h3 className="text-base font-medium">Save Current Clip</h3>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={handleToggleSelectionMode}
-            className="text-xs"
-          >
-            {selectionMode ? "Exit Selection" : "Select Multiple"}
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={handleToggleSelectionMode}
+              className="text-xs"
+            >
+              {selectionMode ? "Exit Selection" : "Select Multiple"}
+            </Button>
+            {onAutoOrganize && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleAutoOrganize}
+                className="text-xs"
+              >
+                Auto-Organize
+              </Button>
+            )}
+          </div>
         </div>
 
         <div className="space-y-3">
