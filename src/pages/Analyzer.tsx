@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BookmarkIcon, Library, Users, StopCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SavedClip, GameData } from "@/types/analyzer";
+import { Progress } from "@/components/ui/progress";
 
 const Analyzer = () => {
   const {
@@ -25,6 +26,8 @@ const Analyzer = () => {
     playLabel,
     savedClips,
     isPlayingClip,
+    isUploading,
+    uploadProgress,
     videoPlayerRef,
     handleFileLoaded,
     handleVideoFileChange,
@@ -42,7 +45,8 @@ const Analyzer = () => {
     exportClip,
     exportLibrary,
     exportAllMarkers,
-    handlePlaySavedClip
+    handlePlaySavedClip,
+    autoOrganizeClips
   } = useAnalyzer();
 
   const {
@@ -75,6 +79,14 @@ const Analyzer = () => {
             onVideoSelect={handleVideoFileChange}
             onCsvDataSelect={handleFileLoaded}
           />
+          
+          {isUploading && (
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-4 rounded-md">
+              <p className="mb-2 font-medium">Uploading video to your account</p>
+              <Progress value={uploadProgress} className="h-2" />
+              <p className="mt-1 text-xs text-muted-foreground">{uploadProgress}% complete</p>
+            </div>
+          )}
           
           <VideoSection 
             videoUrl={videoUrl}
@@ -165,6 +177,7 @@ const Analyzer = () => {
                 onExportLibrary={exportLibrary}
                 onPlayClip={handleLibrarySavedClipPlay}
                 onStopClip={stopClip}
+                onAutoOrganize={autoOrganizeClips}
               />
             </TabsContent>
             

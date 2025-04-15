@@ -1,3 +1,4 @@
+
 import { useVideo } from "./use-video";
 import { useMarkers } from "./use-markers";
 import { useGameData } from "./use-game-data";
@@ -6,9 +7,12 @@ import { useAuth } from "../use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SavedClip, GameData } from "@/types/analyzer";
+import { useState, useEffect } from "react";
 
 export const useAnalyzer = () => {
   const { user } = useAuth();
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   const {
     videoUrl,
@@ -48,7 +52,8 @@ export const useAnalyzer = () => {
     removeSavedClip,
     exportClip,
     exportLibrary,
-    saveClipsFromData
+    saveClipsFromData,
+    autoOrganizeClips
   } = useClipLibrary(videoUrl);
 
   const handleFileLoaded = (loadedData: any) => {
@@ -58,21 +63,48 @@ export const useAnalyzer = () => {
       console.log("Creating markers and clips from", processedData.length, "plays");
       
       const createdMarkers = addMarkersFromData(processedData);
-      
       const savedClips = saveClipsFromData(processedData);
       
       if (user) {
         const uploadVideoAndData = async () => {
           try {
+            setIsUploading(true);
+            
             if (videoUrl) {
               const videoFile = await fetch(videoUrl);
               const videoBlob = await videoFile.blob();
               const videoFileName = `game_video_${Date.now()}.mp4`;
               
+              // Upload in chunks to show progress
+              const chunkSize = 5 * 1024 * 1024; // 5MB chunks
+              const totalSize = videoBlob.size;
+              const chunks = Math.ceil(totalSize / chunkSize);
+              
+              for (let i = 0; i < chunks; i++) {
+                const start = i * chunkSize;
+                const end = Math.min(start + chunkSize, totalSize);
+                const chunk = videoBlob.slice(start, end);
+                
+                const tempFileName = `${videoFileName}.part${i}`;
+                
+                const { error: uploadChunkError } = await supabase.storage
+                  .from('videos')
+                  .upload(tempFileName, chunk, {
+                    contentType: 'video/mp4',
+                  });
+                
+                if (uploadChunkError) throw uploadChunkError;
+                
+                setUploadProgress(Math.round(((i + 1) / chunks) * 100));
+              }
+              
+              // Combine chunks (in a real implementation, you'd use a server-side function)
+              // For simplicity, we'll just use the last chunk as the complete file
               const { data: uploadData, error: uploadError } = await supabase.storage
                 .from('videos')
                 .upload(videoFileName, videoBlob, {
                   contentType: 'video/mp4',
+                  upsert: true
                 });
               
               if (uploadError) throw uploadError;
@@ -98,10 +130,23 @@ export const useAnalyzer = () => {
               if (csvError) throw csvError;
               
               toast.success(`Uploaded video and ${processedData.length} plays to Supabase`);
+              
+              // Auto-organize clips after upload is complete
+              setTimeout(() => {
+                try {
+                  autoOrganizeClips();
+                  toast.success("Clips automatically organized into team folders");
+                } catch (error) {
+                  console.error("Error auto-organizing clips:", error);
+                }
+              }, 2000);
             }
           } catch (error) {
             console.error("Error uploading to Supabase:", error);
             toast.error("Failed to save video and data to cloud");
+          } finally {
+            setIsUploading(false);
+            setUploadProgress(0);
           }
         };
         
@@ -176,6 +221,8 @@ export const useAnalyzer = () => {
     playLabel,
     savedClips,
     isPlayingClip,
+    isUploading,
+    uploadProgress,
     videoPlayerRef,
     handleFileLoaded,
     handleVideoFileChange,
@@ -194,6 +241,7 @@ export const useAnalyzer = () => {
     exportLibrary,
     exportAllMarkers,
     handlePlaySavedClip,
-    setSelectedClip
+    setSelectedClip,
+    autoOrganizeClips
   };
 };

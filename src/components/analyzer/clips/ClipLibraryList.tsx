@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { List, Download, Building2, Users, ChevronDown, FolderTree } from "lucide-react";
@@ -26,6 +27,7 @@ interface ClipLibraryListProps {
   selectable?: boolean;
   selectedClipIds?: string[];
   onToggleSelection?: (id: string) => void;
+  onAutoOrganize?: () => void;
 }
 
 export const ClipLibraryList: React.FC<ClipLibraryListProps> = ({
@@ -37,6 +39,7 @@ export const ClipLibraryList: React.FC<ClipLibraryListProps> = ({
   selectable = false,
   selectedClipIds = [],
   onToggleSelection = () => {},
+  onAutoOrganize
 }) => {
   const [showMoveToOptions, setShowMoveToOptions] = useState(false);
   
@@ -126,20 +129,25 @@ export const ClipLibraryList: React.FC<ClipLibraryListProps> = ({
     }
   };
   
-  // Function to automatically organize clips into teams, plays, and games folders
-  const autoOrganizeClips = () => {
-    // Get the auto-organize function from localStorage
-    try {
-      const foldersData = localStorage.getItem('clipFolders');
-      const clipsData = localStorage.getItem('savedClips');
-      
-      if (!foldersData || !clipsData) {
-        toast.error("No folders or clips data found");
-        return;
-      }
-      
-      // Use the hook's auto-organize function
-      const organizeClips = () => {
+  // Handler for auto-organize button
+  const handleAutoOrganize = () => {
+    if (onAutoOrganize) {
+      onAutoOrganize();
+      toast.success("Auto-organizing clips...");
+    } else {
+      // Fallback to previous implementation if no handler is provided
+      try {
+        // Get the auto-organize function from localStorage
+        const foldersData = localStorage.getItem('clipFolders');
+        const clipsData = localStorage.getItem('savedClips');
+        
+        if (!foldersData || !clipsData) {
+          toast.error("No folders or clips data found");
+          return;
+        }
+        
+        toast.success("Starting auto-organize process...");
+        
         // Find or create team folder
         let teamFolder = folders.find(f => f.folderType === "team");
         
@@ -283,13 +291,13 @@ export const ClipLibraryList: React.FC<ClipLibraryListProps> = ({
         toast.success("Clips organized into team folders");
         
         // Reload the page to reflect changes
-        window.location.reload();
-      };
-      
-      organizeClips();
-    } catch (error) {
-      console.error("Error auto-organizing clips:", error);
-      toast.error("Failed to organize clips");
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      } catch (error) {
+        console.error("Error auto-organizing clips:", error);
+        toast.error("Failed to organize clips");
+      }
     }
   };
 
@@ -416,7 +424,7 @@ export const ClipLibraryList: React.FC<ClipLibraryListProps> = ({
           <Button 
             variant="outline" 
             size="sm" 
-            onClick={autoOrganizeClips}
+            onClick={handleAutoOrganize}
           >
             Auto-Organize
           </Button>
