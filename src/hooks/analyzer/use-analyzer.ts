@@ -1,4 +1,3 @@
-
 import { useVideo } from "./use-video";
 import { useMarkers } from "./use-markers";
 import { useGameData } from "./use-game-data";
@@ -11,7 +10,7 @@ export const useAnalyzer = () => {
     videoUrl,
     currentTime,
     videoPlayerRef,
-    handleVideoFileChange,
+    handleVideoFileChange: originalHandleVideoFileChange,
     handleTimeUpdate,
     seekToMarker
   } = useVideo();
@@ -64,6 +63,15 @@ export const useAnalyzer = () => {
     return processedData;
   };
 
+  const handleVideoFileChange = (fileOrUrl: File | string) => {
+    if (typeof fileOrUrl === 'string') {
+      console.log("Loading video from URL:", fileOrUrl);
+      return originalHandleVideoFileChange(fileOrUrl);
+    } else {
+      return originalHandleVideoFileChange(fileOrUrl);
+    }
+  };
+
   const playSelectedClip = (item: GameData) => {
     if (!videoUrl) {
       toast.error("Please upload a video first");
@@ -102,7 +110,6 @@ export const useAnalyzer = () => {
     playSelectedClip(gameDataClip);
   };
   
-  // Add this new function to stop clip playback
   const handleStopClip = () => {
     if (isPlayingClip) {
       if (videoPlayerRef.current) {

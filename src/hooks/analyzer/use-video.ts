@@ -1,62 +1,42 @@
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { toast } from "sonner";
-import { getSupportedFormats } from "@/hooks/video-player/utils";
 
 export const useVideo = () => {
-  const [videoUrl, setVideoUrl] = useState<string | undefined>();
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
   const videoPlayerRef = useRef<any>(null);
-  
-  // Monitor video player readiness
-  const [isPlayerReady, setIsPlayerReady] = useState(false);
-  
-  useEffect(() => {
-    // Check if video player is ready when the URL changes
-    if (videoUrl && videoPlayerRef.current) {
-      // Give the player some time to initialize
-      const checkTimer = setTimeout(() => {
-        setIsPlayerReady(true);
-        console.log("Video player marked as ready");
-      }, 1000);
-      
-      return () => clearTimeout(checkTimer);
-    } else {
-      setIsPlayerReady(false);
-    }
-  }, [videoUrl, videoPlayerRef.current]);
 
-  const handleVideoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // Reset state when loading a new video
-      setIsPlayerReady(false);
+  const handleVideoFileChange = (fileOrUrl: File | string) => {
+    if (!fileOrUrl) {
+      toast.error("No file selected");
+      return;
+    }
+
+    try {
+      let newVideoUrl;
       
-      // Check file type
-      const fileType = file.type;
-      console.log("Video file type:", fileType);
-      
-      // Log supported formats
-      const supportedFormats = getSupportedFormats();
-      console.log("Browser supports these video formats:", supportedFormats);
-      
-      // Check if the browser likely supports this format
-      const video = document.createElement('video');
-      const supportLevel = video.canPlayType(fileType);
-      console.log(`Browser support for ${fileType}: ${supportLevel}`);
-      
-      // Recommend WebM for better compatibility
-      if (supportLevel === "" || supportLevel === "maybe") {
-        toast.info(`For best compatibility, WebM format is recommended. Your browser supports: ${supportedFormats.join(", ")}`, {
-          duration: 5000,
-        });
+      if (typeof fileOrUrl === 'string') {
+        // This is already a URL
+        newVideoUrl = fileOrUrl;
+        console.log("Setting video URL from string:", fileOrUrl);
+      } else {
+        // This is a File object
+        newVideoUrl = URL.createObjectURL(fileOrUrl);
+        console.log("Created object URL for file:", fileOrUrl.name);
       }
       
-      const url = URL.createObjectURL(file);
-      setVideoUrl(url);
+      setVideoUrl(newVideoUrl);
+      toast.success("Video loaded successfully");
       
-      toast.success(`Loaded video: ${file.name}`);
-      console.log("Set new video URL:", url);
+      // Reset current time
+      setCurrentTime(0);
+      
+      return newVideoUrl;
+    } catch (error) {
+      console.error("Error processing video file:", error);
+      toast.error("Failed to load video file");
+      return null;
     }
   };
 
@@ -64,64 +44,16 @@ export const useVideo = () => {
     setCurrentTime(time);
   };
 
-  // Modified to ensure more reliable seeking with proper validation and retries
   const seekToMarker = (time: number) => {
-    if (!videoPlayerRef.current) {
-      toast.error("Video player not initialized");
-      return Promise.reject("Video player not initialized");
+    if (videoPlayerRef.current) {
+      videoPlayerRef.current.seekToTime(time);
     }
-    
-    if (!isPlayerReady) {
-      toast.warning("Video player is still initializing. Please try again in a moment.");
-      return Promise.reject("Video player not ready");
-    }
-    
-    console.log(`Seeking to marker at ${time}s`);
-    
-    // Important: Pause playback before seeking to avoid decoder errors
-    try {
-      if (videoPlayerRef.current) {
-        videoPlayerRef.current.pause();
-      }
-    } catch (err) {
-      console.warn("Error pausing before seek:", err);
-    }
-    
-    // Add a small delay to ensure pause takes effect
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        if (videoPlayerRef.current) {
-          videoPlayerRef.current.seekToTime(time)
-            .then(() => {
-              console.log(`Successfully sought to ${time}s`);
-              // Verify the seek worked by checking current time
-              const currentPos = videoPlayerRef.current.getCurrentTime();
-              console.log(`Current position after seek: ${currentPos}s`);
-              
-              // If seek didn't work properly (more than 2s difference), try once more
-              if (Math.abs(currentPos - time) > 2) {
-                console.warn(`Seek discrepancy detected (${currentPos} vs ${time}), trying again`);
-                return videoPlayerRef.current.seekToTime(time);
-              }
-              return resolve(true);
-            })
-            .catch((error: any) => {
-              console.error("Error seeking to marker:", error);
-              toast.error("Failed to seek to marker position");
-              return Promise.reject(error);
-            });
-        } else {
-          resolve(false);
-        }
-      }, 200); // Small delay before seeking
-    });
   };
 
   return {
     videoUrl,
     currentTime,
     videoPlayerRef,
-    isPlayerReady,
     handleVideoFileChange,
     handleTimeUpdate,
     seekToMarker

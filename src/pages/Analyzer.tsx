@@ -6,6 +6,7 @@ import GameDataSection from "@/components/analyzer/GameDataSection";
 import MarkersList from "@/components/analyzer/MarkersList";
 import ClipLibrary from "@/components/analyzer/ClipLibrary";
 import RosterView from "@/components/analyzer/teams/RosterView";
+import ExistingVideosSection from "@/components/analyzer/ExistingVideosSection";
 import { useAnalyzer } from "@/hooks/analyzer/use-analyzer";
 import { useRoster } from "@/hooks/analyzer/use-roster";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -69,6 +70,12 @@ const Analyzer = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Video Player and Upload Section */}
         <div className="lg:col-span-2 space-y-6">
+          {/* Add Existing Videos Section */}
+          <ExistingVideosSection 
+            onVideoSelect={handleVideoFileChange}
+            onCsvDataSelect={handleFileLoaded}
+          />
+          
           <VideoSection 
             videoUrl={videoUrl}
             currentTime={currentTime}
