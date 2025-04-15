@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { FolderList } from "@/components/library/FolderList";
@@ -19,6 +18,8 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
+import { supabase } from "@/lib/supabase";
+import { toast } from "react-toastify";
 
 const ClipLibrary = () => {
   const navigate = useNavigate();
@@ -49,19 +50,84 @@ const ClipLibrary = () => {
   const [showPersistenceInfo, setShowPersistenceInfo] = useState(false);
   const [viewMode, setViewMode] = useState<"classic" | "teams">("classic");
   const [teamSearch, setTeamSearch] = useState("");
+  const [isLoadingVideo, setIsLoadingVideo] = useState(false);
+  const [currentVideoUrl, setCurrentVideoUrl] = useState<string | null>(null);
+  const [videoError, setVideoError] = useState<string | null>(null);
 
   const filteredClips = getClipsByFolder(activeFolder);
   const storageInfo = getStorageInfo();
   const teamFolders = getTeamFolders();
   
-  // Handle redirecting to analyzer to play clips
-  const handlePlayClip = (clip: any) => {
-    handlePlaySavedClip(clip);
-    // We don't navigate to analyzer anymore - playing inline
-    // navigate("/analyzer");
+  const handlePlayClip = async (clip: any) => {
+    try {
+      setIsLoadingVideo(true);
+      setVideoError(null);
+      
+      if (videoUrl) {
+        handlePlaySavedClip(clip);
+        setCurrentVideoUrl(videoUrl);
+        setIsLoadingVideo(false);
+        return;
+      }
+      
+      if (clip.gameId) {
+        const game = games.find(g => g.id === clip.gameId);
+        if (game && game.videoUrl) {
+          console.log("Loading video from game record:", game.videoUrl);
+          await handlePlaySavedClip({
+            ...clip,
+            videoUrl: game.videoUrl
+          });
+          setCurrentVideoUrl(game.videoUrl);
+          setIsLoadingVideo(false);
+          return;
+        }
+      }
+      
+      try {
+        const { data: videoFiles, error } = await supabase
+          .from('video_files')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(1);
+          
+        if (error) throw error;
+        
+        if (videoFiles && videoFiles.length > 0) {
+          const videoFile = videoFiles[0];
+          
+          const { data } = await supabase
+            .storage
+            .from('videos')
+            .getPublicUrl(videoFile.file_path);
+            
+          if (data && data.publicUrl) {
+            console.log("Loading video from Supabase:", data.publicUrl);
+            await handlePlaySavedClip({
+              ...clip,
+              videoUrl: data.publicUrl
+            });
+            setCurrentVideoUrl(data.publicUrl);
+          } else {
+            throw new Error("Failed to get public URL for video");
+          }
+        } else {
+          throw new Error("No videos found in database");
+        }
+      } catch (storageError) {
+        console.error("Error fetching video from Supabase:", storageError);
+        setVideoError("Could not find a suitable video to play this clip. Please upload a video in the Analyzer page first.");
+        toast.error("Video not found. Please upload a video first.");
+      }
+    } catch (error) {
+      console.error("Error playing clip:", error);
+      setVideoError("Failed to play clip. Please try again or upload a video in the Analyzer page.");
+      toast.error("Failed to play clip");
+    } finally {
+      setIsLoadingVideo(false);
+    }
   };
 
-  // Filter team folders based on search
   const filteredTeamFolders = teamFolders.filter(folder => 
     folder.name.toLowerCase().includes(teamSearch.toLowerCase())
   );
@@ -130,7 +196,6 @@ const ClipLibrary = () => {
         )}
       </div>
       
-      {/* View Mode Tabs */}
       <Tabs defaultValue="classic" className="mb-6">
         <TabsList>
           <TabsTrigger 
@@ -152,9 +217,18 @@ const ClipLibrary = () => {
         </TabsList>
       </Tabs>
       
+      {videoError && (
+        <Alert className="mb-4" variant="destructive">
+          <Info className="h-4 w-4" />
+          <AlertTitle>Video Error</AlertTitle>
+          <AlertDescription>
+            {videoError}
+          </AlertDescription>
+        </Alert>
+      )}
+      
       {viewMode === "classic" ? (
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Left sidebar - Folders */}
           <div className="lg:col-span-1">
             <FolderList
               folders={folders}
@@ -166,7 +240,6 @@ const ClipLibrary = () => {
             />
           </div>
           
-          {/* Main content - Clips */}
           <div className="lg:col-span-3">
             <LibraryClipList
               clips={filteredClips}
@@ -176,6 +249,7 @@ const ClipLibrary = () => {
               onExportClip={exportClip}
               onRemoveClip={removeSavedClip}
               onMoveToFolder={moveClipToFolder}
+              isLoadingVideo={isLoadingVideo}
             />
           </div>
         </div>
@@ -186,7 +260,7 @@ const ClipLibrary = () => {
             games={games || []}
             savedClips={savedClips}
             activeFolder={activeFolder}
-            videoUrl={videoUrl}
+            videoUrl={currentVideoUrl || videoUrl}
             onSelectFolder={setActiveFolder}
             onCreateTeam={createTeamFolder}
             onCreateFolder={createFolder}

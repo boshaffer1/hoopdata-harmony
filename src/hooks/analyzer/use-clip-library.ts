@@ -668,9 +668,20 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
         }
       }
       
+      // Create "Unnamed Clips" folder if it doesn't exist
+      let unnamedClipsFolder = folders.find(f => f.name === "Unnamed Clips");
+      if (!unnamedClipsFolder) {
+        unnamedClipsFolder = createFolder("Unnamed Clips", "Automatically generated unnamed clips");
+        if (!unnamedClipsFolder) {
+          toast.error("Failed to create Unnamed Clips folder");
+          return;
+        }
+      }
+      
       const clipsByName: Record<string, SavedClip[]> = {};
       const fullGameClips: SavedClip[] = [];
       const otherClips: SavedClip[] = [];
+      const unnamedClips: SavedClip[] = [];
       
       // First, categorize clips
       savedClips.forEach(clip => {
@@ -678,11 +689,16 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
         if (clip.duration > 60) {
           fullGameClips.push(clip);
         } else if (clip.label && clip.label.trim() !== "") {
-          const name = clip.label;
-          if (!clipsByName[name]) {
-            clipsByName[name] = [];
+          // Check if this is an unnamed clip (matches the pattern "Clip at X.Xs")
+          if (clip.label.match(/^Clip at \d+(\.\d+)?s$/)) {
+            unnamedClips.push(clip);
+          } else {
+            const name = clip.label;
+            if (!clipsByName[name]) {
+              clipsByName[name] = [];
+            }
+            clipsByName[name].push(clip);
           }
-          clipsByName[name].push(clip);
         } else {
           otherClips.push(clip);
         }
@@ -726,8 +742,15 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
         // First, add to My Library as the base folder
         let updatedClip = { ...clip, folderId: myLibraryFolder?.id };
         
-        // Then, organize by type
-        if (clip.duration > 60 && gamesFolder) {
+        // Check if this is an unnamed clip
+        if (clip.label.match(/^Clip at \d+(\.\d+)?s$/)) {
+          // Place unnamed clips in the Unnamed Clips folder
+          updatedClip = {
+            ...updatedClip,
+            folderId: unnamedClipsFolder?.id,
+            clipType: "other" as ClipType
+          };
+        } else if (clip.duration > 60 && gamesFolder) {
           // Place full games in the Games folder
           updatedClip = {
             ...updatedClip,

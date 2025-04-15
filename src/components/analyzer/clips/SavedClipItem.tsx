@@ -3,7 +3,7 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { PlayCircle, Download, Trash2, Flag } from "lucide-react";
+import { PlayCircle, Download, Trash2, Flag, Loader2 } from "lucide-react";
 import { SavedClip, GameSituation } from "@/types/analyzer";
 import { formatVideoTime } from "@/components/video/utils";
 import { PlayerActionBadge } from "./PlayerActionBadge";
@@ -16,6 +16,7 @@ interface SavedClipItemProps {
   selectable?: boolean;
   isSelected?: boolean;
   onToggleSelection?: (id: string) => void;
+  disabled?: boolean;
 }
 
 export const SavedClipItem: React.FC<SavedClipItemProps> = ({
@@ -26,6 +27,7 @@ export const SavedClipItem: React.FC<SavedClipItemProps> = ({
   selectable = false,
   isSelected = false,
   onToggleSelection = () => {},
+  disabled = false,
 }) => {
   const getSituationLabel = (situation: GameSituation): string => {
     const labels: Record<GameSituation, string> = {
@@ -45,7 +47,7 @@ export const SavedClipItem: React.FC<SavedClipItemProps> = ({
   };
 
   return (
-    <li className={`border rounded-lg p-3 hover:bg-muted/50 ${isSelected ? 'bg-primary/10 border-primary/30' : ''}`}>
+    <li className={`border rounded-lg p-3 hover:bg-muted/50 ${isSelected ? 'bg-primary/10 border-primary/30' : ''} ${disabled ? 'opacity-70' : ''}`}>
       <div className="flex justify-between items-start">
         {selectable && (
           <div className="mr-2 mt-1">
@@ -53,6 +55,7 @@ export const SavedClipItem: React.FC<SavedClipItemProps> = ({
               checked={isSelected}
               onCheckedChange={() => onToggleSelection(clip.id)}
               id={`select-clip-${clip.id}`}
+              disabled={disabled}
             />
           </div>
         )}
@@ -92,14 +95,18 @@ export const SavedClipItem: React.FC<SavedClipItemProps> = ({
             size="icon"
             onClick={() => onPlay(clip)}
             title="Play clip"
+            disabled={disabled}
           >
-            <PlayCircle className="h-4 w-4" />
+            {disabled ? 
+              <Loader2 className="h-4 w-4 animate-spin" /> : 
+              <PlayCircle className="h-4 w-4" />}
           </Button>
           <Button 
             variant="ghost" 
             size="icon"
             onClick={() => onExport(clip)}
             title="Export clip"
+            disabled={disabled}
           >
             <Download className="h-4 w-4" />
           </Button>
@@ -108,6 +115,7 @@ export const SavedClipItem: React.FC<SavedClipItemProps> = ({
             size="icon"
             onClick={() => onRemove(clip.id)}
             title="Remove clip"
+            disabled={disabled}
           >
             <Trash2 className="h-4 w-4" />
           </Button>
