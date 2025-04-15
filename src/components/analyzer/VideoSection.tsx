@@ -17,7 +17,7 @@ interface VideoSectionProps {
   markers: Marker[];
   videoPlayerRef: React.RefObject<any>;
   onTimeUpdate: (time: number) => void;
-  onVideoFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onVideoFileChange: (e: File | string | React.ChangeEvent<HTMLInputElement>) => void;
   onNewMarkerLabelChange: (value: string) => void;
   onAddMarker: () => void;
 }

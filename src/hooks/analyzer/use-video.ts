@@ -7,10 +7,24 @@ export const useVideo = () => {
   const [currentTime, setCurrentTime] = useState(0);
   const videoPlayerRef = useRef<any>(null);
 
-  const handleVideoFileChange = (fileOrUrl: File | string) => {
+  const handleVideoFileChange = (fileOrEvent: File | string | React.ChangeEvent<HTMLInputElement>) => {
+    let fileOrUrl: File | string | undefined;
+    
+    // Handle different input types
+    if (fileOrEvent instanceof File) {
+      // Direct File object
+      fileOrUrl = fileOrEvent;
+    } else if (typeof fileOrEvent === 'string') {
+      // Direct URL string
+      fileOrUrl = fileOrEvent;
+    } else if (fileOrEvent?.target?.files?.length) {
+      // Event from input[type=file]
+      fileOrUrl = fileOrEvent.target.files[0];
+    }
+
     if (!fileOrUrl) {
       toast.error("No file selected");
-      return;
+      return null;
     }
 
     try {

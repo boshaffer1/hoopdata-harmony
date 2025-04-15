@@ -63,13 +63,8 @@ export const useAnalyzer = () => {
     return processedData;
   };
 
-  const handleVideoFileChange = (fileOrUrl: File | string) => {
-    if (typeof fileOrUrl === 'string') {
-      console.log("Loading video from URL:", fileOrUrl);
-      return originalHandleVideoFileChange(fileOrUrl);
-    } else {
-      return originalHandleVideoFileChange(fileOrUrl);
-    }
+  const handleVideoFileChange = (fileOrEvent: File | string | React.ChangeEvent<HTMLInputElement>) => {
+    return originalHandleVideoFileChange(fileOrEvent);
   };
 
   const playSelectedClip = (item: GameData) => {
