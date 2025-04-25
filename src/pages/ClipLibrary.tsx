@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import Layout from "@/components/layout/Layout";
 import { FolderList } from "@/components/library/FolderList";
 import { LibraryClipList } from "@/components/library/LibraryClipList";
+import { ClipThumbnailGrid } from "@/components/library/ClipThumbnailGrid";
 import { TeamFolderStructure } from "@/components/library/TeamFolderStructure";
 import { Button } from "@/components/ui/button";
-import { Download, Info, Search, Filter, FolderTree, Layers } from "lucide-react";
+import { Download, Info, Filter, FolderTree, Layers } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useClipLibrary } from "@/hooks/analyzer/use-clip-library";
 import { useRoster } from "@/hooks/analyzer/use-roster"; 
@@ -17,9 +18,8 @@ import {
 } from "@/components/ui/tooltip";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
-import { supabase } from "@/lib/supabase";
-import { toast } from "react-toastify";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const ClipLibrary = () => {
   const navigate = useNavigate();
@@ -53,6 +53,7 @@ const ClipLibrary = () => {
   const [isLoadingVideo, setIsLoadingVideo] = useState(false);
   const [currentVideoUrl, setCurrentVideoUrl] = useState<string | null>(null);
   const [videoError, setVideoError] = useState<string | null>(null);
+  const [displayMode, setDisplayMode] = useState<'list' | 'grid'>('list');
 
   const filteredClips = getClipsByFolder(activeFolder);
   const storageInfo = getStorageInfo();
@@ -214,6 +215,34 @@ const ClipLibrary = () => {
             <FolderTree className="h-4 w-4" />
             Team Organization
           </TabsTrigger>
+          <div className="ml-auto flex items-center gap-2">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant={displayMode === 'list' ? 'default' : 'outline'} 
+                    size="sm"
+                    onClick={() => setDisplayMode('list')}
+                  >
+                    List View
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>View clips in a detailed list</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant={displayMode === 'grid' ? 'default' : 'outline'} 
+                    size="sm"
+                    onClick={() => setDisplayMode('grid')}
+                  >
+                    Grid View
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>View clips as thumbnails</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
         </TabsList>
       </Tabs>
       
@@ -241,16 +270,23 @@ const ClipLibrary = () => {
           </div>
           
           <div className="lg:col-span-3">
-            <LibraryClipList
-              clips={filteredClips}
-              folders={folders}
-              activeFolder={activeFolder}
-              onPlayClip={handlePlayClip}
-              onExportClip={exportClip}
-              onRemoveClip={removeSavedClip}
-              onMoveToFolder={moveClipToFolder}
-              isLoadingVideo={isLoadingVideo}
-            />
+            {displayMode === 'list' ? (
+              <LibraryClipList
+                clips={filteredClips}
+                folders={folders}
+                activeFolder={activeFolder}
+                onPlayClip={handlePlayClip}
+                onExportClip={exportClip}
+                onRemoveClip={removeSavedClip}
+                onMoveToFolder={moveClipToFolder}
+                isLoadingVideo={isLoadingVideo}
+              />
+            ) : (
+              <ClipThumbnailGrid
+                clips={filteredClips}
+                onPlayClip={handlePlayClip}
+              />
+            )}
           </div>
         </div>
       ) : (
