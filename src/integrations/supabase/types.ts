@@ -42,54 +42,6 @@ export type Database = {
         }
         Relationships: []
       }
-      clips_duplicate: {
-        Row: {
-          "Away Team Player Involved": string | null
-          clip_path: string | null
-          created_at: string | null
-          Duration: number
-          "Home Team Player nvolved": string | null
-          id: string
-          Notes: string | null
-          Rebounding: string | null
-          Shooting: string | null
-          Situation: string | null
-          Start_time: number
-          Turnovers: string
-          video_id: string
-        }
-        Insert: {
-          "Away Team Player Involved"?: string | null
-          clip_path?: string | null
-          created_at?: string | null
-          Duration: number
-          "Home Team Player nvolved"?: string | null
-          id?: string
-          Notes?: string | null
-          Rebounding?: string | null
-          Shooting?: string | null
-          Situation?: string | null
-          Start_time: number
-          Turnovers: string
-          video_id: string
-        }
-        Update: {
-          "Away Team Player Involved"?: string | null
-          clip_path?: string | null
-          created_at?: string | null
-          Duration?: number
-          "Home Team Player nvolved"?: string | null
-          id?: string
-          Notes?: string | null
-          Rebounding?: string | null
-          Shooting?: string | null
-          Situation?: string | null
-          Start_time?: number
-          Turnovers?: string
-          video_id?: string
-        }
-        Relationships: []
-      }
       csv_data: {
         Row: {
           created_at: string

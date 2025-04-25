@@ -2,9 +2,12 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { SavedClip } from '@/types/analyzer';
-import { PlayCircle } from 'lucide-react';
+import { PlayCircle, Tag } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import FilterBar from './FilterBar';
 
 interface ClipThumbnailGridProps {
   clips: SavedClip[];
@@ -15,6 +18,8 @@ export const ClipThumbnailGrid: React.FC<ClipThumbnailGridProps> = ({
   clips, 
   onPlayClip 
 }) => {
+  const [activeFilters, setActiveFilters] = React.useState<string[]>([]);
+  
   const getPublicThumbnailUrl = (clip: SavedClip) => {
     // Construct thumbnail path based on clip's video ID or unique identifier
     const thumbnailPath = `${clip.id || clip.startTime.toString()}.jpg`;
@@ -28,6 +33,14 @@ export const ClipThumbnailGrid: React.FC<ClipThumbnailGridProps> = ({
     }
   };
 
+  const filteredClips = clips.filter(clip => {
+    if (activeFilters.length === 0) return true;
+    return activeFilters.every(filter => 
+      clip.tags?.includes(filter) ||
+      clip.players?.some(player => player.playerName.includes(filter))
+    );
+  });
+
   if (clips.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground">
@@ -37,50 +50,101 @@ export const ClipThumbnailGrid: React.FC<ClipThumbnailGridProps> = ({
   }
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-      {clips.map((clip) => {
-        const thumbnailUrl = getPublicThumbnailUrl(clip);
-        
-        return (
-          <div 
-            key={clip.id} 
-            className="relative rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-shadow"
-          >
-            {thumbnailUrl ? (
-              <img 
-                src={thumbnailUrl} 
-                alt={clip.label} 
-                className="w-full h-48 object-cover"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = '/placeholder.svg';
-                }}
-              />
-            ) : (
-              <div className="w-full h-48 bg-muted flex items-center justify-center">
-                No Thumbnail
+    <div className="space-y-6">
+      <FilterBar 
+        clips={clips} 
+        activeFilters={activeFilters}
+        onFilterChange={setActiveFilters}
+      />
+      
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {filteredClips.map((clip) => {
+          const thumbnailUrl = getPublicThumbnailUrl(clip);
+          
+          return (
+            <div 
+              key={clip.id} 
+              className="relative rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all"
+            >
+              {thumbnailUrl ? (
+                <img 
+                  src={thumbnailUrl} 
+                  alt={clip.label} 
+                  className="w-full h-48 object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = '/placeholder.svg';
+                  }}
+                />
+              ) : (
+                <div className="w-full h-48 bg-muted flex items-center justify-center">
+                  No Thumbnail
+                </div>
+              )}
+              
+              <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  className="bg-white/20 backdrop-blur-sm"
+                  onClick={() => onPlayClip(clip)}
+                >
+                  <PlayCircle className="h-8 w-8 text-white" />
+                </Button>
               </div>
-            )}
-            
-            <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-              <Button 
-                variant="outline" 
-                size="icon" 
-                className="bg-white/20 backdrop-blur-sm"
-                onClick={() => onPlayClip(clip)}
-              >
-                <PlayCircle className="h-8 w-8 text-white" />
-              </Button>
+              
+              <div className="p-4 bg-background space-y-3">
+                <h4 className="font-medium truncate">{clip.label}</h4>
+                
+                {clip.timeline && (
+                  <p className="text-sm text-muted-foreground">
+                    {clip.timeline}
+                  </p>
+                )}
+                
+                {clip.tags && clip.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {clip.tags.map(tag => (
+                      <TooltipProvider key={tag}>
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <Badge variant="secondary" className="flex items-center gap-1">
+                              <Tag className="h-3 w-3" />
+                              {tag}
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Click to filter by {tag}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    ))}
+                  </div>
+                )}
+                
+                {clip.players && clip.players.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {clip.players.map(player => (
+                      <Badge 
+                        key={player.playerId} 
+                        variant="outline"
+                        className="text-xs"
+                      >
+                        {player.playerName}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+                
+                {clip.notes && (
+                  <p className="text-sm text-muted-foreground truncate">
+                    {clip.notes}
+                  </p>
+                )}
+              </div>
             </div>
-            
-            <div className="p-2 bg-background">
-              <h4 className="text-sm font-medium truncate">{clip.label}</h4>
-              <p className="text-xs text-muted-foreground">
-                {clip.timeline || `${clip.startTime.toFixed(1)}s`}
-              </p>
-            </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 };
