@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -7,6 +7,8 @@ import { PlayCircle, Download, Trash2, Flag, Loader2 } from "lucide-react";
 import { SavedClip, GameSituation } from "@/types/analyzer";
 import { formatVideoTime } from "@/components/video/utils";
 import { PlayerActionBadge } from "./PlayerActionBadge";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface SavedClipItemProps {
   clip: SavedClip;
@@ -17,6 +19,7 @@ interface SavedClipItemProps {
   isSelected?: boolean;
   onToggleSelection?: (id: string) => void;
   disabled?: boolean;
+  isSupabaseClip?: boolean;
 }
 
 export const SavedClipItem: React.FC<SavedClipItemProps> = ({
@@ -28,7 +31,10 @@ export const SavedClipItem: React.FC<SavedClipItemProps> = ({
   isSelected = false,
   onToggleSelection = () => {},
   disabled = false,
+  isSupabaseClip = false,
 }) => {
+  const [isLoadingUrl, setIsLoadingUrl] = useState(false);
+  
   const getSituationLabel = (situation: GameSituation): string => {
     const labels: Record<GameSituation, string> = {
       transition: "Transition",
@@ -44,6 +50,43 @@ export const SavedClipItem: React.FC<SavedClipItemProps> = ({
     };
     
     return labels[situation] || situation;
+  };
+
+  const handlePlay = async () => {
+    if (disabled) return;
+    
+    // For Supabase clips that have a video_id, we need to get the direct URL
+    if (isSupabaseClip && clip.videoId && !clip.directVideoUrl) {
+      setIsLoadingUrl(true);
+      try {
+        // Try to get the signed URL for the video
+        const { data, error } = await supabase
+          .storage
+          .from('videos')
+          .createSignedUrl(clip.videoId, 3600);
+          
+        if (error) throw error;
+        
+        if (data?.signedUrl) {
+          // Add the direct URL to the clip
+          const clipWithUrl = {
+            ...clip,
+            directVideoUrl: data.signedUrl
+          };
+          onPlay(clipWithUrl);
+        } else {
+          throw new Error("Failed to get signed URL");
+        }
+      } catch (err) {
+        console.error("Error getting signed URL:", err);
+        toast.error("Could not load video URL");
+      } finally {
+        setIsLoadingUrl(false);
+      }
+    } else {
+      // Regular clip or already has URL
+      onPlay(clip);
+    }
   };
 
   return (
@@ -111,11 +154,11 @@ export const SavedClipItem: React.FC<SavedClipItemProps> = ({
           <Button 
             variant="ghost" 
             size="icon"
-            onClick={() => onPlay(clip)}
+            onClick={handlePlay}
             title="Play clip"
-            disabled={disabled}
+            disabled={disabled || isLoadingUrl}
           >
-            {disabled ? 
+            {disabled || isLoadingUrl ? 
               <Loader2 className="h-4 w-4 animate-spin" /> : 
               <PlayCircle className="h-4 w-4" />}
           </Button>

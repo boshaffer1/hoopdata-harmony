@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { FilePlus } from "lucide-react";
@@ -34,6 +34,36 @@ const VideoSection: React.FC<VideoSectionProps> = ({
   onNewMarkerLabelChange,
   onAddMarker,
 }) => {
+  const [supabaseClips, setSupabaseClips] = useState<any[]>([]);
+  const [isLoadingClips, setIsLoadingClips] = useState(false);
+
+  // Fetch clips from Supabase when component mounts
+  useEffect(() => {
+    const fetchClips = async () => {
+      setIsLoadingClips(true);
+      try {
+        const { data, error } = await supabase
+          .from('clips')
+          .select('*')
+          .limit(5); // Limiting to 5 most recent clips for display in this section
+        
+        if (error) throw error;
+        
+        if (data) {
+          console.log("Fetched clips from Supabase:", data);
+          setSupabaseClips(data);
+        }
+      } catch (error) {
+        console.error("Error fetching clips:", error);
+        toast.error("Failed to load clips from database");
+      } finally {
+        setIsLoadingClips(false);
+      }
+    };
+    
+    fetchClips();
+  }, []);
+
   // Prepare markers for the video player in the expected format
   const formattedMarkers = markers.map(m => ({
     time: m.time,
@@ -47,6 +77,40 @@ const VideoSection: React.FC<VideoSectionProps> = ({
       return;
     }
     onAddMarker();
+  };
+
+  const playSupabaseClip = async (clip: any) => {
+    if (!clip.video_url && !clip.clip_path) {
+      toast.error("No video URL available for this clip");
+      return;
+    }
+    
+    try {
+      let clipUrl = clip.video_url;
+      
+      // If no direct video_url but we have a clip_path, create a signed URL
+      if (!clipUrl && clip.clip_path) {
+        const { data: signedUrlData } = await supabase
+          .storage
+          .from('clips')
+          .createSignedUrl(clip.clip_path, 3600);
+          
+        if (signedUrlData?.signedUrl) {
+          clipUrl = signedUrlData.signedUrl;
+        }
+      }
+      
+      if (clipUrl) {
+        // Use the video URL to play the clip
+        onVideoFileChange(clipUrl);
+        toast.success(`Playing clip: ${clip.play_name}`);
+      } else {
+        toast.error("Could not generate video URL");
+      }
+    } catch (error) {
+      console.error("Error playing clip:", error);
+      toast.error("Failed to play clip");
+    }
   };
 
   return (
@@ -105,6 +169,34 @@ const VideoSection: React.FC<VideoSectionProps> = ({
           </CardContent>
         </Card>
       </div>
+      
+      {/* Recent Clips from Supabase */}
+      {supabaseClips.length > 0 && (
+        <Card className="mt-4">
+          <CardContent className="pt-6">
+            <h3 className="text-sm font-medium mb-4">Recent Clips from Database</h3>
+            <div className="space-y-2">
+              {supabaseClips.map(clip => (
+                <div key={clip.id} className="flex justify-between items-center border-b pb-2">
+                  <div>
+                    <p className="font-medium">{clip.play_name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {clip.start_time}s to {clip.end_time}s ({(clip.end_time - clip.start_time).toFixed(1)}s)
+                    </p>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => playSupabaseClip(clip)}
+                  >
+                    Play
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </>
   );
 };

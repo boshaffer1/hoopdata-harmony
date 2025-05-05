@@ -23,6 +23,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Loader2 } from "lucide-react";
 
 interface VideoFile {
   id: string;
@@ -80,11 +81,12 @@ const GameDataDisplay: React.FC<GameDataDisplayProps> = ({
             startTime: clip.start_time,
             duration: clip.end_time - clip.start_time,
             label: clip.play_name,
-            notes: '',  // Fill with default values if not available in database
-            timeline: '',  // Fill with default values if not available in database
+            notes: '',
+            timeline: '',
             saved: new Date().toISOString(),
             tags: clip.tags || [],
-            videoId: clip.video_id
+            videoId: clip.video_id,
+            videoUrl: clip.video_url
           }));
           setClips(transformedClips);
         }
@@ -100,43 +102,77 @@ const GameDataDisplay: React.FC<GameDataDisplayProps> = ({
     fetchData();
   }, [teamFilter, dateFilter]);
   
-  const handlePlayVideo = (video: VideoFile) => {
-    const videoUrl = supabase.storage
-      .from('videos')
-      .getPublicUrl(video.file_path).data.publicUrl;
-    
-    setCurrentVideo(videoUrl);
-    setCurrentClip(null);
-    toast.success(`Playing ${video.title || video.filename}`);
+  const handlePlayVideo = async (video: VideoFile) => {
+    try {
+      const { data } = await supabase.storage
+        .from('videos')
+        .createSignedUrl(video.file_path, 3600);
+      
+      if (data?.signedUrl) {
+        setCurrentVideo(data.signedUrl);
+        setCurrentClip(null);
+        toast.success(`Playing ${video.title || video.filename}`);
+      } else {
+        throw new Error("Could not generate signed URL");
+      }
+    } catch (error) {
+      console.error("Error getting signed URL:", error);
+      toast.error("Could not load video");
+    }
   };
   
-  const handlePlayClip = (clip: SavedClip) => {
+  const handlePlayClip = async (clip: SavedClip) => {
     setCurrentClip(clip);
+    
+    // If clip already has a direct URL
+    if ((clip as any).directVideoUrl) {
+      setCurrentVideo((clip as any).directVideoUrl);
+      toast.success(`Playing clip: ${clip.label}`);
+      return;
+    }
     
     // Find corresponding video for this clip if videoId is available
     if (clip.videoId) {
-      const video = videos.find(v => v.id === clip.videoId);
-      if (video) {
-        const videoUrl = supabase.storage
+      try {
+        const { data } = await supabase
+          .storage
           .from('videos')
-          .getPublicUrl(video.file_path).data.publicUrl;
-        
-        setCurrentVideo(videoUrl);
-        toast.success(`Playing clip: ${clip.label}`);
-      } else {
+          .createSignedUrl(clip.videoId, 3600);
+          
+        if (data?.signedUrl) {
+          setCurrentVideo(data.signedUrl);
+          toast.success(`Playing clip: ${clip.label}`);
+        } else {
+          toast.error('Could not generate video URL');
+        }
+      } catch (error) {
+        console.error("Error getting signed URL:", error);
         toast.error('Video source not found for this clip');
       }
+    } else if (clip.videoUrl) {
+      // Use the video URL directly if available
+      setCurrentVideo(clip.videoUrl);
+      toast.success(`Playing clip: ${clip.label}`);
     } else {
       toast.error('No video associated with this clip');
     }
   };
 
   if (loading) {
-    return <div className="flex justify-center p-8">Loading data...</div>;
+    return (
+      <div className="flex justify-center items-center p-12">
+        <Loader2 className="h-8 w-8 animate-spin text-primary mr-2" />
+        <p>Loading data...</p>
+      </div>
+    );
   }
 
   if (error) {
-    return <div className="text-red-500 p-4">{error}</div>;
+    return (
+      <div className="text-destructive p-4 border border-destructive/20 rounded-md bg-destructive/10">
+        {error}
+      </div>
+    );
   }
 
   return (
