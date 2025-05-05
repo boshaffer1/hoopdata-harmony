@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { FolderList } from "@/components/library/FolderList";
 import { LibraryClipList } from "@/components/library/LibraryClipList";
@@ -64,6 +64,19 @@ const ClipLibrary = () => {
       setIsLoadingVideo(true);
       setVideoError(null);
       
+      // If clip already has a direct URL from ClipThumbnailGrid
+      if (clip.directVideoUrl) {
+        console.log("Using provided direct video URL:", clip.directVideoUrl);
+        await handlePlaySavedClip({
+          ...clip,
+          videoUrl: clip.directVideoUrl
+        });
+        setCurrentVideoUrl(clip.directVideoUrl);
+        setIsLoadingVideo(false);
+        return;
+      }
+      
+      // If the analyzer already has a video loaded
       if (videoUrl) {
         handlePlaySavedClip(clip);
         setCurrentVideoUrl(videoUrl);
@@ -71,6 +84,7 @@ const ClipLibrary = () => {
         return;
       }
       
+      // If clip has a game ID, try to find the game's video
       if (clip.gameId) {
         const game = games.find(g => g.id === clip.gameId);
         if (game && game.videoUrl) {
@@ -85,7 +99,32 @@ const ClipLibrary = () => {
         }
       }
       
+      // Try to get video from Supabase
       try {
+        // First check if clip has videoId
+        if (clip.videoId) {
+          try {
+            const { data } = await supabase
+              .storage
+              .from('videos')
+              .createSignedUrl(`${clip.videoId}`, 3600); // 1 hour expiry
+              
+            if (data?.signedUrl) {
+              console.log("Loading video directly from Supabase using video ID:", data.signedUrl);
+              await handlePlaySavedClip({
+                ...clip,
+                videoUrl: data.signedUrl
+              });
+              setCurrentVideoUrl(data.signedUrl);
+              setIsLoadingVideo(false);
+              return;
+            }
+          } catch (error) {
+            console.error("Error creating signed URL for specific video:", error);
+          }
+        }
+        
+        // If no videoId or failed to get a URL, try the latest video
         const { data: videoFiles, error } = await supabase
           .from('video_files')
           .select('*')
@@ -100,17 +139,19 @@ const ClipLibrary = () => {
           const { data } = await supabase
             .storage
             .from('videos')
-            .getPublicUrl(videoFile.file_path);
+            .createSignedUrl(videoFile.file_path, 3600); // 1 hour expiry
             
-          if (data && data.publicUrl) {
-            console.log("Loading video from Supabase:", data.publicUrl);
+          if (data?.signedUrl) {
+            console.log("Loading video from Supabase:", data.signedUrl);
             await handlePlaySavedClip({
               ...clip,
-              videoUrl: data.publicUrl
+              videoUrl: data.signedUrl
             });
-            setCurrentVideoUrl(data.publicUrl);
+            setCurrentVideoUrl(data.signedUrl);
+            setIsLoadingVideo(false);
+            return;
           } else {
-            throw new Error("Failed to get public URL for video");
+            throw new Error("Failed to get signed URL for video");
           }
         } else {
           throw new Error("No videos found in database");

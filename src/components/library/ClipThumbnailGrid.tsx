@@ -1,6 +1,6 @@
 
-import React from 'react';
-import { Button } from '@/components/ui/button';
+import React, { useState, useEffect } from 'react';
+import { Button } from "@/components/ui/button";
 import { SavedClip } from '@/types/analyzer';
 import { PlayCircle, Tag } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -17,6 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface ClipThumbnailGridProps {
   clips: SavedClip[];
@@ -27,20 +28,78 @@ export const ClipThumbnailGrid: React.FC<ClipThumbnailGridProps> = ({
   clips, 
   onPlayClip 
 }) => {
-  const [activeFilters, setActiveFilters] = React.useState<string[]>([]);
-  const [viewMode, setViewMode] = React.useState<'grid' | 'table'>('grid');
+  const [activeFilters, setActiveFilters] = useState<string[]>([]);
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+  const [videoUrls, setVideoUrls] = useState<Record<string, string>>({});
+  const [thumbnailUrls, setThumbnailUrls] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(true);
   
-  const getPublicThumbnailUrl = (clip: SavedClip) => {
-    // Construct thumbnail path based on clip's video ID or unique identifier
-    const thumbnailPath = `${clip.id || clip.startTime.toString()}.jpg`;
+  // Fetch direct URLs for videos and thumbnails when clips change
+  useEffect(() => {
+    const fetchDirectUrls = async () => {
+      try {
+        setLoading(true);
+        const videoUrlsMap: Record<string, string> = {};
+        const thumbnailUrlsMap: Record<string, string> = {};
+        
+        // Process clips in batches to avoid too many parallel requests
+        const batchSize = 5;
+        for (let i = 0; i < clips.length; i += batchSize) {
+          const batch = clips.slice(i, i + batchSize);
+          
+          await Promise.all(batch.map(async (clip) => {
+            // Get video URL if available
+            if (clip.videoId) {
+              try {
+                const { data: videoData } = await supabase
+                  .storage
+                  .from('videos')
+                  .createSignedUrl(`${clip.videoId}`, 3600); // 1 hour expiry
+                
+                if (videoData?.signedUrl) {
+                  videoUrlsMap[clip.id] = videoData.signedUrl;
+                }
+              } catch (error) {
+                console.error(`Error getting video URL for clip ${clip.id}:`, error);
+              }
+            }
+            
+            // Get thumbnail URL
+            try {
+              const thumbnailPath = `${clip.id}.jpg`;
+              const { data: thumbnailData } = await supabase
+                .storage
+                .from('thumbnails')
+                .getPublicUrl(thumbnailPath);
+              
+              if (thumbnailData?.publicUrl) {
+                thumbnailUrlsMap[clip.id] = thumbnailData.publicUrl;
+              }
+            } catch (error) {
+              console.error(`Error getting thumbnail URL for clip ${clip.id}:`, error);
+            }
+          }));
+        }
+        
+        setVideoUrls(videoUrlsMap);
+        setThumbnailUrls(thumbnailUrlsMap);
+      } catch (error) {
+        console.error('Error fetching direct URLs:', error);
+        toast.error('Failed to load some video resources');
+      } finally {
+        setLoading(false);
+      }
+    };
     
-    try {
-      const { data } = supabase.storage.from('thumbnails').getPublicUrl(thumbnailPath);
-      return data?.publicUrl;
-    } catch (error) {
-      console.error('Error getting thumbnail URL:', error);
-      return undefined;
+    if (clips.length > 0) {
+      fetchDirectUrls();
+    } else {
+      setLoading(false);
     }
+  }, [clips]);
+
+  const getPublicThumbnailUrl = (clip: SavedClip) => {
+    return thumbnailUrls[clip.id];
   };
 
   const filteredClips = clips.filter(clip => {
@@ -64,6 +123,15 @@ export const ClipThumbnailGrid: React.FC<ClipThumbnailGridProps> = ({
       </div>
     );
   }
+
+  const handlePlayClip = (clip: SavedClip) => {
+    // Enhance clip with direct URL if available
+    const enhancedClip = {
+      ...clip,
+      directVideoUrl: videoUrls[clip.id]
+    };
+    onPlayClip(enhancedClip);
+  };
 
   return (
     <div className="space-y-6">
@@ -92,7 +160,26 @@ export const ClipThumbnailGrid: React.FC<ClipThumbnailGridProps> = ({
         </div>
       </div>
       
-      {viewMode === 'grid' ? (
+      {loading ? (
+        viewMode === 'grid' ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {[1, 2, 3, 4, 5, 6].map((index) => (
+              <div key={index} className="space-y-3">
+                <Skeleton className="h-48 w-full rounded-lg" />
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-3 w-1/2" />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <Skeleton className="h-8 w-full" />
+            {[1, 2, 3, 4, 5].map((index) => (
+              <Skeleton key={index} className="h-12 w-full" />
+            ))}
+          </div>
+        )
+      ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filteredClips.map((clip) => {
             const thumbnailUrl = getPublicThumbnailUrl(clip);
@@ -122,7 +209,7 @@ export const ClipThumbnailGrid: React.FC<ClipThumbnailGridProps> = ({
                     variant="outline" 
                     size="icon" 
                     className="bg-white/20 backdrop-blur-sm"
-                    onClick={() => onPlayClip(clip)}
+                    onClick={() => handlePlayClip(clip)}
                   >
                     <PlayCircle className="h-8 w-8 text-white" />
                   </Button>
@@ -220,7 +307,7 @@ export const ClipThumbnailGrid: React.FC<ClipThumbnailGridProps> = ({
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => onPlayClip(clip)}
+                    onClick={() => handlePlayClip(clip)}
                   >
                     Play
                   </Button>

@@ -88,6 +88,24 @@ export const SavedClipItem: React.FC<SavedClipItemProps> = ({
               ))}
             </div>
           )}
+          
+          {/* Display tags if available */}
+          {clip.tags && clip.tags.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-2">
+              {clip.tags.map((tag, idx) => (
+                <Badge key={idx} variant="outline" className="text-xs">
+                  {tag}
+                </Badge>
+              ))}
+            </div>
+          )}
+          
+          {/* Display video ID if available */}
+          {clip.videoId && (
+            <p className="text-xs text-muted-foreground mt-1">
+              Video ID: {clip.videoId}
+            </p>
+          )}
         </div>
         <div className="flex shrink-0">
           <Button 

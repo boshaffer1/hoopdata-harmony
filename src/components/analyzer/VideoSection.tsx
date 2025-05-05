@@ -9,6 +9,7 @@ import VideoPlayer from "@/components/video/VideoPlayer";
 import { toast } from "sonner";
 import { Marker } from "@/types/analyzer";
 import { formatTime } from "@/hooks/video-player/utils";
+import { supabase } from "@/integrations/supabase/client";
 
 interface VideoSectionProps {
   videoUrl?: string;
