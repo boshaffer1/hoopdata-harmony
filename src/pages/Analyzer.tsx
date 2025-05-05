@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import VideoSection from "@/components/analyzer/VideoSection";
@@ -15,6 +14,7 @@ import { BookmarkIcon, Library, Users, StopCircle, Grid } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SavedClip, GameData } from "@/types/analyzer";
 import { Progress } from "@/components/ui/progress";
+import { ClipThumbnailGrid } from "@/components/library/ClipThumbnailGrid";
 
 const Analyzer = () => {
   const {
