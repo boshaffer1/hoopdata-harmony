@@ -29,11 +29,13 @@ export interface SavedClip {
   timeline: string;
   saved: string;
   players?: PlayerAction[];
+  tags?: string[];  // Adding tags property
   situation?: GameSituation;
   folderId?: string;
   teamId?: string;
   gameId?: string;
   clipType?: ClipType;
+  videoId?: string;  // Adding videoId property to reference video source
 }
 
 export interface ClipFolder {

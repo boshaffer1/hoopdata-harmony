@@ -3,7 +3,7 @@ import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { X, Filter } from "lucide-react";
+import { X, Filter, Tag } from "lucide-react";
 import { SavedClip } from '@/types/analyzer';
 
 interface FilterBarProps {
@@ -22,7 +22,12 @@ const FilterBar: React.FC<FilterBarProps> = ({
   // Extract unique tags and players from all clips
   const allTags = Array.from(new Set(
     clips.flatMap(clip => clip.tags || [])
-  ));
+  )).sort();
+  
+  // Extract unique player names for filtering
+  const allPlayers = Array.from(new Set(
+    clips.flatMap(clip => clip.players?.map(p => p.playerName) || [])
+  )).sort();
   
   const handleAddFilter = (filter: string) => {
     if (!activeFilters.includes(filter)) {
@@ -38,8 +43,9 @@ const FilterBar: React.FC<FilterBarProps> = ({
     setSearchTerm(e.target.value);
   };
 
-  const filteredTags = allTags.filter(tag => 
-    tag.toLowerCase().includes(searchTerm.toLowerCase())
+  // Filter options based on search term
+  const filteredOptions = [...allTags, ...allPlayers].filter(option => 
+    option.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -47,7 +53,7 @@ const FilterBar: React.FC<FilterBarProps> = ({
       <div className="flex items-center gap-2">
         <Filter className="h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Search filters..."
+          placeholder="Search filters (tags, players)..."
           value={searchTerm}
           onChange={handleSearchChange}
           className="max-w-xs"
@@ -78,17 +84,21 @@ const FilterBar: React.FC<FilterBarProps> = ({
         )}
         
         <div className="flex flex-wrap gap-2">
-          {filteredTags.map(tag => (
-            <Button
-              key={tag}
-              variant="outline"
-              size="sm"
-              className={activeFilters.includes(tag) ? "bg-primary/10" : ""}
-              onClick={() => handleAddFilter(tag)}
-            >
-              {tag}
-            </Button>
-          ))}
+          {filteredOptions.map(option => {
+            const isTag = allTags.includes(option);
+            return (
+              <Button
+                key={option}
+                variant="outline"
+                size="sm"
+                className={activeFilters.includes(option) ? "bg-primary/10" : ""}
+                onClick={() => handleAddFilter(option)}
+              >
+                {isTag && <Tag className="mr-1 h-3 w-3" />}
+                {option}
+              </Button>
+            );
+          })}
         </div>
       </div>
     </div>
