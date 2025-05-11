@@ -15,7 +15,7 @@ export const ClipThumbnailGrid = React.memo(({
   clips, 
   onPlayClip 
 }: ClipThumbnailGridProps) => {
-  const [supabaseClips, setSupabaseClips] = useState<any[]>([]);
+  const [supabaseClips, setSupabaseClips] = useState<SavedClip[]>([]);
   const [isLoadingClips, setIsLoadingClips] = useState(false);
   const [hoverClip, setHoverClip] = useState<string | null>(null);
   
@@ -34,7 +34,7 @@ export const ClipThumbnailGrid = React.memo(({
           console.log("Fetched clips from Supabase:", data);
           
           // Convert Supabase clips to the SavedClip format
-          const convertedClips = data.map(clip => ({
+          const convertedClips: SavedClip[] = data.map(clip => ({
             id: clip.id,
             startTime: clip.start_time,
             duration: clip.end_time - clip.start_time,
@@ -65,15 +65,15 @@ export const ClipThumbnailGrid = React.memo(({
   
   const handlePlayClip = async (clip: SavedClip) => {
     // For Supabase clips, we need to get the signed URL before playing
-    if ((clip as any).clipPath) {
+    if (clip.clipPath) {
       try {
         const { data } = await supabase
           .storage
           .from('clips')
-          .createSignedUrl((clip as any).clipPath, 3600);
+          .createSignedUrl(clip.clipPath, 3600);
           
         if (data?.signedUrl) {
-          const clipWithUrl = {
+          const clipWithUrl: SavedClip = {
             ...clip,
             directVideoUrl: data.signedUrl
           };
@@ -94,7 +94,7 @@ export const ClipThumbnailGrid = React.memo(({
           .createSignedUrl(clip.videoId, 3600);
           
         if (data?.signedUrl) {
-          const clipWithUrl = {
+          const clipWithUrl: SavedClip = {
             ...clip,
             directVideoUrl: data.signedUrl
           };

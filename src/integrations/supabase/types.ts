@@ -9,7 +9,7 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      clips: {
+      Clips: {
         Row: {
           clip_path: string | null
           created_at: string | null
@@ -45,7 +45,7 @@ export type Database = {
         }
         Relationships: []
       }
-      csv_data: {
+      Csv_Data: {
         Row: {
           created_at: string
           data: Json
@@ -83,7 +83,7 @@ export type Database = {
           },
         ]
       }
-      "NBA roster": {
+      "NBA Roster": {
         Row: {
           height: string | null
           id: number
@@ -119,7 +119,7 @@ export type Database = {
             foreignKeyName: "NBA roster_team_id_fkey"
             columns: ["team_id"]
             isOneToOne: false
-            referencedRelation: "teams"
+            referencedRelation: "Teams"
             referencedColumns: ["id"]
           },
         ]
@@ -253,7 +253,7 @@ export type Database = {
         }
         Relationships: []
       }
-      players: {
+      Players: {
         Row: {
           height: string | null
           id: number
@@ -292,7 +292,7 @@ export type Database = {
             foreignKeyName: "players_duplicate_team_id_fkey"
             columns: ["team_id"]
             isOneToOne: false
-            referencedRelation: "teams"
+            referencedRelation: "Teams"
             referencedColumns: ["id"]
           },
         ]
@@ -333,12 +333,12 @@ export type Database = {
             foreignKeyName: "players_team_id_fkey"
             columns: ["team_id"]
             isOneToOne: false
-            referencedRelation: "teams"
+            referencedRelation: "Teams"
             referencedColumns: ["id"]
           },
         ]
       }
-      profiles: {
+      Profiles: {
         Row: {
           created_at: string | null
           id: string
@@ -359,7 +359,7 @@ export type Database = {
         }
         Relationships: []
       }
-      teams: {
+      Teams: {
         Row: {
           abbreviation: string | null
           conference: string | null
@@ -466,7 +466,7 @@ export type Database = {
           },
         ]
       }
-      "WNBA roster": {
+      "WNBA Roster": {
         Row: {
           height: string | null
           id: number
@@ -502,12 +502,12 @@ export type Database = {
             foreignKeyName: "WNBA roster_team_id_fkey"
             columns: ["team_id"]
             isOneToOne: false
-            referencedRelation: "teams"
+            referencedRelation: "Teams"
             referencedColumns: ["id"]
           },
         ]
       }
-      "WNBA teams": {
+      "WNBA Teams": {
         Row: {
           abbreviation: string | null
           conference: string | null
@@ -539,7 +539,31 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      execute_query: {
+        Args: { query_text: string }
+        Returns: Json
+      }
+      get_table_schema: {
+        Args: { table_name: string }
+        Returns: {
+          column_name: string
+          data_type: string
+          is_nullable: boolean
+          column_default: string
+        }[]
+      }
+      list_schemas: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          schema_name: string
+        }[]
+      }
+      list_tables: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          table_name: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

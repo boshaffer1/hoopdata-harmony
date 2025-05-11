@@ -125,8 +125,8 @@ const GameDataDisplay: React.FC<GameDataDisplayProps> = ({
     setCurrentClip(clip);
     
     // If clip already has a direct URL
-    if ((clip as any).directVideoUrl) {
-      setCurrentVideo((clip as any).directVideoUrl);
+    if (clip.directVideoUrl) {
+      setCurrentVideo(clip.directVideoUrl);
       toast.success(`Playing clip: ${clip.label}`);
       return;
     }

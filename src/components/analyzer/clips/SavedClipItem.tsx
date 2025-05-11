@@ -69,7 +69,7 @@ export const SavedClipItem: React.FC<SavedClipItemProps> = ({
         
         if (data?.signedUrl) {
           // Add the direct URL to the clip
-          const clipWithUrl = {
+          const clipWithUrl: SavedClip = {
             ...clip,
             directVideoUrl: data.signedUrl
           };

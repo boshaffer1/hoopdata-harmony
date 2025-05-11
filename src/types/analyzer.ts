@@ -1,4 +1,3 @@
-
 export interface Marker {
   time: number;
   label: string;
@@ -35,7 +34,10 @@ export interface SavedClip {
   teamId?: string;
   gameId?: string;
   clipType?: ClipType;
-  videoId?: string;  // Adding videoId property to reference video source
+  videoId?: string;  // Reference to video source
+  videoUrl?: string; // URL for the video
+  directVideoUrl?: string; // Direct signed URL for the video
+  clipPath?: string; // Path to the clip file
 }
 
 export interface ClipFolder {
