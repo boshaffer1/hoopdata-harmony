@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,6 +34,7 @@ import { toast } from "sonner";
 import { SavedClip, ClipFolder, Game } from "@/types/analyzer";
 import { Badge } from "@/components/ui/badge";
 import VideoPlayer from "@/components/video/VideoPlayer";
+import { formatReadableTime } from "@/components/video/utils";
 
 interface TeamFolderStructureProps {
   folders: ClipFolder[];
@@ -198,7 +198,7 @@ export const TeamFolderStructure: React.FC<TeamFolderStructureProps> = ({
     
     const gameData = {
       title: newGameTitle,
-      date: newGameDate,
+      gameDate: newGameDate,
       homeTeam: newGameHome,
       awayTeam: newGameAway,
       teamId: newGameTeamId
@@ -226,7 +226,7 @@ export const TeamFolderStructure: React.FC<TeamFolderStructureProps> = ({
     
     onUpdateGame(editGame.id, {
       title: editGame.title,
-      date: editGame.date,
+      gameDate: editGame.gameDate,
       homeTeam: editGame.homeTeam,
       awayTeam: editGame.awayTeam
     });
@@ -458,7 +458,7 @@ export const TeamFolderStructure: React.FC<TeamFolderStructureProps> = ({
                                                         <span className="font-medium">{clip.label}</span>
                                                       </div>
                                                       <p className="text-xs text-muted-foreground">
-                                                        {clip.startTime.toFixed(1)}s ({clip.duration.toFixed(1)}s)
+                                                        {clip.startTime.toFixed(1)}s ({formatReadableTime(clip.duration)})
                                                       </p>
                                                       {clip.notes && (
                                                         <p className="text-xs mt-1">{clip.notes}</p>
@@ -516,7 +516,7 @@ export const TeamFolderStructure: React.FC<TeamFolderStructureProps> = ({
                                           <div>
                                             <h4 className="font-medium">{game.title}</h4>
                                             <p className="text-xs text-muted-foreground">
-                                              {game.date} • {game.homeTeam} vs {game.awayTeam}
+                                              {game.gameDate} • {game.homeTeam} vs {game.awayTeam}
                                             </p>
                                           </div>
                                           <div className="flex gap-1">
@@ -766,8 +766,8 @@ export const TeamFolderStructure: React.FC<TeamFolderStructureProps> = ({
               <Input
                 id="edit-game-date"
                 type="date"
-                value={editGame?.date || ""}
-                onChange={(e) => setEditGame(prev => prev ? { ...prev, date: e.target.value } : null)}
+                value={editGame?.gameDate || ""}
+                onChange={(e) => setEditGame(prev => prev ? { ...prev, gameDate: e.target.value } : null)}
               />
             </div>
             <div className="grid grid-cols-2 gap-4">

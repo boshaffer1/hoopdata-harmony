@@ -1,11 +1,10 @@
-
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Play, Download, User, Flag } from "lucide-react";
 import FileUploader from "@/components/data/FileUploader";
 import { GameData, GameSituation, PlayerAction } from "@/types/analyzer";
-import { formatVideoTime } from "@/components/video/utils";
+import { formatVideoTime, formatReadableTime } from "@/components/video/utils";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
@@ -99,7 +98,7 @@ const GameDataSection: React.FC<GameDataSectionProps> = ({
                   </TableCell>
                   <TableCell>{item["Play Name"] || ""}</TableCell>
                   <TableCell>{formatVideoTime(parseFloat(item["Start time"] || "0"))}</TableCell>
-                  <TableCell>{formatVideoTime(parseFloat(item["Duration"] || "0"))}</TableCell>
+                  <TableCell>{formatReadableTime(parseFloat(item["Duration"] || "0"))}</TableCell>
                   <TableCell>
                     {item.Situation && (
                       <Badge variant="outline">

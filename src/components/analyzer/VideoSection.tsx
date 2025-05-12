@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,6 +9,7 @@ import { toast } from "sonner";
 import { Marker } from "@/types/analyzer";
 import { formatTime } from "@/hooks/video-player/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { loadAllSupabaseData } from "@/utils/all-supabase-data";
 
 interface VideoSectionProps {
   videoUrl?: string;
@@ -34,35 +34,74 @@ const VideoSection: React.FC<VideoSectionProps> = ({
   onNewMarkerLabelChange,
   onAddMarker,
 }) => {
-  const [supabaseClips, setSupabaseClips] = useState<any[]>([]);
-  const [isLoadingClips, setIsLoadingClips] = useState(false);
+  // const [supabaseClips, setSupabaseClips] = useState<any[]>([]);
+  // const [isLoadingClips, setIsLoadingClips] = useState(false);
+
+  // Log when videoUrl changes
+  useEffect(() => {
+    console.log("VideoSection received videoUrl:", videoUrl);
+    if (videoUrl && videoPlayerRef.current) {
+      // Attempt to play the video when the URL changes and the player is available
+      // Mute by default for autoplay policies, then unmute
+      videoPlayerRef.current.muted = true;
+      videoPlayerRef.current.play()
+        .then(() => {
+          console.log("VideoSection: Autoplay started");
+          if (videoPlayerRef.current) {
+            videoPlayerRef.current.muted = false; // Unmute after successful play
+          }
+        })
+        .catch(error => {
+          console.error("VideoSection: Autoplay failed", error);
+          // Potentially show a toast or UI indication that autoplay was blocked
+          toast.info("Click play if video doesn't start automatically.");
+        });
+    }
+  }, [videoUrl, videoPlayerRef]);
 
   // Fetch clips from Supabase when component mounts
-  useEffect(() => {
-    const fetchClips = async () => {
-      setIsLoadingClips(true);
-      try {
-        const { data, error } = await supabase
-          .from('clips')
-          .select('*')
-          .limit(5); // Limiting to 5 most recent clips for display in this section
+  // useEffect(() => {
+  //   const fetchClips = async () => {
+  //     setIsLoadingClips(true);
+  //     try {
+  //       console.log("Loading clips from Supabase storage");
         
-        if (error) throw error;
+  //       // Use the comprehensive data loader instead of direct database query
+  //       const allData = await loadAllSupabaseData();
         
-        if (data) {
-          console.log("Fetched clips from Supabase:", data);
-          setSupabaseClips(data);
-        }
-      } catch (error) {
-        console.error("Error fetching clips:", error);
-        toast.error("Failed to load clips from database");
-      } finally {
-        setIsLoadingClips(false);
-      }
-    };
+  //       // Get clips from the unified clips array
+  //       const unifiedClips = allData.unified.clips || [];
+        
+  //       // Filter to only show clips from the 'clips' bucket
+  //       const clipsOnly = unifiedClips.filter(clip => 
+  //         clip.sourceType === 'clips'
+  //       ).slice(0, 5); // Limit to 5 clips
+        
+  //       console.log(`Found ${clipsOnly.length} clips in the clips bucket`);
+        
+  //       // Convert to format expected by this component
+  //       const formattedClips = clipsOnly.map(clip => ({
+  //         id: clip.id,
+  //         play_name: clip.label || "Unnamed Clip",
+  //         start_time: clip.startTime || 0,
+  //         end_time: (clip.startTime || 0) + (clip.duration || 30),
+  //         video_id: clip.videoId || "",
+  //         video_url: clip.videoUrl || clip.directVideoUrl || null,
+  //         clip_path: clip.clipPath || null,
+  //         tags: clip.tags || []
+  //       }));
+        
+  //       setSupabaseClips(formattedClips);
+  //     } catch (error) {
+  //       console.error("Error fetching clips:", error);
+  //       toast.error("Failed to load clips from database");
+  //     } finally {
+  //       setIsLoadingClips(false);
+  //     }
+  //   };
     
-    fetchClips();
-  }, []);
+  //   fetchClips();
+  // }, []);
 
   // Prepare markers for the video player in the expected format
   const formattedMarkers = markers.map(m => ({
@@ -86,30 +125,71 @@ const VideoSection: React.FC<VideoSectionProps> = ({
     }
     
     try {
+      // Show loading toast
+      toast.loading("Loading clip...");
+      
       let clipUrl = clip.video_url;
       
       // If no direct video_url but we have a clip_path, create a signed URL
       if (!clipUrl && clip.clip_path) {
-        const { data: signedUrlData } = await supabase
+        console.log(`Creating signed URL for clip: ${clip.clip_path} from clips bucket`);
+        const { data: signedUrlData, error: signedUrlError } = await supabase
           .storage
           .from('clips')
           .createSignedUrl(clip.clip_path, 3600);
           
+        if (signedUrlError) {
+          console.error("Error creating signed URL:", signedUrlError);
+          
+          // Check for common policy issues
+          if (signedUrlError.message.includes('permission denied') || 
+              signedUrlError.message.includes('denied by policy')) {
+            console.error(`
+            POLICY ERROR: Permission denied accessing clips/${clip.clip_path}
+            
+            Ensure you have the following policy in your Supabase project:
+            
+            CREATE POLICY "Public can view clips" ON storage.objects
+              FOR SELECT
+              TO anon
+              USING (bucket_id = 'clips');
+            `);
+            toast.dismiss();
+            toast.error("Permission denied - check Supabase policies");
+            return;
+          }
+          
+          if (signedUrlError.message.includes('Not Found')) {
+            toast.dismiss();
+            toast.error("Clip not found in storage");
+            return;
+          }
+          
+          toast.dismiss();
+          toast.error("Failed to create secure URL for clip");
+          return;
+        }
+          
         if (signedUrlData?.signedUrl) {
+          console.log("Successfully created signed URL for clip");
           clipUrl = signedUrlData.signedUrl;
         }
       }
       
       if (clipUrl) {
         // Use the video URL to play the clip
-        onVideoFileChange(clipUrl);
+        toast.dismiss();
         toast.success(`Playing clip: ${clip.play_name}`);
+        console.log("Passing clip URL to video player:", clipUrl.substring(0, 50) + '...');
+        onVideoFileChange(clipUrl);
       } else {
-        toast.error("Could not generate video URL");
+        toast.dismiss();
+        toast.error("Could not generate video URL - check Supabase storage permissions");
       }
     } catch (error) {
       console.error("Error playing clip:", error);
-      toast.error("Failed to play clip");
+      toast.dismiss();
+      toast.error("Failed to play clip - check console for details");
     }
   };
 
@@ -169,34 +249,6 @@ const VideoSection: React.FC<VideoSectionProps> = ({
           </CardContent>
         </Card>
       </div>
-      
-      {/* Recent Clips from Supabase */}
-      {supabaseClips.length > 0 && (
-        <Card className="mt-4">
-          <CardContent className="pt-6">
-            <h3 className="text-sm font-medium mb-4">Recent Clips from Database</h3>
-            <div className="space-y-2">
-              {supabaseClips.map(clip => (
-                <div key={clip.id} className="flex justify-between items-center border-b pb-2">
-                  <div>
-                    <p className="font-medium">{clip.play_name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {clip.start_time}s to {clip.end_time}s ({(clip.end_time - clip.start_time).toFixed(1)}s)
-                    </p>
-                  </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => playSupabaseClip(clip)}
-                  >
-                    Play
-                  </Button>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </>
   );
 };

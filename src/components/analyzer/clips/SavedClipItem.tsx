@@ -1,14 +1,20 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { PlayCircle, Download, Trash2, Flag, Loader2 } from "lucide-react";
+import { PlayCircle, Download, Trash2, Flag, Loader2, MoreHorizontal } from "lucide-react";
 import { SavedClip, GameSituation } from "@/types/analyzer";
-import { formatVideoTime } from "@/components/video/utils";
+import { formatVideoTime, formatReadableTime } from "@/components/video/utils";
 import { PlayerActionBadge } from "./PlayerActionBadge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ClipAction } from "@/components/library/LibraryClipList";
 
 interface SavedClipItemProps {
   clip: SavedClip;
@@ -20,6 +26,7 @@ interface SavedClipItemProps {
   onToggleSelection?: (id: string) => void;
   disabled?: boolean;
   isSupabaseClip?: boolean;
+  extraActions?: ClipAction[];
 }
 
 export const SavedClipItem: React.FC<SavedClipItemProps> = ({
@@ -32,6 +39,7 @@ export const SavedClipItem: React.FC<SavedClipItemProps> = ({
   onToggleSelection = () => {},
   disabled = false,
   isSupabaseClip = false,
+  extraActions = []
 }) => {
   const [isLoadingUrl, setIsLoadingUrl] = useState(false);
   
@@ -113,7 +121,7 @@ export const SavedClipItem: React.FC<SavedClipItemProps> = ({
             )}
           </div>
           <p className="text-xs text-muted-foreground">
-            {clip.timeline} • {formatVideoTime(clip.startTime)} ({formatVideoTime(clip.duration)})
+            {clip.timeline} • {formatVideoTime(clip.startTime)} ({formatReadableTime(clip.duration)})
           </p>
           {clip.notes && (
             <p className="text-xs mt-1">{clip.notes}</p>
@@ -180,6 +188,32 @@ export const SavedClipItem: React.FC<SavedClipItemProps> = ({
           >
             <Trash2 className="h-4 w-4" />
           </Button>
+          
+          {extraActions && extraActions.length > 0 && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  disabled={disabled}
+                >
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {extraActions.map((action, index) => (
+                  <DropdownMenuItem
+                    key={index}
+                    onClick={() => action.onClick(clip)}
+                    disabled={disabled}
+                  >
+                    {action.icon && <span className="mr-2">{action.icon}</span>}
+                    {action.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
       </div>
     </li>

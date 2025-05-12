@@ -24,20 +24,24 @@ export interface SavedClip {
   startTime: number;
   duration: number;
   label: string;
-  notes: string;
-  timeline: string;
+  notes?: string;
+  timeline?: string;
   saved: string;
   players?: PlayerAction[];
-  tags?: string[];  // Adding tags property
   situation?: GameSituation;
   folderId?: string;
   teamId?: string;
   gameId?: string;
-  clipType?: ClipType;
-  videoId?: string;  // Reference to video source
-  videoUrl?: string; // URL for the video
-  directVideoUrl?: string; // Direct signed URL for the video
-  clipPath?: string; // Path to the clip file
+  videoId?: string;
+  videoUrl?: string;
+  directVideoUrl?: string;
+  thumbnailUrl?: string;
+  isSupabaseClip?: boolean;
+  sourceType?: 'clips' | 'videos' | 'local'; // Source bucket or local
+  tags?: string[]; // Tags associated with the clip
+  clipPath?: string; // Path if directly from clips bucket
+  source?: 'storage' | 'local'; // Origin of the clip data
+  originalData?: any; // Store original Supabase data if needed
 }
 
 export interface ClipFolder {
@@ -54,7 +58,8 @@ export interface ClipFolder {
 export interface Game {
   id: string;
   title: string;
-  date: string;
+  description?: string;
+  gameDate: string;
   homeTeam: string;
   awayTeam: string;
   videoUrl?: string;
@@ -62,6 +67,8 @@ export interface Game {
   createdAt: string;
   updatedAt: string;
   teamId?: string; // Adding teamId to associate games with teams
+  supabaseId?: string;
+  filePath?: string;
 }
 
 export interface PlayerAction {

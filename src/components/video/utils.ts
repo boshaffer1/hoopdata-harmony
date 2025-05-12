@@ -1,4 +1,3 @@
-
 /**
  * Format time in seconds to MM:SS format
  */
@@ -8,6 +7,22 @@ export const formatVideoTime = (timeInSeconds: number): string => {
   const minutes = Math.floor(timeInSeconds / 60);
   const seconds = Math.floor(timeInSeconds % 60);
   return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+};
+
+/**
+ * Format time in seconds to a more readable format (e.g., "1 min 34 sec" or "45 sec")
+ */
+export const formatReadableTime = (timeInSeconds: number): string => {
+  if (isNaN(timeInSeconds)) return "0 sec";
+  
+  const minutes = Math.floor(timeInSeconds / 60);
+  const seconds = Math.floor(timeInSeconds % 60);
+  
+  if (minutes > 0) {
+    return `${minutes} min${minutes !== 1 ? "s" : ""} ${seconds} sec${seconds !== 1 ? "s" : ""}`;
+  } else {
+    return `${seconds} sec${seconds !== 1 ? "s" : ""}`;
+  }
 };
 
 /**

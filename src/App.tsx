@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -16,6 +15,7 @@ import Scouting from "./pages/Scouting";
 import ScoutingReport from "./pages/ScoutingReport";
 import ClipLibrary from "./pages/ClipLibrary";
 import NotFound from "./pages/NotFound";
+import SupabaseDebug from "./pages/SupabaseDebug";
 
 const queryClient = new QueryClient();
 
@@ -37,6 +37,7 @@ const App = () => (
           <Route path="/myteam/player/:teamId/:playerId" element={<PlayerDetail />} />
           <Route path="/scouting" element={<Scouting />} />
           <Route path="/scouting/:teamId" element={<ScoutingReport />} />
+          <Route path="/debug/supabase" element={<SupabaseDebug />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

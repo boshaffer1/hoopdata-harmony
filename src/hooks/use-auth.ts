@@ -1,42 +1,64 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
 
-export const useAuth = () => {
+type AuthState = {
+  user: User | null;
+  isLoading: boolean;
+  isAuthenticated: boolean;
+  signOut: () => void;
+  getAuthStatus: () => Promise<{ isAuthenticated: boolean, user: User | null }>;
+};
+
+export const useAuth = (): AuthState => {
   const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check current session
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
+    const initializeAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        setUser(session?.user || null);
+      } catch (error) {
+        console.error('Error checking auth status:', error);
+        setUser(null);
+      } finally {
+        setIsLoading(false);
+      }
     };
 
-    checkSession();
+    initializeAuth();
 
-    // Set up listener for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
+      (_event, session) => {
+        setUser(session?.user || null);
+        setIsLoading(false);
       }
     );
 
-    // Cleanup subscription
     return () => {
       subscription.unsubscribe();
     };
   }, []);
 
-  return { 
-    user, 
-    session, 
-    loading,
+  const getAuthStatus = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      return { 
+        isAuthenticated: !!session?.user, 
+        user: session?.user || null 
+      };
+    } catch (error) {
+      console.error('Error checking auth status:', error);
+      return { isAuthenticated: false, user: null };
+    }
+  };
+
+  return {
+    user,
+    isLoading,
+    isAuthenticated: !!user,
     signOut: () => supabase.auth.signOut(),
+    getAuthStatus
   };
 };

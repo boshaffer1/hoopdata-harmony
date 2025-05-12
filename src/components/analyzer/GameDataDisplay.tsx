@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { SavedClip } from '@/types/analyzer';
@@ -24,6 +23,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2 } from "lucide-react";
+import { formatReadableTime } from "@/components/video/utils";
 
 interface VideoFile {
   id: string;
@@ -186,7 +186,7 @@ const GameDataDisplay: React.FC<GameDataDisplayProps> = ({
             </CardTitle>
             <CardDescription>
               {currentClip 
-                ? `Start Time: ${currentClip.startTime}s, Duration: ${currentClip.duration}s` 
+                ? `Start Time: ${currentClip.startTime}s, Duration: ${formatReadableTime(currentClip.duration)}` 
                 : 'Playing full game footage'}
             </CardDescription>
           </CardHeader>

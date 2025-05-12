@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { SavedClip, GameData } from "@/types/analyzer";
 import { Progress } from "@/components/ui/progress";
 import { ClipThumbnailGrid } from "@/components/library/ClipThumbnailGrid";
+import { formatReadableTime } from "@/components/video/utils";
 
 const Analyzer = () => {
   const {
@@ -60,6 +61,18 @@ const Analyzer = () => {
   
   // Adapter function to convert SavedClip to GameData
   const handleLibrarySavedClipPlay = (clip: SavedClip) => {
+    console.log("handleLibrarySavedClipPlay called with clip:", clip);
+    
+    // If the clip has a directVideoUrl, ensure it's set immediately 
+    if (clip.directVideoUrl) {
+      console.log("Clip has directVideoUrl - using it directly:", clip.directVideoUrl.substring(0, 50) + "...");
+      // First set the video URL directly through the video handler
+      handleVideoFileChange(clip.directVideoUrl);
+    } else {
+      console.log("Clip does not have directVideoUrl");
+    }
+    
+    // Then pass to the handler
     handlePlaySavedClip(clip);
   };
 
@@ -125,7 +138,7 @@ const Analyzer = () => {
                     Now playing: {selectedClip["Play Name"]}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    Start: {selectedClip["Start time"]}s, Duration: {selectedClip["Duration"]}s
+                    Start: {selectedClip["Start time"]}s, Duration: {formatReadableTime(parseFloat(selectedClip["Duration"] || "0"))}
                   </p>
                 </div>
                 <Button 
@@ -218,6 +231,7 @@ const Analyzer = () => {
                   <ClipThumbnailGrid
                     clips={savedClips}
                     onPlayClip={handleLibrarySavedClipPlay}
+                    bucketFilter="clips"
                   />
                 </div>
               </TabsContent>

@@ -1,4 +1,3 @@
-
 import { useVideo } from "./use-video";
 import { useMarkers } from "./use-markers";
 import { useGameData } from "./use-game-data";
@@ -187,6 +186,22 @@ export const useAnalyzer = () => {
   };
 
   const handlePlaySavedClip = (clip: SavedClip) => {
+    console.log("handlePlaySavedClip called with clip:", clip);
+    
+    if (clip.directVideoUrl) {
+      console.log("Clip has direct video URL:", clip.directVideoUrl.substring(0, 50) + "...");
+      // Set the video URL directly first
+      originalHandleVideoFileChange(clip.directVideoUrl);
+      
+      // Ensure the video begins playing after a short delay to allow loading
+      setTimeout(() => {
+        if (videoPlayerRef.current) {
+          videoPlayerRef.current.play()
+            .catch(err => console.error("Auto-play failed:", err));
+        }
+      }, 500);
+    }
+    
     const gameDataClip: GameData = {
       "Play Name": clip.label,
       "Start time": clip.startTime.toString(),

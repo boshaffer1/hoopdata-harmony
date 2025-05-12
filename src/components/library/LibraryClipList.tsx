@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { SavedClip, ClipFolder } from "@/types/analyzer";
@@ -16,6 +15,13 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
+// Define the action interface
+export interface ClipAction {
+  label: string;
+  icon?: React.ReactNode;
+  onClick: (clip: SavedClip) => void;
+}
+
 interface LibraryClipListProps {
   clips: SavedClip[];
   folders: ClipFolder[];
@@ -25,6 +31,7 @@ interface LibraryClipListProps {
   onRemoveClip: (id: string) => void;
   onMoveToFolder: (clipId: string, folderId: string | null, teamId?: string) => void;
   isLoadingVideo?: boolean;
+  extraActions?: ClipAction[];
 }
 
 export const LibraryClipList: React.FC<LibraryClipListProps> = ({
@@ -35,7 +42,8 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
   onExportClip,
   onRemoveClip,
   onMoveToFolder,
-  isLoadingVideo = false
+  isLoadingVideo = false,
+  extraActions = []
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState<string | null>(null);
@@ -152,6 +160,7 @@ export const LibraryClipList: React.FC<LibraryClipListProps> = ({
                 onExport={onExportClip}
                 onRemove={onRemoveClip}
                 disabled={isLoadingVideo}
+                extraActions={extraActions}
               />
             ))}
           </ul>
