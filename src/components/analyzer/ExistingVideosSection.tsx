@@ -1,287 +1,124 @@
 import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Play, Download, Upload, FileText, Film, RefreshCw } from "lucide-react";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
-import { formatDistanceToNow } from "date-fns";
-import { toast } from "sonner";
-import { useAuth } from "@/hooks/use-auth";
-
-interface VideoFile {
-  id: string;
-  filename: string;
-  title: string | null;
-  description: string | null;
-  created_at: string;
-  file_path: string;
-  content_type: string | null;
-}
-
-interface CSVData {
-  id: string;
-  filename: string;
-  created_at: string;
-  data: any;
-  video_id: string | null;
-}
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { CSVData } from "@/types/analyzer";
 
 interface ExistingVideosSectionProps {
-  onVideoSelect: (url: string) => void;
-  onCsvDataSelect: (data: any) => void;
+  onVideoSelect: (videoUrl: string) => void;
+  onCsvDataSelect: (data: CSVData) => void;
 }
 
-const ExistingVideosSection: React.FC<ExistingVideosSectionProps> = ({
-  onVideoSelect,
-  onCsvDataSelect
-}) => {
-  const [videos, setVideos] = useState<VideoFile[]>([]);
-  const [csvFiles, setCsvFiles] = useState<CSVData[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'videos' | 'csv'>('videos');
-  const { user } = useAuth();
+const ExistingVideosSection: React.FC<ExistingVideosSectionProps> = ({ onVideoSelect, onCsvDataSelect }) => {
+  const [videoFiles, setVideoFiles] = useState<any[]>([]);
+  const [csvFiles, setCsvFiles] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const fetchVideos = async () => {
-    if (!user) {
-      setVideos([]);
-      return;
-    }
+  useEffect(() => {
+    fetchVideoFiles();
+    fetchCsvData();
+  }, []);
 
-    setLoading(true);
+  const fetchVideoFiles = async () => {
     try {
       const { data, error } = await supabase
-        .from('video_files')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+        .from("video_files")
+        .select("*")
+        .order("created_at", { ascending: false });
+        
+      if (error) throw error;
       
-      if (error) {
-        throw error;
+      if (data) {
+        setVideoFiles(data);
       }
-      
-      setVideos(data || []);
     } catch (error) {
-      console.error('Error fetching videos:', error);
-      toast.error('Failed to load videos');
+      console.error("Error fetching video files:", error);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   const fetchCsvData = async () => {
-    if (!user) {
-      setCsvFiles([]);
-      return;
-    }
-
-    setLoading(true);
     try {
+      // Use the correct table name with proper case - "Csv_Data" instead of "csv_data"
       const { data, error } = await supabase
-        .from('csv_data')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+        .from("Csv_Data")
+        .select("*")
+        .order("created_at", { ascending: false });
+        
+      if (error) throw error;
       
-      if (error) {
-        throw error;
+      if (data) {
+        setCsvFiles(data as any); // Type as CSVData[]
       }
-      
-      setCsvFiles(data || []);
     } catch (error) {
-      console.error('Error fetching CSV data:', error);
-      toast.error('Failed to load CSV files');
+      console.error("Error fetching CSV data:", error);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  useEffect(() => {
-    if (user) {
-      fetchVideos();
-      fetchCsvData();
-    }
-  }, [user]);
+  const handleVideoSelect = (videoUrl: string) => {
+    onVideoSelect(videoUrl);
+  };
 
-  const handleSelectVideo = async (video: VideoFile) => {
-    if (!user) {
-      toast.error('Please log in to access videos');
-      return;
-    }
-
+  const handleCsvDataSelect = async (csvData: any) => {
     try {
-      const { data, error } = await supabase.storage
-        .from('videos')
-        .createSignedUrl(video.file_path, 3600);
-      
-      if (error) {
-        throw error;
-      }
-      
-      if (data && data.signedUrl) {
-        onVideoSelect(data.signedUrl);
-        toast.success(`Loaded video: ${video.filename}`);
-      }
+      // Parse the CSV data
+      const parsedData = JSON.parse(csvData.data);
+      onCsvDataSelect(parsedData);
     } catch (error) {
-      console.error('Error getting video URL:', error);
-      toast.error('Failed to load video');
-    }
-  };
-
-  const handleSelectCsv = (csvData: CSVData) => {
-    if (!user) {
-      toast.error('Please log in to access CSV data');
-      return;
-    }
-
-    if (csvData.data) {
-      onCsvDataSelect(csvData.data);
-      toast.success(`Loaded CSV data: ${csvData.filename}`);
-    } else {
-      toast.error('CSV data is empty or invalid');
-    }
-  };
-
-  const handleRefresh = () => {
-    if (user) {
-      activeTab === 'videos' ? fetchVideos() : fetchCsvData();
-      toast.info('Refreshing data from server');
-    } else {
-      toast.error('Please log in to refresh data');
+      console.error("Error parsing CSV data:", error);
     }
   };
 
   return (
-    <Card className="mb-6">
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle>Existing Files</CardTitle>
-          <CardDescription>
-            Your previously uploaded videos and data files
-          </CardDescription>
-        </div>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={handleRefresh}
-          className="flex items-center gap-1"
-        >
-          <RefreshCw className="h-4 w-4" />
-          Refresh
-        </Button>
-      </CardHeader>
-      <CardContent>
-        <div className="flex border-b mb-4">
-          <Button
-            variant={activeTab === 'videos' ? 'default' : 'ghost'}
-            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary"
-            data-state={activeTab === 'videos' ? 'active' : 'inactive'}
-            onClick={() => setActiveTab('videos')}
-          >
-            <Film className="h-4 w-4 mr-2" />
-            Game Videos ({videos.length})
-          </Button>
-          <Button
-            variant={activeTab === 'csv' ? 'default' : 'ghost'}
-            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary"
-            data-state={activeTab === 'csv' ? 'active' : 'inactive'}
-            onClick={() => setActiveTab('csv')}
-          >
-            <FileText className="h-4 w-4 mr-2" />
-            CSV Data ({csvFiles.length})
-          </Button>
-        </div>
-
-        {activeTab === 'videos' && (
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Filename</TableHead>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Uploaded</TableHead>
-                  <TableHead>Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {videos.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={4} className="text-center py-4 text-muted-foreground">
-                      {loading ? 'Loading videos...' : 'No videos found. Upload your first game video!'}
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  videos.map((video) => (
-                    <TableRow key={video.id}>
-                      <TableCell className="font-medium">{video.filename}</TableCell>
-                      <TableCell>{video.title || '-'}</TableCell>
-                      <TableCell>
-                        {formatDistanceToNow(new Date(video.created_at), { addSuffix: true })}
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleSelectVideo(video)}
-                          className="flex items-center gap-1"
-                        >
-                          <Play className="h-4 w-4" />
-                          Load
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+    <div className="space-y-4">
+      <div className="border rounded-md p-4">
+        <h3 className="text-lg font-medium mb-2">Load Existing Video</h3>
+        {isLoading ? (
+          <p>Loading videos...</p>
+        ) : videoFiles.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {videoFiles.map((video) => (
+              <div key={video.id} className="border rounded-md p-2">
+                <button
+                  onClick={() => handleVideoSelect(video.file_path)}
+                  className="w-full text-left hover:bg-gray-100 p-2 rounded-md"
+                >
+                  {video.filename}
+                </button>
+              </div>
+            ))}
           </div>
+        ) : (
+          <p>No videos found.</p>
         )}
+      </div>
 
-        {activeTab === 'csv' && (
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Filename</TableHead>
-                  <TableHead>Uploaded</TableHead>
-                  <TableHead>Video ID</TableHead>
-                  <TableHead>Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {csvFiles.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={4} className="text-center py-4 text-muted-foreground">
-                      {loading ? 'Loading CSV files...' : 'No CSV data found. Upload your first data file!'}
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  csvFiles.map((csv) => (
-                    <TableRow key={csv.id}>
-                      <TableCell className="font-medium">{csv.filename}</TableCell>
-                      <TableCell>
-                        {formatDistanceToNow(new Date(csv.created_at), { addSuffix: true })}
-                      </TableCell>
-                      <TableCell>{csv.video_id || 'Not linked'}</TableCell>
-                      <TableCell>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleSelectCsv(csv)}
-                          className="flex items-center gap-1"
-                        >
-                          <FileText className="h-4 w-4" />
-                          Load
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+      <div className="border rounded-md p-4">
+        <h3 className="text-lg font-medium mb-2">Load Existing CSV Data</h3>
+        {isLoading ? (
+          <p>Loading CSV data...</p>
+        ) : csvFiles.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {csvFiles.map((csv) => (
+              <div key={csv.id} className="border rounded-md p-2">
+                <button
+                  onClick={() => handleCsvDataSelect(csv)}
+                  className="w-full text-left hover:bg-gray-100 p-2 rounded-md"
+                >
+                  {csv.filename}
+                </button>
+              </div>
+            ))}
           </div>
+        ) : (
+          <p>No CSV data found.</p>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };
 

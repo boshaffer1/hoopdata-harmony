@@ -67,7 +67,7 @@ const GameDataDisplay: React.FC<GameDataDisplayProps> = ({
         
         // Fetch clips
         const { data: clipData, error: clipError } = await supabase
-          .from('clips')
+          .from('Clips')
           .select('*');
         
         if (clipError) throw clipError;

@@ -1,3 +1,4 @@
+
 export interface Marker {
   time: number;
   label: string;
@@ -149,3 +150,5 @@ export interface TeamRoster {
   name: string;
   players: Player[];
 }
+
+export type CSVData = any[];

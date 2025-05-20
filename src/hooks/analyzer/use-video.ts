@@ -1,6 +1,7 @@
 
 import { useState, useRef } from "react";
 import { toast } from "sonner";
+import { triggerWebhook } from "@/utils/webhook-handler";
 
 export const useVideo = () => {
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
@@ -29,15 +30,20 @@ export const useVideo = () => {
 
     try {
       let newVideoUrl;
+      let fileName = "";
+      let fileSize = 0;
       
       if (typeof fileOrUrl === 'string') {
         // This is already a URL
         newVideoUrl = fileOrUrl;
         console.log("Setting video URL from string:", fileOrUrl);
+        fileName = fileOrUrl.split('/').pop() || "video";
       } else {
         // This is a File object
         newVideoUrl = URL.createObjectURL(fileOrUrl);
         console.log("Created object URL for file:", fileOrUrl.name);
+        fileName = fileOrUrl.name;
+        fileSize = fileOrUrl.size;
       }
       
       setVideoUrl(newVideoUrl);
@@ -45,6 +51,17 @@ export const useVideo = () => {
       
       // Reset current time
       setCurrentTime(0);
+      
+      // Trigger n8n webhook with video information
+      triggerWebhook({
+        event: "video_uploaded",
+        timestamp: new Date().toISOString(),
+        videoDetails: {
+          url: newVideoUrl,
+          fileName: fileName,
+          fileSize: fileSize
+        }
+      });
       
       return newVideoUrl;
     } catch (error) {

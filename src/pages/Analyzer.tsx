@@ -16,6 +16,7 @@ import { SavedClip, GameData } from "@/types/analyzer";
 import { Progress } from "@/components/ui/progress";
 import { ClipThumbnailGrid } from "@/components/library/ClipThumbnailGrid";
 import { formatReadableTime } from "@/components/video/utils";
+import { ClipLibraryExtension } from "@/components/analyzer/ClipLibraryExtension";
 
 const Analyzer = () => {
   const {
@@ -213,6 +214,9 @@ const Analyzer = () => {
                   onStopClip={stopClip}
                   onAutoOrganize={autoOrganizeClips}
                 />
+                
+                {/* Add the AI analysis extension */}
+                <ClipLibraryExtension selectedClip={selectedClip} />
               </TabsContent>
               
               <TabsContent value="roster" className="mt-0">

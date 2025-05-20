@@ -193,6 +193,32 @@ const VideoSection: React.FC<VideoSectionProps> = ({
     }
   };
 
+  const fetchRecentClips = async () => {
+    try {
+      // Use the correct table name with proper case - "Clips" instead of "clips"
+      const { data, error } = await supabase
+        .from("Clips")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(5);
+        
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        console.log("Found recent clips:", data.length);
+        // Use most recent clip
+        const recentClip = data[0];
+        
+        if (recentClip.video_url) {
+          console.log("Setting video URL from recent clip:", recentClip.video_url);
+          onVideoFileChange(recentClip.video_url);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching recent clips:", error);
+    }
+  };
+
   return (
     <>
       {/* Video Player */}
