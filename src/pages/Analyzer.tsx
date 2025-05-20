@@ -17,7 +17,7 @@ import { Progress } from "@/components/ui/progress";
 import { ClipThumbnailGrid } from "@/components/library/ClipThumbnailGrid";
 import { formatReadableTime } from "@/components/video/utils";
 import { ClipLibraryExtension } from "@/components/analyzer/ClipLibraryExtension";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 
 const Analyzer = () => {
   const {
@@ -95,7 +95,7 @@ const Analyzer = () => {
     };
   };
 
-  // Fix the handleExportClip function (around line 219)
+  // Fix the handleExportClip function
   const handleExportClip = async (clipData: GameData | SavedClip) => {
     if (!videoUrl) {
       toast.error("No video loaded");

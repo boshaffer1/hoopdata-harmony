@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { FilePlus } from "lucide-react";
+import { FilePlus, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BookmarkIcon } from "lucide-react";
 import VideoPlayer from "@/components/video/VideoPlayer";
@@ -10,6 +10,10 @@ import { Marker } from "@/types/analyzer";
 import { formatTime } from "@/hooks/video-player/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { loadAllSupabaseData } from "@/utils/all-supabase-data";
+import { Form, FormField, FormItem, FormLabel, FormControl } from "@/components/ui/form";
+import { useForm } from "react-hook-form";
+import { Textarea } from "@/components/ui/textarea";
+import { triggerWebhook } from "@/utils/webhook-handler";
 
 interface VideoSectionProps {
   videoUrl?: string;
@@ -23,6 +27,12 @@ interface VideoSectionProps {
   onAddMarker: () => void;
 }
 
+interface VideoUploadFormData {
+  homeTeam: string;
+  awayTeam: string;
+  gameDate: string;
+}
+
 const VideoSection: React.FC<VideoSectionProps> = ({
   videoUrl,
   currentTime,
@@ -34,8 +44,19 @@ const VideoSection: React.FC<VideoSectionProps> = ({
   onNewMarkerLabelChange,
   onAddMarker,
 }) => {
-  // const [supabaseClips, setSupabaseClips] = useState<any[]>([]);
-  // const [isLoadingClips, setIsLoadingClips] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [analysisResults, setAnalysisResults] = useState<string>("");
+  
+  // Form setup
+  const form = useForm<VideoUploadFormData>({
+    defaultValues: {
+      homeTeam: "",
+      awayTeam: "",
+      gameDate: new Date().toISOString().split('T')[0]
+    }
+  });
 
   // Log when videoUrl changes
   useEffect(() => {
@@ -59,56 +80,50 @@ const VideoSection: React.FC<VideoSectionProps> = ({
     }
   }, [videoUrl, videoPlayerRef]);
 
-  // Fetch clips from Supabase when component mounts
-  // useEffect(() => {
-  //   const fetchClips = async () => {
-  //     setIsLoadingClips(true);
-  //     try {
-  //       console.log("Loading clips from Supabase storage");
-        
-  //       // Use the comprehensive data loader instead of direct database query
-  //       const allData = await loadAllSupabaseData();
-        
-  //       // Get clips from the unified clips array
-  //       const unifiedClips = allData.unified.clips || [];
-        
-  //       // Filter to only show clips from the 'clips' bucket
-  //       const clipsOnly = unifiedClips.filter(clip => 
-  //         clip.sourceType === 'clips'
-  //       ).slice(0, 5); // Limit to 5 clips
-        
-  //       console.log(`Found ${clipsOnly.length} clips in the clips bucket`);
-        
-  //       // Convert to format expected by this component
-  //       const formattedClips = clipsOnly.map(clip => ({
-  //         id: clip.id,
-  //         play_name: clip.label || "Unnamed Clip",
-  //         start_time: clip.startTime || 0,
-  //         end_time: (clip.startTime || 0) + (clip.duration || 30),
-  //         video_id: clip.videoId || "",
-  //         video_url: clip.videoUrl || clip.directVideoUrl || null,
-  //         clip_path: clip.clipPath || null,
-  //         tags: clip.tags || []
-  //       }));
-        
-  //       setSupabaseClips(formattedClips);
-  //     } catch (error) {
-  //       console.error("Error fetching clips:", error);
-  //       toast.error("Failed to load clips from database");
-  //     } finally {
-  //       setIsLoadingClips(false);
-  //     }
-  //   };
-    
-  //   fetchClips();
-  // }, []);
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  }, []);
 
-  // Prepare markers for the video player in the expected format
-  const formattedMarkers = markers.map(m => ({
-    time: m.time,
-    label: m.label,
-    color: m.color
-  }));
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const file = e.dataTransfer.files[0];
+      if (file.type.startsWith('video/')) {
+        setVideoFile(file);
+        const fileUrl = URL.createObjectURL(file);
+        onVideoFileChange(fileUrl);
+        toast.success(`Video "${file.name}" loaded successfully`);
+      } else {
+        toast.error("Please drop a valid video file");
+      }
+    }
+  }, [onVideoFileChange]);
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
+      setVideoFile(file);
+      const fileUrl = URL.createObjectURL(file);
+      onVideoFileChange(fileUrl);
+    }
+  };
 
   const handleAddMarker = () => {
     if (!videoUrl) {
@@ -118,106 +133,81 @@ const VideoSection: React.FC<VideoSectionProps> = ({
     onAddMarker();
   };
 
-  const playSupabaseClip = async (clip: any) => {
-    if (!clip.video_url && !clip.clip_path) {
-      toast.error("No video URL available for this clip");
+  const handleUploadAndAnalyze = async (data: VideoUploadFormData) => {
+    if (!videoFile) {
+      toast.error("Please select a video file first");
       return;
     }
+
+    setIsUploading(true);
+    setAnalysisResults("");
+    
+    // Create form data for the webhook
+    const formData = new FormData();
+    formData.append("videoInput", videoFile);
+    formData.append("homeTeam", data.homeTeam);
+    formData.append("awayTeam", data.awayTeam);
+    formData.append("gameDate", data.gameDate);
     
     try {
-      // Show loading toast
-      toast.loading("Loading clip...");
+      toast.loading("Uploading video and waiting for analysis...");
       
-      let clipUrl = clip.video_url;
+      const response = await fetch("https://playswise.app.n8n.cloud/webhook-test/analyze", {
+        method: "POST",
+        body: formData,
+        // Note: We don't set Content-Type header as it's automatically set with the correct boundary for multipart/form-data
+      });
       
-      // If no direct video_url but we have a clip_path, create a signed URL
-      if (!clipUrl && clip.clip_path) {
-        console.log(`Creating signed URL for clip: ${clip.clip_path} from clips bucket`);
-        const { data: signedUrlData, error: signedUrlError } = await supabase
-          .storage
-          .from('clips')
-          .createSignedUrl(clip.clip_path, 3600);
-          
-        if (signedUrlError) {
-          console.error("Error creating signed URL:", signedUrlError);
-          
-          // Check for common policy issues
-          if (signedUrlError.message.includes('permission denied') || 
-              signedUrlError.message.includes('denied by policy')) {
-            console.error(`
-            POLICY ERROR: Permission denied accessing clips/${clip.clip_path}
-            
-            Ensure you have the following policy in your Supabase project:
-            
-            CREATE POLICY "Public can view clips" ON storage.objects
-              FOR SELECT
-              TO anon
-              USING (bucket_id = 'clips');
-            `);
-            toast.dismiss();
-            toast.error("Permission denied - check Supabase policies");
-            return;
-          }
-          
-          if (signedUrlError.message.includes('Not Found')) {
-            toast.dismiss();
-            toast.error("Clip not found in storage");
-            return;
-          }
-          
-          toast.dismiss();
-          toast.error("Failed to create secure URL for clip");
-          return;
+      toast.dismiss();
+      
+      if (response.ok) {
+        let result;
+        const contentType = response.headers.get("content-type");
+        
+        if (contentType && contentType.includes("application/json")) {
+          result = await response.json();
+          setAnalysisResults(JSON.stringify(result, null, 2));
+        } else {
+          const textResult = await response.text();
+          setAnalysisResults(textResult);
         }
-          
-        if (signedUrlData?.signedUrl) {
-          console.log("Successfully created signed URL for clip");
-          clipUrl = signedUrlData.signedUrl;
-        }
-      }
-      
-      if (clipUrl) {
-        // Use the video URL to play the clip
-        toast.dismiss();
-        toast.success(`Playing clip: ${clip.play_name}`);
-        console.log("Passing clip URL to video player:", clipUrl.substring(0, 50) + '...');
-        onVideoFileChange(clipUrl);
+        
+        toast.success("Video uploaded and analyzed successfully!");
+        
+        // Trigger webhook with the analysis data
+        triggerWebhook({
+          event: "video_analyzed",
+          timestamp: new Date().toISOString(),
+          videoDetails: {
+            fileName: videoFile.name,
+            fileSize: videoFile.size,
+            homeTeam: data.homeTeam,
+            awayTeam: data.awayTeam,
+            gameDate: data.gameDate
+          }
+        });
+        
       } else {
-        toast.dismiss();
-        toast.error("Could not generate video URL - check Supabase storage permissions");
+        const errorText = await response.text();
+        console.error("Error from webhook:", errorText);
+        toast.error("Failed to analyze video. Check console for details.");
+        setAnalysisResults(`Error: ${response.status} ${response.statusText}\n${errorText}`);
       }
     } catch (error) {
-      console.error("Error playing clip:", error);
-      toast.dismiss();
-      toast.error("Failed to play clip - check console for details");
+      console.error("Error uploading and analyzing video:", error);
+      toast.error("Error connecting to the analysis service");
+      setAnalysisResults(`Error: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      setIsUploading(false);
     }
   };
 
-  const fetchRecentClips = async () => {
-    try {
-      // Use the correct table name with proper case - "Clips" instead of "clips"
-      const { data, error } = await supabase
-        .from("Clips")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(5);
-        
-      if (error) throw error;
-      
-      if (data && data.length > 0) {
-        console.log("Found recent clips:", data.length);
-        // Use most recent clip
-        const recentClip = data[0];
-        
-        if (recentClip.video_url) {
-          console.log("Setting video URL from recent clip:", recentClip.video_url);
-          onVideoFileChange(recentClip.video_url);
-        }
-      }
-    } catch (error) {
-      console.error("Error fetching recent clips:", error);
-    }
-  };
+  // Prepare markers for the video player in the expected format
+  const formattedMarkers = markers.map(m => ({
+    time: m.time,
+    label: m.label,
+    color: m.color
+  }));
 
   return (
     <>
@@ -232,15 +222,24 @@ const VideoSection: React.FC<VideoSectionProps> = ({
               markers={formattedMarkers}
             />
           ) : (
-            <div className="aspect-video flex items-center justify-center bg-muted">
+            <div 
+              className={`aspect-video flex items-center justify-center bg-muted transition-colors ${isDragging ? 'bg-primary/10 border-2 border-dashed border-primary' : ''}`}
+              onDragEnter={handleDragEnter}
+              onDragLeave={handleDragLeave}
+              onDragOver={handleDragOver}
+              onDrop={handleDrop}
+            >
               <div className="text-center p-6">
-                <FilePlus className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground mb-4">No video selected</p>
+                <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground mb-4">
+                  Drag and drop a video file here, or click to browse
+                </p>
                 <Input
                   type="file"
                   accept="video/*"
-                  onChange={onVideoFileChange}
+                  onChange={handleFileInputChange}
                   className="max-w-sm mx-auto"
+                  id="videoInput"
                 />
               </div>
             </div>
@@ -248,8 +247,79 @@ const VideoSection: React.FC<VideoSectionProps> = ({
         </CardContent>
       </Card>
       
+      {/* Game Information and Analysis Form */}
+      <Card className="mt-4">
+        <CardContent className="pt-6">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(handleUploadAndAnalyze)} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="homeTeam"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Home Team</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Home Team" id="teamIdInput" {...field} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="awayTeam"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Away Team</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Away Team" {...field} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="gameDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Game Date</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              <Button 
+                type="submit" 
+                className="w-full"
+                disabled={isUploading || !videoFile}
+              >
+                {isUploading ? 'Processing...' : 'Upload and Analyze'}
+              </Button>
+            </form>
+          </Form>
+          
+          {/* Analysis Results */}
+          {analysisResults && (
+            <div className="mt-4">
+              <h3 className="text-sm font-medium mb-2">Analysis Results</h3>
+              <Textarea 
+                id="resultsText"
+                value={analysisResults} 
+                readOnly 
+                className="h-48 font-mono text-sm" 
+              />
+            </div>
+          )}
+        </CardContent>
+      </Card>
+      
       {/* Current Time and Marker Controls */}
-      <div className="flex flex-col sm:flex-row gap-4">
+      <div className="flex flex-col sm:flex-row gap-4 mt-4">
         <Card className="flex-1">
           <CardContent className="pt-6">
             <h3 className="text-sm font-medium mb-2">Current Time</h3>
