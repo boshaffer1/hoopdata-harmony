@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import VideoSection from "@/components/analyzer/VideoSection";
@@ -78,7 +79,7 @@ const Analyzer = () => {
     handlePlaySavedClip(clip);
   };
 
-  // Add a helper function to convert GameData to SavedClip
+  // Helper function to convert GameData to SavedClip
   const convertGameDataToSavedClip = (gameData: GameData): SavedClip => {
     const startTime = parseFloat(gameData["Start time"] || "0");
     const duration = parseFloat(gameData["Duration"] || "0");
@@ -95,7 +96,7 @@ const Analyzer = () => {
     };
   };
 
-  // Fix the handleExportClip function
+  // Fix the handleExportClip function to properly convert GameData to SavedClip
   const handleExportClip = async (clipData: GameData | SavedClip) => {
     if (!videoUrl) {
       toast.error("No video loaded");
