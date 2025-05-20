@@ -17,6 +17,7 @@ import { Progress } from "@/components/ui/progress";
 import { ClipThumbnailGrid } from "@/components/library/ClipThumbnailGrid";
 import { formatReadableTime } from "@/components/video/utils";
 import { ClipLibraryExtension } from "@/components/analyzer/ClipLibraryExtension";
+import { toast } from "react-toastify";
 
 const Analyzer = () => {
   const {
@@ -75,6 +76,42 @@ const Analyzer = () => {
     
     // Then pass to the handler
     handlePlaySavedClip(clip);
+  };
+
+  // Add a helper function to convert GameData to SavedClip
+  const convertGameDataToSavedClip = (gameData: GameData): SavedClip => {
+    const startTime = parseFloat(gameData["Start time"] || "0");
+    const duration = parseFloat(gameData["Duration"] || "0");
+    
+    return {
+      id: `temp-${Date.now()}`,
+      startTime,
+      duration,
+      label: gameData["Play Name"] || "Untitled Clip",
+      notes: gameData["Notes"] || "",
+      timeline: gameData["Timeline"] || "",
+      saved: new Date().toISOString(),
+      situation: gameData["Situation"] || "other"
+    };
+  };
+
+  // Fix the handleExportClip function (around line 219)
+  const handleExportClip = async (clipData: GameData | SavedClip) => {
+    if (!videoUrl) {
+      toast.error("No video loaded");
+      return;
+    }
+
+    let clip: SavedClip;
+    
+    // Convert GameData to SavedClip if needed
+    if ('startTime' in clipData) {
+      clip = clipData as SavedClip;
+    } else {
+      clip = convertGameDataToSavedClip(clipData as GameData);
+    }
+    
+    exportClip(clip);
   };
 
   // Toggle between analyzer mode and demo data display mode
@@ -163,7 +200,7 @@ const Analyzer = () => {
               onFileLoaded={handleFileLoaded}
               onPlayClip={playClip}
               onStopClip={stopClip}
-              onExportClip={exportClip}
+              onExportClip={handleExportClip}
             />
           </div>
           

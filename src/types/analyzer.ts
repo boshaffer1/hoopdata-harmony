@@ -1,4 +1,3 @@
-
 export interface Marker {
   time: number;
   label: string;
@@ -43,6 +42,7 @@ export interface SavedClip {
   clipPath?: string; // Path if directly from clips bucket
   source?: 'storage' | 'local'; // Origin of the clip data
   originalData?: any; // Store original Supabase data if needed
+  clipType?: ClipType; // Adding this property to fix the errors
 }
 
 export interface ClipFolder {

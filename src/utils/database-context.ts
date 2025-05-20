@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -9,20 +10,24 @@ export async function getDatabaseContext(): Promise<string> {
   try {
     // Teams
     const { data: teams, error: teamsError } = await supabase
-      .from('teams')
+      .from('Teams')
       .select('*')
       .limit(20);
       
     if (!teamsError && teams && teams.length > 0) {
-      const teamInfo = teams.map(team => 
-        `${team.name || 'Unknown'} (${team.league || 'Unknown'})`)
-        .join(', ');
+      const teamInfo = teams.map(team => {
+        // Check if team has name and league properties
+        if (team && typeof team === 'object' && 'name' in team && 'league' in team) {
+          return `${team.name || 'Unknown'} (${team.league || 'Unknown'})`;
+        }
+        return 'Unknown team';
+      }).join(', ');
       context.push(`Teams: ${teamInfo}`);
     }
     
     // Players
     const { data: players, error: playersError } = await supabase
-      .from('players')
+      .from('Players')
       .select('*')
       .limit(20);
       
@@ -40,7 +45,7 @@ export async function getDatabaseContext(): Promise<string> {
     
     // NBA Players
     const { data: nbaPlayers, error: nbaPlayersError } = await supabase
-      .from('NBA roster')
+      .from('NBA Roster')
       .select('*')
       .limit(20);
       
@@ -105,4 +110,4 @@ export async function getDatabaseContext(): Promise<string> {
   `);
   
   return context.join('\n');
-} 
+}

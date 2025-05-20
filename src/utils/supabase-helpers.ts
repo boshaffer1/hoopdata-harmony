@@ -46,7 +46,7 @@ export async function fetchClipsFromSupabase() {
     
     // Now try to get clips
     const { data: clips, error: clipsError } = await supabase
-      .from('clips')
+      .from('Clips')
       .select('*')
       .order('created_at', { ascending: false });
       
@@ -743,4 +743,4 @@ export async function createWebPThumbnail(
       reject(err);
     }
   });
-} 
+}

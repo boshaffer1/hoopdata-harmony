@@ -119,7 +119,7 @@ export const useAnalyzer = () => {
               if (videoError) throw videoError;
               
               const { error: csvError } = await supabase
-                .from('csv_data')
+                .from('Csv_Data')  // Fixed casing here to match the table name in the database
                 .insert({
                   user_id: user.id,
                   data: processedData,

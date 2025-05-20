@@ -241,7 +241,8 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
         label = `Clip at ${startTime.toFixed(1)}s`;
       }
       
-      const clipType = duration > 60 ? "full_game" : "play";
+      // Define clipType without assigning it directly to the object
+      const clipTypeValue = duration > 60 ? "full_game" : "play";
       
       let clipFolderId = undefined;
       let teamId = undefined;
@@ -249,7 +250,7 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
       if (defaultTeamFolder) {
         teamId = defaultTeamFolder.id;
         
-        if (clipType === "full_game" && gamesFolder) {
+        if (clipTypeValue === "full_game" && gamesFolder) {
           clipFolderId = gamesFolder.id;
         } else if (playSubfolders[label]) {
           clipFolderId = playSubfolders[label].id;
@@ -281,7 +282,7 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
         situation: item.Situation || "other",
         folderId: clipFolderId,
         teamId,
-        clipType
+        clipType: clipTypeValue as ClipType
       };
       
       newClips.push(newClip);
@@ -740,7 +741,7 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
       const updatedClips = savedClips.map(clip => {
         // Always update all clips to ensure proper organization
         // First, add to My Library as the base folder
-        let updatedClip = { ...clip, folderId: myLibraryFolder?.id };
+        let updatedClip: SavedClip = { ...clip, folderId: myLibraryFolder?.id };
         
         // Check if this is an unnamed clip
         if (clip.label.match(/^Clip at \d+(\.\d+)?s$/)) {
@@ -748,7 +749,7 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
           updatedClip = {
             ...updatedClip,
             folderId: unnamedClipsFolder?.id,
-            clipType: "other" as ClipType
+            clipType: "other"
           };
         } else if (clip.duration > 60 && gamesFolder) {
           // Place full games in the Games folder
@@ -756,7 +757,7 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
             ...updatedClip,
             folderId: gamesFolder.id,
             teamId: teamFolder?.id,
-            clipType: "full_game" as ClipType
+            clipType: "full_game"
           };
         } else if (clip.label && clip.label.trim() !== "") {
           const subfolder = playSubfolders[clip.label];
@@ -766,7 +767,7 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
               ...updatedClip, 
               folderId: subfolder.id,
               teamId: teamFolder?.id,
-              clipType: "play" as ClipType
+              clipType: "play"
             };
           } else if (playsFolder) {
             // Fallback to main plays folder
@@ -774,7 +775,7 @@ export const useClipLibrary = (videoUrl: string | undefined) => {
               ...updatedClip,
               folderId: playsFolder.id,
               teamId: teamFolder?.id,
-              clipType: "play" as ClipType
+              clipType: "play"
             };
           }
         }
