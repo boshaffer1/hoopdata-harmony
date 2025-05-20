@@ -19,9 +19,10 @@ export const getWebhookConfig = (): WebhookConfig => {
     console.error("Error retrieving webhook config:", e);
   }
   
+  // Default to enabled with the provided webhook URL
   return {
-    url: '',
-    enabled: false
+    url: 'https://playswise.app.n8n.cloud/webhook-test/analyze',
+    enabled: true
   };
 };
 
