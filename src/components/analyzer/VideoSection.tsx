@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -15,7 +16,7 @@ import { useForm } from "react-hook-form";
 import { Textarea } from "@/components/ui/textarea";
 import { triggerWebhook } from "@/utils/webhook-handler";
 import { useUpload } from "@/hooks/analyzer/use-upload";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth } from "@/hooks/auth/AuthProvider";
 
 interface VideoSectionProps {
   videoUrl?: string;

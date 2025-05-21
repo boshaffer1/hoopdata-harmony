@@ -1,36 +1,39 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BookmarkIcon, Library, Users, Grid } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import MarkersList from "@/components/analyzer/MarkersList";
 import ClipLibrary from "@/components/analyzer/ClipLibrary";
+import PlayerStats from "@/components/analyzer/stats/PlayerStats";
+import TeamStats from "@/components/analyzer/stats/TeamStats";
+import SituationStats from "@/components/analyzer/stats/SituationStats";
 import RosterView from "@/components/analyzer/teams/RosterView";
-import { ClipThumbnailGrid } from "@/components/library/ClipThumbnailGrid";
-import { ClipLibraryExtension } from "@/components/analyzer/ClipLibraryExtension";
-import { Marker, GameData, SavedClip, TeamRoster, Player } from "@/types/analyzer";
+import ClipAssistant from "@/components/analyzer/ai/ClipAssistant";
+import VideoAnalysisDisplay from "@/components/analyzer/ai/VideoAnalysisDisplay";
+import { GameData, Marker, SavedClip, TeamRoster } from "@/types/analyzer";
 
 interface AnalyzerTabsProps {
   markers: Marker[];
   savedClips: SavedClip[];
   playLabel: string;
-  selectedClip: GameData | null;
+  selectedClip: GameData | SavedClip | null;
   isPlayingClip: boolean;
   rosters: TeamRoster[];
   onSeekToMarker: (time: number) => void;
   onRemoveMarker: (id: string) => void;
   onMarkerNotesChange: (id: string, notes: string) => void;
   onPlayLabelChange: (value: string) => void;
-  onSaveClip: (startTime: number, duration: number, label: string) => void; 
+  onSaveClip: (startTime: number, duration: number, label: string) => void;
   onRemoveClip: (id: string) => void;
-  onExportClip: (clip: SavedClip | GameData) => void;
+  onExportClip: (clip: GameData | SavedClip) => void;
   onExportLibrary: () => void;
-  onPlayClip: (clip: SavedClip) => void;
+  onPlayClip: (clip: SavedClip | GameData) => void;
   onStopClip: () => void;
   onAutoOrganize: () => void;
   onExportAllMarkers: () => void;
-  onAddTeam: (teamName: string) => TeamRoster;
-  onRemoveTeam: (teamId: string) => void;
-  onAddPlayer: (teamId: string, player: Player) => void;
+  onAddTeam: (name: string) => TeamRoster;
+  onRemoveTeam: (id: string) => void;
+  onAddPlayer: (teamId: string, player: { name: string, number: string, position: string }) => void;
   onRemovePlayer: (teamId: string, playerId: string) => void;
 }
 
@@ -58,130 +61,95 @@ const AnalyzerTabs: React.FC<AnalyzerTabsProps> = ({
   onAddPlayer,
   onRemovePlayer
 }) => {
-  // Fix the adapter function for handling clip save
-  const handleSaveClip = (clip: GameData) => {
-    const startTime = parseFloat(clip["Start time"] || "0");
-    const duration = parseFloat(clip["Duration"] || "0");
-    const label = clip["Play Name"] || "Untitled";
-    onSaveClip(startTime, duration, label);
+  const [activeTab, setActiveTab] = useState("markers");
+
+  // Convert between GameData and SavedClip to fix TypeScript incompatibility
+  const handlePlayClip = (clip: SavedClip | GameData) => {
+    onPlayClip(clip);
   };
 
-  // Convert GameData to SavedClip for onPlayClip
-  const handlePlayGameData = (gameData: GameData) => {
-    const startTime = parseFloat(gameData["Start time"] || "0");
-    const duration = parseFloat(gameData["Duration"] || "0");
-    
-    const savedClip: SavedClip = {
-      id: `temp-${Date.now()}`,
-      startTime: startTime,
-      duration: duration,
-      label: gameData["Play Name"] || "Untitled",
-      notes: gameData["Notes"] || "",
-      timeline: gameData["Timeline"] || "",
-      saved: new Date().toISOString(),
-      situation: gameData["Situation"] || "other"
-    };
-    
-    onPlayClip(savedClip);
-  };
-
-  // Handle export for both GameData and SavedClip types
-  const handleExportClip = (clip: GameData | SavedClip) => {
-    // Check if it's a SavedClip or GameData
-    if ('startTime' in clip) {
-      // It's already a SavedClip
-      onExportClip(clip);
-    } else {
-      // Convert GameData to SavedClip for export
-      const startTime = parseFloat(clip["Start time"] || "0");
-      const duration = parseFloat(clip["Duration"] || "0");
-      
-      const savedClip: SavedClip = {
-        id: `temp-${Date.now()}`,
-        startTime: startTime,
-        duration: duration,
-        label: clip["Play Name"] || "Untitled",
-        notes: clip["Notes"] || "",
-        timeline: clip["Timeline"] || "",
-        saved: new Date().toISOString(),
-        situation: clip["Situation"] || "other"
-      };
-      
-      onExportClip(savedClip);
-    }
+  const handleExportClip = (clip: SavedClip | GameData) => {
+    onExportClip(clip);
   };
 
   return (
-    <Tabs defaultValue="markers">
-      <TabsList className="grid grid-cols-4 mb-6">
-        <TabsTrigger value="markers" className="flex items-center gap-2">
-          <BookmarkIcon className="h-4 w-4" />
-          <span className="hidden sm:inline">Markers</span>
-        </TabsTrigger>
-        <TabsTrigger value="library" className="flex items-center gap-2">
-          <Library className="h-4 w-4" />
-          <span className="hidden sm:inline">Library</span>
-        </TabsTrigger>
-        <TabsTrigger value="roster" className="flex items-center gap-2">
-          <Users className="h-4 w-4" />
-          <span className="hidden sm:inline">Rosters</span>
-        </TabsTrigger>
-        <TabsTrigger value="gallery" className="flex items-center gap-2">
-          <Grid className="h-4 w-4" />
-          <span className="hidden sm:inline">Gallery</span>
-        </TabsTrigger>
+    <Tabs defaultValue="markers" className="w-full" value={activeTab} onValueChange={setActiveTab}>
+      <TabsList className="grid grid-cols-4">
+        <TabsTrigger value="markers">Markers</TabsTrigger>
+        <TabsTrigger value="library">Library</TabsTrigger>
+        <TabsTrigger value="teams">Teams</TabsTrigger>
+        <TabsTrigger value="stats">Stats</TabsTrigger>
       </TabsList>
-      
-      <TabsContent value="markers" className="mt-0">
-        <MarkersList 
-          markers={markers}
-          onSeekToMarker={onSeekToMarker}
-          onRemoveMarker={onRemoveMarker}
-          onMarkerNotesChange={onMarkerNotesChange}
-          onExportAllMarkers={onExportAllMarkers}
-        />
-      </TabsContent>
-      
-      <TabsContent value="library" className="mt-0">
-        <ClipLibrary 
-          savedClips={savedClips}
-          playLabel={playLabel}
-          selectedClip={selectedClip}
-          isPlayingClip={isPlayingClip}
-          onPlayLabelChange={onPlayLabelChange}
-          onSaveClip={handleSaveClip}
-          onRemoveClip={onRemoveClip}
-          onExportClip={handleExportClip}
-          onExportLibrary={onExportLibrary}
-          onPlayClip={handlePlayGameData}
-          onStopClip={onStopClip}
-          onAutoOrganize={onAutoOrganize}
-        />
-        
-        {/* Add the AI analysis extension */}
-        <ClipLibraryExtension selectedClip={selectedClip} />
-      </TabsContent>
-      
-      <TabsContent value="roster" className="mt-0">
-        <RosterView 
-          rosters={rosters}
-          onAddTeam={onAddTeam}
-          onRemoveTeam={onRemoveTeam}
-          onAddPlayer={onAddPlayer}
-          onRemovePlayer={onRemovePlayer}
-        />
-      </TabsContent>
-      
-      <TabsContent value="gallery" className="mt-0">
-        <div className="border rounded-lg p-4">
-          <h3 className="text-lg font-medium mb-4">Clip Gallery</h3>
-          <ClipThumbnailGrid
-            clips={savedClips}
-            onPlayClip={onPlayClip}
-            bucketFilter="clips"
+      <div className="mt-6">
+        <TabsContent value="markers">
+          <MarkersList 
+            markers={markers}
+            onSeekToMarker={onSeekToMarker}
+            onRemoveMarker={onRemoveMarker}
+            onMarkerNotesChange={onMarkerNotesChange}
+            onExportAllMarkers={onExportAllMarkers}
           />
-        </div>
-      </TabsContent>
+        </TabsContent>
+        <TabsContent value="library">
+          <ClipLibrary
+            savedClips={savedClips}
+            playLabel={playLabel}
+            isPlayingClip={isPlayingClip}
+            selectedClip={selectedClip}
+            onPlayLabelChange={onPlayLabelChange}
+            onSaveClip={onSaveClip}
+            onRemoveClip={onRemoveClip}
+            onExportClip={handleExportClip}
+            onExportLibrary={onExportLibrary}
+            onPlayClip={handlePlayClip}
+            onStopClip={onStopClip}
+            onAutoOrganize={onAutoOrganize}
+          />
+        </TabsContent>
+        <TabsContent value="teams">
+          <RosterView 
+            rosters={rosters}
+            onAddTeam={onAddTeam}
+            onRemoveTeam={onRemoveTeam}
+            onAddPlayer={onAddPlayer}
+            onRemovePlayer={onRemovePlayer}
+          />
+        </TabsContent>
+        <TabsContent value="stats">
+          <div className="grid grid-cols-1 gap-6">
+            <Card>
+              <CardContent className="pt-6">
+                <Tabs defaultValue="players">
+                  <TabsList className="mb-4">
+                    <TabsTrigger value="players">Players</TabsTrigger>
+                    <TabsTrigger value="teams">Teams</TabsTrigger>
+                    <TabsTrigger value="situations">Situations</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="players">
+                    <PlayerStats />
+                  </TabsContent>
+                  <TabsContent value="teams">
+                    <TeamStats />
+                  </TabsContent>
+                  <TabsContent value="situations">
+                    <SituationStats />
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <VideoAnalysisDisplay />
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <ClipAssistant />
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+      </div>
     </Tabs>
   );
 };

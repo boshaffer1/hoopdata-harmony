@@ -117,6 +117,9 @@ export const useUpload = () => {
               }
             });
           
+          // Format the game_date to be compatible with PostgreSQL date format
+          const gameDate = metadata?.gameDate ? new Date(metadata.gameDate).toISOString().split('T')[0] : null;
+          
           // Also save to "Video upload" table (new functionality)
           supabase
             .from('Video upload')
@@ -125,7 +128,7 @@ export const useUpload = () => {
               file_name: formattedFileName,
               home_team: metadata?.homeTeam || '',
               away_team: metadata?.awayTeam || '',
-              game_date: metadata?.gameDate ? new Date(metadata.gameDate) : null,
+              game_date: gameDate,
               video_url: url
             })
             .then(({ error: uploadError }) => {
