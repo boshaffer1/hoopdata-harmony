@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { useAnalyzer } from "@/hooks/analyzer/use-analyzer";
@@ -53,7 +54,8 @@ const Analyzer = () => {
     exportLibrary,
     exportAllMarkers,
     handlePlaySavedClip,
-    autoOrganizeClips
+    autoOrganizeClips,
+    saveClip // Make sure we get the saveClip function
   } = useAnalyzer();
 
   const {
@@ -134,7 +136,16 @@ const Analyzer = () => {
 
   // Create an adapter for adding teams
   const handleAddTeam = (teamName: string) => {
-    return addTeam(teamName);
+    const result = addTeam(teamName);
+    // Convert void return to empty roster if needed
+    if (!result) {
+      return {
+        id: "",
+        name: teamName,
+        players: []
+      };
+    }
+    return result;
   };
   
   // If loading or unauthenticated, show a loading state
@@ -198,7 +209,7 @@ const Analyzer = () => {
               onPlayLabelChange={setPlayLabel}
               onSaveClip={handleSaveClip}
               onRemoveClip={removeSavedClip}
-              onExportClip={exportClip}
+              onExportClip={handleExportClip}
               onExportLibrary={exportLibrary}
               onPlayClip={handleLibrarySavedClipPlay}
               onStopClip={stopClip}

@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BookmarkIcon, Library, Users, Grid } from "lucide-react";
@@ -27,7 +28,7 @@ interface AnalyzerTabsProps {
   onStopClip: () => void;
   onAutoOrganize: () => void;
   onExportAllMarkers: () => void;
-  onAddTeam: (teamName: string) => TeamRoster | void;
+  onAddTeam: (teamName: string) => TeamRoster;
   onRemoveTeam: (teamId: string) => void;
   onAddPlayer: (teamId: string, player: Player) => void;
   onRemovePlayer: (teamId: string, playerId: string) => void;
@@ -65,15 +66,15 @@ const AnalyzerTabs: React.FC<AnalyzerTabsProps> = ({
     onSaveClip(startTime, duration, label);
   };
 
-  // Fix GameData to SavedClip conversion for onPlayClip
+  // Convert GameData to SavedClip for onPlayClip
   const handlePlayGameData = (gameData: GameData) => {
     const startTime = parseFloat(gameData["Start time"] || "0");
-    const endTime = startTime + parseFloat(gameData["Duration"] || "0");
+    const duration = parseFloat(gameData["Duration"] || "0");
     
     const savedClip: SavedClip = {
       id: `temp-${Date.now()}`,
       startTime: startTime,
-      duration: parseFloat(gameData["Duration"] || "0"),
+      duration: duration,
       label: gameData["Play Name"] || "Untitled",
       notes: gameData["Notes"] || "",
       timeline: gameData["Timeline"] || "",
@@ -82,6 +83,20 @@ const AnalyzerTabs: React.FC<AnalyzerTabsProps> = ({
     };
     
     onPlayClip(savedClip);
+  };
+
+  // Adapter for MarkersList to handle string ids vs number indices
+  const handleRemoveMarker = (id: string) => {
+    onRemoveMarker(id);
+  };
+
+  const handleMarkerNotesChange = (id: string, notes: string) => {
+    onMarkerNotesChange(id, notes);
+  };
+
+  // Adapter for handling clip export to properly convert GameData to SavedClip
+  const handleExportClip = (clip: GameData | SavedClip) => {
+    onExportClip(clip);
   };
 
   return (
@@ -109,8 +124,8 @@ const AnalyzerTabs: React.FC<AnalyzerTabsProps> = ({
         <MarkersList 
           markers={markers}
           onSeekToMarker={onSeekToMarker}
-          onRemoveMarker={onRemoveMarker}
-          onMarkerNotesChange={onMarkerNotesChange}
+          onRemoveMarker={handleRemoveMarker}
+          onMarkerNotesChange={handleMarkerNotesChange}
           onExportAllMarkers={onExportAllMarkers}
         />
       </TabsContent>
@@ -124,7 +139,7 @@ const AnalyzerTabs: React.FC<AnalyzerTabsProps> = ({
           onPlayLabelChange={onPlayLabelChange}
           onSaveClip={handleSaveClip}
           onRemoveClip={onRemoveClip}
-          onExportClip={onExportClip}
+          onExportClip={handleExportClip}
           onExportLibrary={onExportLibrary}
           onPlayClip={handlePlayGameData}
           onStopClip={onStopClip}

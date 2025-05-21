@@ -1,3 +1,4 @@
+
 import { useVideo } from "./use-video";
 import { useMarkers } from "./use-markers";
 import { useGameData } from "./use-game-data";
@@ -146,6 +147,6 @@ export const useAnalyzer = () => {
     handlePlaySavedClip,
     setSelectedClip,
     autoOrganizeClips,
-    saveClip // Add the fixed saveClip function
+    saveClip // Make sure we export the saveClip function
   };
 };
