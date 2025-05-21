@@ -9,10 +9,10 @@ import { ClipThumbnailGrid } from "@/components/library/ClipThumbnailGrid";
 import { ClipLibraryExtension } from "@/components/analyzer/ClipLibraryExtension";
 import { VideoAnalysisDisplay } from "@/components/analyzer/ai/VideoAnalysisDisplay";
 import { Marker, GameData, SavedClip, TeamRoster, Player } from "@/types/analyzer";
-import { PlayerStats } from "@/components/analyzer/stats/PlayerStats";
-import { TeamStats } from "@/components/analyzer/stats/TeamStats";
-import { SituationStats } from "@/components/analyzer/stats/SituationStats";
-import { ClipAssistant } from "@/components/analyzer/ai/ClipAssistant";
+import PlayerStats from "@/components/analyzer/stats/PlayerStats";
+import TeamStats from "@/components/analyzer/stats/TeamStats";
+import SituationStats from "@/components/analyzer/stats/SituationStats";
+import ClipAssistant from "@/components/analyzer/ai/ClipAssistant";
 
 interface AnalyzerTabsProps {
   markers: Marker[];
@@ -97,18 +97,18 @@ const AnalyzerTabs: React.FC<AnalyzerTabsProps> = ({
 
   // Mock data for stats components
   const mockPlayers = [
-    { id: '1', name: 'Player 1', stats: { points: 10, assists: 5 } },
-    { id: '2', name: 'Player 2', stats: { points: 8, assists: 7 } }
+    { id: '1', name: 'Player 1', stats: { points: 10, assists: 5 }, playerName: 'Player 1', totalClips: 10, actions: { scored: 5, assist: 2 } },
+    { id: '2', name: 'Player 2', stats: { points: 8, assists: 7 }, playerName: 'Player 2', totalClips: 7, actions: { scored: 3, assist: 4 } }
   ];
   
   const mockTeams = [
-    { id: '1', name: 'Team 1', stats: { wins: 10, losses: 5 } },
-    { id: '2', name: 'Team 2', stats: { wins: 8, losses: 7 } }
+    { id: '1', name: 'Team 1', stats: { wins: 10, losses: 5 }, teamName: 'Team 1', totalClips: 15, players: [{ playerName: 'Player 1', totalClips: 10 }] },
+    { id: '2', name: 'Team 2', stats: { wins: 8, losses: 7 }, teamName: 'Team 2', totalClips: 12, players: [{ playerName: 'Player 2', totalClips: 7 }] }
   ];
   
   const mockSituations = [
-    { id: 'transition', name: 'Transition', count: 15 },
-    { id: 'half_court', name: 'Half Court', count: 25 }
+    { id: 'transition', name: 'Transition', count: 15, label: 'transition', percentage: 60 },
+    { id: 'half_court', name: 'Half Court', count: 25, label: 'half_court', percentage: 40 }
   ];
 
   return (
