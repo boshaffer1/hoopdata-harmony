@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+
+import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { useAnalyzer } from "@/hooks/analyzer/use-analyzer";
 import { useRoster } from "@/hooks/analyzer/use-roster";
@@ -8,8 +9,21 @@ import VideoPlayerSection from "@/components/analyzer/VideoPlayerSection";
 import AnalyzerTabs from "@/components/analyzer/AnalyzerTabs";
 import { GameData, SavedClip } from "@/types/analyzer";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/auth/AuthProvider";
+import { useNavigate } from "react-router-dom";
 
 const Analyzer = () => {
+  const { user, isLoading } = useAuth();
+  const navigate = useNavigate();
+  
+  useEffect(() => {
+    // Redirect unauthenticated users to login
+    if (!isLoading && !user) {
+      toast.error("Please sign in to access the video analyzer");
+      navigate("/auth");
+    }
+  }, [user, isLoading, navigate]);
+  
   const {
     videoUrl,
     currentTime,
@@ -131,6 +145,21 @@ const Analyzer = () => {
   const handleAddTeam = (teamName: string) => {
     return addTeam(teamName);
   };
+  
+  // If loading or unauthenticated, show a loading state
+  if (isLoading) {
+    return (
+      <Layout className="py-6">
+        <div className="flex items-center justify-center h-[60vh]">
+          <div className="text-center">Loading...</div>
+        </div>
+      </Layout>
+    );
+  }
+  
+  if (!user) {
+    return null; // Will redirect in useEffect
+  }
 
   return (
     <Layout className="py-6">

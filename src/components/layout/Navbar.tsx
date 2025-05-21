@@ -1,13 +1,24 @@
-
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Menu, X, BarChart, Bot, Users, Target, FileText, Library } from "lucide-react";
+import { Menu, X, BarChart, Bot, Users, Target, FileText, Library, LogOut, LogIn, User } from "lucide-react";
+import { useAuth } from "@/hooks/auth/AuthProvider";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { toast } from "sonner";
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { user, isAuthenticated, signOut } = useAuth();
+  const navigate = useNavigate();
 
   // Track scroll position to change navbar appearance
   useEffect(() => {
@@ -22,6 +33,12 @@ const Navbar = () => {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  const handleSignOut = async () => {
+    await signOut();
+    toast.success("Signed out successfully");
+    navigate("/");
+  };
 
   return (
     <header
@@ -105,15 +122,43 @@ const Navbar = () => {
           </Link>
         </nav>
 
-        {/* Call to action button */}
-        <div className="hidden md:block">
-          <Button 
-            variant="default" 
-            size="sm" 
-            className="rounded-full px-6 font-medium shadow-md bg-primary hover:bg-primary/90 transition-all duration-300"
-          >
-            Get Started
-          </Button>
+        {/* User authentication and actions */}
+        <div className="hidden md:flex items-center space-x-4">
+          {isAuthenticated ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="rounded-full">
+                  <User className="h-5 w-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuItem>
+                  <span className="text-sm truncate max-w-[200px]">{user?.email}</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem>
+                  <Link to="/settings" className="flex w-full">Settings</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleSignOut}>
+                  <div className="flex items-center">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Sign out</span>
+                  </div>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Button 
+              variant="default" 
+              size="sm" 
+              className="rounded-full px-6 font-medium shadow-md bg-primary hover:bg-primary/90 transition-all duration-300"
+              onClick={() => navigate('/auth')}
+            >
+              <LogIn className="mr-2 h-4 w-4" />
+              Sign In
+            </Button>
+          )}
         </div>
 
         {/* Mobile menu button */}
@@ -202,14 +247,43 @@ const Navbar = () => {
             >
               Insights
             </Link>
-            <Button 
-              variant="default" 
-              size="sm" 
-              className="w-full rounded-full py-4 font-medium shadow-md"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              Get Started
-            </Button>
+            {isAuthenticated ? (
+              <>
+                <Link 
+                  to="/settings" 
+                  className="text-sm font-medium hover:text-primary transition-colors py-2 flex items-center gap-1" 
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  <User className="h-4 w-4" />
+                  Profile
+                </Link>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full justify-start"
+                  onClick={() => {
+                    handleSignOut();
+                    setIsMobileMenuOpen(false);
+                  }}
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sign Out
+                </Button>
+              </>
+            ) : (
+              <Button 
+                variant="default" 
+                size="sm" 
+                className="w-full rounded-full py-4 font-medium shadow-md"
+                onClick={() => {
+                  navigate('/auth');
+                  setIsMobileMenuOpen(false);
+                }}
+              >
+                <LogIn className="mr-2 h-4 w-4" />
+                Sign In
+              </Button>
+            )}
           </div>
         </div>
       )}
