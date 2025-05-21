@@ -15,6 +15,8 @@ import { Form, FormField, FormItem, FormLabel, FormControl } from "@/components/
 import { useForm } from "react-hook-form";
 import { Textarea } from "@/components/ui/textarea";
 import { triggerWebhook } from "@/utils/webhook-handler";
+import { useUpload } from "@/hooks/analyzer/use-upload";
+import { useAuth } from "@/hooks/use-auth";
 
 interface VideoSectionProps {
   videoUrl?: string;
@@ -47,8 +49,9 @@ const VideoSection: React.FC<VideoSectionProps> = ({
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [videoFile, setVideoFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
   const [analysisResults, setAnalysisResults] = useState<string>("");
+  const { user } = useAuth();
+  const { isUploading, uploadProgress, uploadVideoToSupabase } = useUpload();
   
   // Form setup
   const form = useForm<VideoUploadFormData>({
@@ -134,39 +137,59 @@ const VideoSection: React.FC<VideoSectionProps> = ({
     onAddMarker();
   };
 
-  const handleUploadAndAnalyze = async (data: VideoUploadFormData) => {
+  const handleUploadAndAnalyze = async (formData: VideoUploadFormData) => {
     if (!videoFile) {
       toast.error("Please select a video file first");
       return;
     }
 
-    setIsUploading(true);
+    if (!user) {
+      toast.error("Please sign in to upload videos");
+      return;
+    }
+
     setAnalysisResults("");
     
     try {
-      toast.loading("Uploading video and waiting for analysis...");
+      toast.loading("Uploading video to Supabase...");
       
-      // Create multipart form data with all fields
-      const formData = new FormData();
-      formData.append("video", videoFile);
-      formData.append("homeTeam", data.homeTeam);
-      formData.append("awayTeam", data.awayTeam);
-      formData.append("gameDate", data.gameDate);
-      
-      // Log what we're sending to help with debugging
-      console.log("Sending form data:", {
-        video: videoFile.name,
-        homeTeam: data.homeTeam,
-        awayTeam: data.awayTeam,
-        gameDate: data.gameDate
+      // First upload to Supabase
+      const publicUrl = await uploadVideoToSupabase(videoFile, {
+        homeTeam: formData.homeTeam,
+        awayTeam: formData.awayTeam,
+        gameDate: formData.gameDate,
+        title: `${formData.homeTeam} vs ${formData.awayTeam} - ${formData.gameDate}`
       });
       
-      // Send direct POST request to n8n webhook
+      if (!publicUrl) {
+        toast.error("Failed to upload video to Supabase");
+        return;
+      }
+      
+      toast.success("Video uploaded to Supabase successfully!");
+      toast.loading("Now sending to analysis service...");
+      
+      // Then send to analysis webhook
+      const formDataForWebhook = new FormData();
+      formDataForWebhook.append("video", videoFile);
+      formDataForWebhook.append("videoUrl", publicUrl);
+      formDataForWebhook.append("homeTeam", formData.homeTeam);
+      formDataForWebhook.append("awayTeam", formData.awayTeam);
+      formDataForWebhook.append("gameDate", formData.gameDate);
+      
+      // Log what we're sending to help with debugging
+      console.log("Sending data to webhook:", {
+        videoUrl: publicUrl,
+        homeTeam: formData.homeTeam,
+        awayTeam: formData.awayTeam,
+        gameDate: formData.gameDate
+      });
+      
+      // Send to webhook for analysis
       const webhookUrl = "https://playswise.app.n8n.cloud/webhook-test/analyze";
       const response = await fetch(webhookUrl, {
         method: "POST",
-        body: formData,
-        // No need to set Content-Type header as the browser will set it correctly with boundary
+        body: formDataForWebhook,
       });
       
       toast.dismiss();
@@ -183,18 +206,19 @@ const VideoSection: React.FC<VideoSectionProps> = ({
           setAnalysisResults(textResult);
         }
         
-        toast.success("Video uploaded and analyzed successfully!");
+        toast.success("Video analysis completed!");
         
-        // Also trigger the webhook to notify about successful analysis
+        // Trigger webhook with analysis completion event
         triggerWebhook({
           event: "video_analyzed",
           timestamp: new Date().toISOString(),
           videoDetails: {
             fileName: videoFile.name,
             fileSize: videoFile.size,
-            homeTeam: data.homeTeam,
-            awayTeam: data.awayTeam,
-            gameDate: data.gameDate
+            homeTeam: formData.homeTeam,
+            awayTeam: formData.awayTeam,
+            gameDate: formData.gameDate,
+            publicUrl: publicUrl
           }
         });
       } else {
@@ -205,10 +229,8 @@ const VideoSection: React.FC<VideoSectionProps> = ({
       }
     } catch (error) {
       console.error("Error uploading and analyzing video:", error);
-      toast.error("Error connecting to the analysis service");
+      toast.error("Error processing video");
       setAnalysisResults(`Error: ${error instanceof Error ? error.message : String(error)}`);
-    } finally {
-      setIsUploading(false);
     }
   };
 
@@ -306,10 +328,16 @@ const VideoSection: React.FC<VideoSectionProps> = ({
               <Button 
                 type="submit" 
                 className="w-full"
-                disabled={isUploading || !videoFile}
+                disabled={isUploading || !videoFile || !user}
               >
-                {isUploading ? 'Processing...' : 'Upload and Analyze'}
+                {isUploading ? `Uploading... ${uploadProgress}%` : 'Upload and Analyze'}
               </Button>
+              
+              {!user && (
+                <p className="text-sm text-yellow-500 text-center">
+                  Please sign in to upload videos
+                </p>
+              )}
             </form>
           </Form>
           

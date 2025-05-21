@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -10,6 +9,133 @@ export const useUpload = () => {
   const { user } = useAuth();
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+
+  /**
+   * Uploads a video file to the Supabase storage bucket
+   * @param videoFile The video file to upload
+   * @param metadata Optional metadata to include with the upload
+   * @returns The URL of the uploaded file or null if upload failed
+   */
+  const uploadVideoToSupabase = async (
+    videoFile: File, 
+    metadata?: { 
+      homeTeam?: string; 
+      awayTeam?: string; 
+      gameDate?: string;
+      title?: string;
+    }
+  ) => {
+    if (!user) {
+      toast.error("Please sign in to upload videos");
+      return null;
+    }
+
+    if (!videoFile) {
+      toast.error("No video file to upload");
+      return null;
+    }
+
+    try {
+      setIsUploading(true);
+      setUploadProgress(0);
+
+      // Create a unique filename with timestamp and original name
+      const timestamp = Date.now();
+      const fileExt = videoFile.name.split('.').pop();
+      const fileName = `${timestamp}_${videoFile.name.replace(/\s+/g, '_')}`;
+      const filePath = `${user.id}/${fileName}`;
+
+      // Log the upload process
+      console.log(`Uploading video "${videoFile.name}" to Supabase storage bucket "videos"...`);
+
+      // Upload in chunks to show progress
+      const chunkSize = 5 * 1024 * 1024; // 5MB chunks
+      const totalSize = videoFile.size;
+      const chunks = Math.ceil(totalSize / chunkSize);
+      
+      // Upload each chunk
+      for (let i = 0; i < chunks; i++) {
+        const start = i * chunkSize;
+        const end = Math.min(start + chunkSize, totalSize);
+        const chunk = videoFile.slice(start, end);
+        
+        const tempFileName = `${filePath}.part${i}`;
+        
+        const { error: uploadChunkError } = await supabase.storage
+          .from('videos')
+          .upload(tempFileName, chunk, {
+            contentType: 'video/mp4',
+            upsert: true
+          });
+        
+        if (uploadChunkError) throw uploadChunkError;
+        
+        setUploadProgress(Math.round(((i + 1) / chunks) * 100));
+      }
+      
+      // Final upload with the complete file
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('videos')
+        .upload(filePath, videoFile, {
+          contentType: 'video/mp4',
+          upsert: true,
+          // Add metadata
+          fileMetadata: {
+            homeTeam: metadata?.homeTeam || '',
+            awayTeam: metadata?.awayTeam || '',
+            gameDate: metadata?.gameDate || '',
+          }
+        });
+      
+      if (uploadError) throw uploadError;
+      
+      // Get the public URL of the uploaded file
+      const { data: publicURLData } = supabase.storage
+        .from('videos')
+        .getPublicUrl(filePath);
+      
+      // Save information about the video in the video_files table
+      const { data: videoData, error: videoError } = await supabase
+        .from('video_files')
+        .insert({
+          user_id: user.id,
+          filename: videoFile.name,
+          file_path: filePath,
+          file_size: videoFile.size,
+          content_type: videoFile.type,
+          title: metadata?.title || videoFile.name,
+          team_id: metadata?.homeTeam || '',
+          description: `Game: ${metadata?.homeTeam || ''} vs ${metadata?.awayTeam || ''}, ${metadata?.gameDate || ''}`,
+          video_url: publicURLData?.publicUrl || null
+        });
+      
+      if (videoError) throw videoError;
+      
+      toast.success(`Video uploaded to Supabase storage`);
+      
+      // Trigger webhook with upload complete event
+      triggerWebhook({
+        event: "video_uploaded_to_supabase",
+        timestamp: new Date().toISOString(),
+        videoDetails: {
+          fileName: videoFile.name,
+          fileSize: videoFile.size,
+          filePath: filePath,
+          publicUrl: publicURLData?.publicUrl || null,
+          metadata
+        }
+      });
+      
+      return publicURLData?.publicUrl || null;
+    } catch (error) {
+      console.error("Error uploading to Supabase:", error);
+      toast.error("Failed to upload video to Supabase");
+      return null;
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
+    }
+  };
 
   const uploadVideoAndData = async (videoUrl: string | null, processedData: GameData[]) => {
     if (!user || !videoUrl) {
@@ -116,6 +242,7 @@ export const useUpload = () => {
   return {
     isUploading,
     uploadProgress,
+    uploadVideoToSupabase,
     uploadVideoAndData
   };
 };
