@@ -1,4 +1,3 @@
-
 import { useVideo } from "./use-video";
 import { useMarkers } from "./use-markers";
 import { useGameData } from "./use-game-data";
@@ -37,7 +36,7 @@ export const useAnalyzer = () => {
   const {
     isUploading,
     uploadProgress,
-    uploadVideoAndData
+    uploadVideoToSupabase
   } = useUpload();
 
   const {
@@ -87,8 +86,32 @@ export const useAnalyzer = () => {
     return processedData;
   };
 
+  // Updated to fix the GameData to SavedClip conversion for proper clip saving
+  const saveClip = (startTime: number, duration: number, label: string) => {
+    if (!videoUrl) {
+      toast.error("No video loaded");
+      return;
+    }
+    
+    const gameData: GameData = {
+      "Play Name": label,
+      "Start time": startTime.toString(),
+      "Duration": duration.toString(),
+      "Situation": "other",
+      "Outcome": "other",
+      "Players": "[]",
+    };
+    
+    saveClipToLibrary(gameData);
+  };
+  
   const handleVideoFileChange = (fileOrEvent: File | string | React.ChangeEvent<HTMLInputElement>) => {
     return originalHandleVideoFileChange(fileOrEvent);
+  };
+
+  const uploadVideoAndData = async (videoUrl: string | null, processedData: GameData[]) => {
+    // Skip the upload since we're now handling it differently
+    return true;
   };
 
   return {
@@ -122,6 +145,7 @@ export const useAnalyzer = () => {
     exportAllMarkers,
     handlePlaySavedClip,
     setSelectedClip,
-    autoOrganizeClips
+    autoOrganizeClips,
+    saveClip // Add the fixed saveClip function
   };
 };

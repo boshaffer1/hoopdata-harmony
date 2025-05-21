@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { useAnalyzer } from "@/hooks/analyzer/use-analyzer";
@@ -128,17 +127,9 @@ const Analyzer = () => {
       return;
     }
     
-    // Create a GameData object compatible with saveClipToLibrary
-    const gameData: GameData = {
-      "Play Name": label,
-      "Start time": startTime.toString(),
-      "Duration": duration.toString(),
-      "Situation": "other",
-      "Outcome": "other",
-      "Players": "[]",
-    };
-    
-    saveClipToLibrary(gameData);
+    if (saveClip) {
+      saveClip(startTime, duration, label);
+    }
   };
 
   // Create an adapter for adding teams

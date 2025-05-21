@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -153,7 +152,7 @@ const VideoSection: React.FC<VideoSectionProps> = ({
     try {
       toast.loading("Uploading video to Supabase...");
       
-      // First upload to Supabase
+      // First upload to Supabase - getting a direct URL
       const publicUrl = await uploadVideoToSupabase(videoFile, {
         homeTeam: formData.homeTeam,
         awayTeam: formData.awayTeam,
@@ -169,27 +168,19 @@ const VideoSection: React.FC<VideoSectionProps> = ({
       toast.success("Video uploaded to Supabase successfully!");
       toast.loading("Now sending to analysis service...");
       
-      // Then send to analysis webhook
-      const formDataForWebhook = new FormData();
-      formDataForWebhook.append("video", videoFile);
-      formDataForWebhook.append("videoUrl", publicUrl);
-      formDataForWebhook.append("homeTeam", formData.homeTeam);
-      formDataForWebhook.append("awayTeam", formData.awayTeam);
-      formDataForWebhook.append("gameDate", formData.gameDate);
-      
-      // Log what we're sending to help with debugging
-      console.log("Sending data to webhook:", {
-        videoUrl: publicUrl,
-        homeTeam: formData.homeTeam,
-        awayTeam: formData.awayTeam,
-        gameDate: formData.gameDate
-      });
-      
-      // Send to webhook for analysis
+      // Send only the public URL to the analysis webhook to avoid re-uploading the file
       const webhookUrl = "https://playswise.app.n8n.cloud/webhook-test/analyze";
       const response = await fetch(webhookUrl, {
         method: "POST",
-        body: formDataForWebhook,
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          videoUrl: publicUrl,
+          homeTeam: formData.homeTeam,
+          awayTeam: formData.awayTeam,
+          gameDate: formData.gameDate
+        }),
       });
       
       toast.dismiss();
@@ -208,7 +199,7 @@ const VideoSection: React.FC<VideoSectionProps> = ({
         
         toast.success("Video analysis completed!");
         
-        // Trigger webhook with analysis completion event
+        // Log successful analysis
         triggerWebhook({
           event: "video_analyzed",
           timestamp: new Date().toISOString(),

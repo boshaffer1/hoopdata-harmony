@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BookmarkIcon, Library, Users, Grid } from "lucide-react";
@@ -7,7 +6,7 @@ import ClipLibrary from "@/components/analyzer/ClipLibrary";
 import RosterView from "@/components/analyzer/teams/RosterView";
 import { ClipThumbnailGrid } from "@/components/library/ClipThumbnailGrid";
 import { ClipLibraryExtension } from "@/components/analyzer/ClipLibraryExtension";
-import { Marker, GameData, SavedClip, TeamRoster } from "@/types/analyzer";
+import { Marker, GameData, SavedClip, TeamRoster, Player } from "@/types/analyzer";
 
 interface AnalyzerTabsProps {
   markers: Marker[];
@@ -17,20 +16,20 @@ interface AnalyzerTabsProps {
   isPlayingClip: boolean;
   rosters: TeamRoster[];
   onSeekToMarker: (time: number) => void;
-  onRemoveMarker: (index: number) => void;
-  onMarkerNotesChange: (index: number, notes: string) => void;
-  onPlayLabelChange: (label: string) => void;
-  onSaveClip: (startTime: number, duration: number, label: string) => void;
+  onRemoveMarker: (id: string) => void;
+  onMarkerNotesChange: (id: string, notes: string) => void;
+  onPlayLabelChange: (value: string) => void;
+  onSaveClip: (startTime: number, duration: number, label: string) => void; 
   onRemoveClip: (id: string) => void;
-  onExportClip: (clip: SavedClip) => void;
+  onExportClip: (clip: SavedClip | GameData) => void;
   onExportLibrary: () => void;
   onPlayClip: (clip: SavedClip) => void;
   onStopClip: () => void;
   onAutoOrganize: () => void;
   onExportAllMarkers: () => void;
-  onAddTeam: (name: string) => void;
-  onRemoveTeam: (id: string) => void;
-  onAddPlayer: (teamId: string, player: { name: string; number: string; position: string }) => void;
+  onAddTeam: (teamName: string) => TeamRoster | void;
+  onRemoveTeam: (teamId: string) => void;
+  onAddPlayer: (teamId: string, player: Player) => void;
   onRemovePlayer: (teamId: string, playerId: string) => void;
 }
 
@@ -58,6 +57,33 @@ const AnalyzerTabs: React.FC<AnalyzerTabsProps> = ({
   onAddPlayer,
   onRemovePlayer
 }) => {
+  // Fix the adapter function for handling clip save
+  const handleSaveClip = (clip: GameData) => {
+    const startTime = parseFloat(clip["Start time"] || "0");
+    const duration = parseFloat(clip["Duration"] || "0");
+    const label = clip["Play Name"] || "Untitled";
+    onSaveClip(startTime, duration, label);
+  };
+
+  // Fix GameData to SavedClip conversion for onPlayClip
+  const handlePlayGameData = (gameData: GameData) => {
+    const startTime = parseFloat(gameData["Start time"] || "0");
+    const endTime = startTime + parseFloat(gameData["Duration"] || "0");
+    
+    const savedClip: SavedClip = {
+      id: `temp-${Date.now()}`,
+      startTime: startTime,
+      duration: parseFloat(gameData["Duration"] || "0"),
+      label: gameData["Play Name"] || "Untitled",
+      notes: gameData["Notes"] || "",
+      timeline: gameData["Timeline"] || "",
+      saved: new Date().toISOString(),
+      situation: gameData["Situation"] || "other"
+    };
+    
+    onPlayClip(savedClip);
+  };
+
   return (
     <Tabs defaultValue="markers">
       <TabsList className="grid grid-cols-4 mb-6">
@@ -96,11 +122,11 @@ const AnalyzerTabs: React.FC<AnalyzerTabsProps> = ({
           selectedClip={selectedClip}
           isPlayingClip={isPlayingClip}
           onPlayLabelChange={onPlayLabelChange}
-          onSaveClip={onSaveClip}
+          onSaveClip={handleSaveClip}
           onRemoveClip={onRemoveClip}
           onExportClip={onExportClip}
           onExportLibrary={onExportLibrary}
-          onPlayClip={onPlayClip}
+          onPlayClip={handlePlayGameData}
           onStopClip={onStopClip}
           onAutoOrganize={onAutoOrganize}
         />

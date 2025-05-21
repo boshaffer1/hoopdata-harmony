@@ -35,10 +35,54 @@ export const useStorage = () => {
     
     checkBucket();
   }, [user]);
+
+  // Simplified upload function that creates a cleaner file structure
+  const uploadVideo = async (file: File, metadata?: Record<string, string>) => {
+    if (!user || !file) {
+      return { error: "No user or file", url: null };
+    }
+
+    try {
+      // Create a cleaner filename
+      const timestamp = Date.now();
+      const fileExt = file.name.split('.').pop();
+      const cleanFileName = file.name.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_.-]/g, '');
+      
+      // Use a more organized path structure
+      const filePath = `${user.id}/${cleanFileName}`;
+      
+      console.log(`Uploading "${file.name}" to videos/${filePath}`);
+      
+      const { error: uploadError, data } = await supabase.storage
+        .from('videos')
+        .upload(filePath, file, {
+          contentType: file.type,
+          upsert: true,
+          ...(metadata ? { metadata } : {})
+        });
+      
+      if (uploadError) throw uploadError;
+      
+      // Get the public URL
+      const { data: publicURLData } = supabase.storage
+        .from('videos')
+        .getPublicUrl(filePath);
+      
+      return { 
+        error: null, 
+        url: publicURLData?.publicUrl || null,
+        path: filePath
+      };
+    } catch (error) {
+      console.error("Supabase upload error:", error);
+      return { error, url: null };
+    }
+  };
   
   return {
     bucketReady,
     isChecking,
-    isAuthenticated: !!user
+    isAuthenticated: !!user,
+    uploadVideo
   };
 };
