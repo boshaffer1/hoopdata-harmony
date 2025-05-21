@@ -108,6 +108,7 @@ export const useUpload = () => {
               content_type: videoFile.type,
               title: metadata?.title || formattedFileName,
               team_id: metadata?.homeTeam || '',
+              away_team_id: metadata?.awayTeam || '', // Add the away team ID here
               description: `Game: ${metadata?.homeTeam || ''} vs ${metadata?.awayTeam || ''}, ${metadata?.gameDate || ''}`,
               video_url: url
             })

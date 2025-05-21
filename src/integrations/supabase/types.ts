@@ -421,6 +421,7 @@ export type Database = {
       }
       video_files: {
         Row: {
+          away_team_id: string | null
           content_type: string | null
           created_at: string
           description: string | null
@@ -436,6 +437,7 @@ export type Database = {
           video_url: string | null
         }
         Insert: {
+          away_team_id?: string | null
           content_type?: string | null
           created_at?: string
           description?: string | null
@@ -451,6 +453,7 @@ export type Database = {
           video_url?: string | null
         }
         Update: {
+          away_team_id?: string | null
           content_type?: string | null
           created_at?: string
           description?: string | null

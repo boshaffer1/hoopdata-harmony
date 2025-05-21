@@ -7,7 +7,12 @@ import ClipLibrary from "@/components/analyzer/ClipLibrary";
 import RosterView from "@/components/analyzer/teams/RosterView";
 import { ClipThumbnailGrid } from "@/components/library/ClipThumbnailGrid";
 import { ClipLibraryExtension } from "@/components/analyzer/ClipLibraryExtension";
+import { VideoAnalysisDisplay } from "@/components/analyzer/ai/VideoAnalysisDisplay";
 import { Marker, GameData, SavedClip, TeamRoster, Player } from "@/types/analyzer";
+import { PlayerStats } from "@/components/analyzer/stats/PlayerStats";
+import { TeamStats } from "@/components/analyzer/stats/TeamStats";
+import { SituationStats } from "@/components/analyzer/stats/SituationStats";
+import { ClipAssistant } from "@/components/analyzer/ai/ClipAssistant";
 
 interface AnalyzerTabsProps {
   markers: Marker[];
@@ -87,29 +92,24 @@ const AnalyzerTabs: React.FC<AnalyzerTabsProps> = ({
 
   // Handle export for both GameData and SavedClip types
   const handleExportClip = (clip: GameData | SavedClip) => {
-    // Check if it's a SavedClip or GameData
-    if ('startTime' in clip) {
-      // It's already a SavedClip
-      onExportClip(clip);
-    } else {
-      // Convert GameData to SavedClip for export
-      const startTime = parseFloat(clip["Start time"] || "0");
-      const duration = parseFloat(clip["Duration"] || "0");
-      
-      const savedClip: SavedClip = {
-        id: `temp-${Date.now()}`,
-        startTime: startTime,
-        duration: duration,
-        label: clip["Play Name"] || "Untitled",
-        notes: clip["Notes"] || "",
-        timeline: clip["Timeline"] || "",
-        saved: new Date().toISOString(),
-        situation: clip["Situation"] || "other"
-      };
-      
-      onExportClip(savedClip);
-    }
+    onExportClip(clip);
   };
+
+  // Mock data for stats components
+  const mockPlayers = [
+    { id: '1', name: 'Player 1', stats: { points: 10, assists: 5 } },
+    { id: '2', name: 'Player 2', stats: { points: 8, assists: 7 } }
+  ];
+  
+  const mockTeams = [
+    { id: '1', name: 'Team 1', stats: { wins: 10, losses: 5 } },
+    { id: '2', name: 'Team 2', stats: { wins: 8, losses: 7 } }
+  ];
+  
+  const mockSituations = [
+    { id: 'transition', name: 'Transition', count: 15 },
+    { id: 'half_court', name: 'Half Court', count: 25 }
+  ];
 
   return (
     <Tabs defaultValue="markers">
@@ -160,6 +160,16 @@ const AnalyzerTabs: React.FC<AnalyzerTabsProps> = ({
         
         {/* Add the AI analysis extension */}
         <ClipLibraryExtension selectedClip={selectedClip} />
+        
+        {/* Add stats components */}
+        <PlayerStats players={mockPlayers} />
+        
+        <TeamStats teams={mockTeams} />
+        
+        <SituationStats situations={mockSituations} />
+        
+        {/* Add clip assistant */}
+        <ClipAssistant savedClips={savedClips} onPlayClip={onPlayClip} />
       </TabsContent>
       
       <TabsContent value="roster" className="mt-0">
