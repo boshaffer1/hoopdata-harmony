@@ -6,3 +6,4 @@ export * from './use-clip-library';
 export * from './use-game-data';
 export * from './use-upload';
 export * from './use-clip-management';
+export * from './use-storage';

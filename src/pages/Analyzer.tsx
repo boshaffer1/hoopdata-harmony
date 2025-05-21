@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import Layout from "@/components/layout/Layout";
 import { useAnalyzer } from "@/hooks/analyzer/use-analyzer";
@@ -108,6 +107,31 @@ const Analyzer = () => {
     exportClip(clip);
   };
 
+  // Create a save clip adapter to match the expected interface
+  const handleSaveClip = (startTime: number, duration: number, label: string) => {
+    if (!videoUrl) {
+      toast.error("No video loaded");
+      return;
+    }
+    
+    // Create a GameData object compatible with saveClipToLibrary
+    const gameData: GameData = {
+      "Play Name": label,
+      "Start time": startTime.toString(),
+      "Duration": duration.toString(),
+      "Situation": "other",
+      "Outcome": "other",
+      "Players": "[]",
+    };
+    
+    saveClipToLibrary(gameData);
+  };
+
+  // Create an adapter for adding teams
+  const handleAddTeam = (teamName: string) => {
+    return addTeam(teamName);
+  };
+
   return (
     <Layout className="py-6">
       <AnalyzerHeader 
@@ -152,7 +176,7 @@ const Analyzer = () => {
               onRemoveMarker={removeMarker}
               onMarkerNotesChange={updateMarkerNotes}
               onPlayLabelChange={setPlayLabel}
-              onSaveClip={saveClipToLibrary}
+              onSaveClip={handleSaveClip}
               onRemoveClip={removeSavedClip}
               onExportClip={exportClip}
               onExportLibrary={exportLibrary}
@@ -160,7 +184,7 @@ const Analyzer = () => {
               onStopClip={stopClip}
               onAutoOrganize={autoOrganizeClips}
               onExportAllMarkers={exportAllMarkers}
-              onAddTeam={addTeam}
+              onAddTeam={handleAddTeam}
               onRemoveTeam={removeTeam}
               onAddPlayer={addPlayer}
               onRemovePlayer={removePlayer}

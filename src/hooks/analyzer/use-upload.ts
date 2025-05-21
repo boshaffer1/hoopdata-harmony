@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -79,8 +80,8 @@ export const useUpload = () => {
         .upload(filePath, videoFile, {
           contentType: 'video/mp4',
           upsert: true,
-          // Add metadata
-          fileMetadata: {
+          // Fix: Use metadata instead of fileMetadata
+          metadata: {
             homeTeam: metadata?.homeTeam || '',
             awayTeam: metadata?.awayTeam || '',
             gameDate: metadata?.gameDate || '',
