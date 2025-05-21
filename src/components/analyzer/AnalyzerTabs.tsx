@@ -29,7 +29,7 @@ interface AnalyzerTabsProps {
   onRemoveClip: (id: string) => void;
   onExportClip: (clip: SavedClip | GameData) => void;
   onExportLibrary: () => void;
-  onPlayClip: (clip: SavedClip) => void;
+  onPlayClip: (clip: SavedClip | GameData) => void;
   onStopClip: () => void;
   onAutoOrganize: () => void;
   onExportAllMarkers: () => void;
@@ -71,23 +71,30 @@ const AnalyzerTabs: React.FC<AnalyzerTabsProps> = ({
     onSaveClip(startTime, duration, label);
   };
 
-  // Convert GameData to SavedClip for onPlayClip
-  const handlePlayGameData = (gameData: GameData) => {
-    const startTime = parseFloat(gameData["Start time"] || "0");
-    const duration = parseFloat(gameData["Duration"] || "0");
-    
-    const savedClip: SavedClip = {
-      id: `temp-${Date.now()}`,
-      startTime: startTime,
-      duration: duration,
-      label: gameData["Play Name"] || "Untitled",
-      notes: gameData["Notes"] || "",
-      timeline: gameData["Timeline"] || "",
-      saved: new Date().toISOString(),
-      situation: gameData["Situation"] || "other"
-    };
-    
-    onPlayClip(savedClip);
+  // Handle play clip for different types (GameData or SavedClip)
+  const handlePlayClip = (clip: GameData | SavedClip) => {
+    // Check if this is a GameData object by checking for "Play Name" property
+    if ('Play Name' in clip) {
+      const gameData = clip as GameData;
+      const startTime = parseFloat(gameData["Start time"] || "0");
+      const duration = parseFloat(gameData["Duration"] || "0");
+      
+      const savedClip: SavedClip = {
+        id: `temp-${Date.now()}`,
+        startTime: startTime,
+        duration: duration,
+        label: gameData["Play Name"] || "Untitled",
+        notes: gameData["Notes"] || "",
+        timeline: gameData["Timeline"] || "",
+        saved: new Date().toISOString(),
+        situation: gameData["Situation"] || "other"
+      };
+      
+      onPlayClip(savedClip);
+    } else {
+      // It's already a SavedClip
+      onPlayClip(clip);
+    }
   };
 
   // Handle export for both GameData and SavedClip types
@@ -193,7 +200,7 @@ const AnalyzerTabs: React.FC<AnalyzerTabsProps> = ({
           onRemoveClip={onRemoveClip}
           onExportClip={handleExportClip}
           onExportLibrary={onExportLibrary}
-          onPlayClip={handlePlayGameData}
+          onPlayClip={handlePlayClip}
           onStopClip={onStopClip}
           onAutoOrganize={onAutoOrganize}
         />

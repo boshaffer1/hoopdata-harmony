@@ -429,7 +429,6 @@ export type Database = {
           file_size: number | null
           filename: string
           game_date: string | null
-          game_id: string | null
           id: string
           team_id: string | null
           title: string | null
@@ -446,7 +445,6 @@ export type Database = {
           file_size?: number | null
           filename: string
           game_date?: string | null
-          game_id?: string | null
           id?: string
           team_id?: string | null
           title?: string | null
@@ -463,7 +461,6 @@ export type Database = {
           file_size?: number | null
           filename?: string
           game_date?: string | null
-          game_id?: string | null
           id?: string
           team_id?: string | null
           title?: string | null
