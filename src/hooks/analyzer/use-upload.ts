@@ -97,6 +97,9 @@ export const useUpload = () => {
         
         // If upload was successful, save video metadata to database
         if (url && path) {
+          // Parse the game date into ISO format for database storage
+          const gameDate = metadata?.gameDate ? new Date(metadata.gameDate).toISOString().split('T')[0] : null;
+          
           // Save to video_files table (existing functionality)
           supabase
             .from('video_files')
@@ -108,9 +111,10 @@ export const useUpload = () => {
               content_type: videoFile.type,
               title: metadata?.title || formattedFileName,
               team_id: metadata?.homeTeam || '',
-              away_team_id: metadata?.awayTeam || '', // Add the away team ID here
+              away_team_id: metadata?.awayTeam || '', 
               description: `Game: ${metadata?.homeTeam || ''} vs ${metadata?.awayTeam || ''}, ${metadata?.gameDate || ''}`,
-              video_url: url
+              video_url: url,
+              game_date: gameDate // Use the renamed field here
             })
             .then(({ error: videoError }) => {
               if (videoError) {
@@ -119,8 +123,6 @@ export const useUpload = () => {
             });
           
           // Also save to "Video upload" table (new functionality)
-          const gameDate = metadata?.gameDate ? new Date(metadata.gameDate).toISOString().split('T')[0] : null;
-          
           supabase
             .from('Video upload')
             .insert({
@@ -128,7 +130,7 @@ export const useUpload = () => {
               file_name: formattedFileName,
               home_team: metadata?.homeTeam || '',
               away_team: metadata?.awayTeam || '',
-              game_date: gameDate,
+              game_date: gameDate, // Use the renamed field here
               video_url: url
             })
             .then(({ error: uploadError }) => {

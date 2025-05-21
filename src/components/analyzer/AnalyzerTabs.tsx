@@ -5,7 +5,7 @@ import { BookmarkIcon, Library, Users, Grid } from "lucide-react";
 import MarkersList from "@/components/analyzer/MarkersList";
 import ClipLibrary from "@/components/analyzer/ClipLibrary";
 import RosterView from "@/components/analyzer/teams/RosterView";
-import { ClipThumbnailGrid } from "@/components/library/ClipThumbnailGrid";
+import { ClipThumbnailGrid } from "@/components/analyzer/library/ClipThumbnailGrid";
 import { ClipLibraryExtension } from "@/components/analyzer/ClipLibraryExtension";
 import { VideoAnalysisDisplay } from "@/components/analyzer/ai/VideoAnalysisDisplay";
 import { Marker, GameData, SavedClip, TeamRoster, Player } from "@/types/analyzer";
@@ -97,13 +97,53 @@ const AnalyzerTabs: React.FC<AnalyzerTabsProps> = ({
 
   // Mock data for stats components
   const mockPlayers = [
-    { id: '1', name: 'Player 1', stats: { points: 10, assists: 5 }, playerName: 'Player 1', totalClips: 10, actions: { scored: 5, assist: 2 } },
-    { id: '2', name: 'Player 2', stats: { points: 8, assists: 7 }, playerName: 'Player 2', totalClips: 7, actions: { scored: 3, assist: 4 } }
+    { 
+      id: '1', 
+      name: 'Player 1', 
+      stats: { points: 10, assists: 5 }, 
+      playerName: 'Player 1', 
+      totalClips: 10, 
+      actions: { scored: 5, assist: 2 } 
+    },
+    { 
+      id: '2', 
+      name: 'Player 2', 
+      stats: { points: 8, assists: 7 }, 
+      playerName: 'Player 2', 
+      totalClips: 7, 
+      actions: { scored: 3, assist: 4 } 
+    }
   ];
   
-  const mockTeams = [
-    { id: '1', name: 'Team 1', stats: { wins: 10, losses: 5 }, teamName: 'Team 1', totalClips: 15, players: [{ playerName: 'Player 1', totalClips: 10 }] },
-    { id: '2', name: 'Team 2', stats: { wins: 8, losses: 7 }, teamName: 'Team 2', totalClips: 12, players: [{ playerName: 'Player 2', totalClips: 7 }] }
+  const mockTeamData = [
+    { 
+      id: '1', 
+      name: 'Team 1', 
+      stats: { wins: 10, losses: 5 }, 
+      teamName: 'Team 1', 
+      totalClips: 15, 
+      players: [{ 
+        id: '1',
+        playerName: 'Player 1', 
+        totalClips: 10,
+        name: 'Player 1',
+        actions: { scored: 5, assist: 2 }
+      }] 
+    },
+    { 
+      id: '2', 
+      name: 'Team 2', 
+      stats: { wins: 8, losses: 7 }, 
+      teamName: 'Team 2', 
+      totalClips: 12, 
+      players: [{ 
+        id: '2',
+        playerName: 'Player 2', 
+        totalClips: 7,
+        name: 'Player 2',
+        actions: { scored: 3, assist: 4 }
+      }] 
+    }
   ];
   
   const mockSituations = [
@@ -164,7 +204,7 @@ const AnalyzerTabs: React.FC<AnalyzerTabsProps> = ({
         {/* Add stats components */}
         <PlayerStats players={mockPlayers} />
         
-        <TeamStats teams={mockTeams} />
+        <TeamStats teams={mockTeamData} />
         
         <SituationStats situations={mockSituations} />
         
