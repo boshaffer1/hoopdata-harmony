@@ -5,7 +5,7 @@ import { BookmarkIcon, Library, Users, Grid } from "lucide-react";
 import MarkersList from "@/components/analyzer/MarkersList";
 import ClipLibrary from "@/components/analyzer/ClipLibrary";
 import RosterView from "@/components/analyzer/teams/RosterView";
-import { ClipThumbnailGrid } from "@/components/analyzer/library/ClipThumbnailGrid";
+import { ClipThumbnailGrid } from "@/components/library/ClipThumbnailGrid"; // Corrected import path
 import { ClipLibraryExtension } from "@/components/analyzer/ClipLibraryExtension";
 import { VideoAnalysisDisplay } from "@/components/analyzer/ai/VideoAnalysisDisplay";
 import { Marker, GameData, SavedClip, TeamRoster, Player } from "@/types/analyzer";
@@ -98,8 +98,8 @@ const AnalyzerTabs: React.FC<AnalyzerTabsProps> = ({
   };
 
   // Handle export for both GameData and SavedClip types
-  const handleExportClip = (clip: GameData | SavedClip) => {
-    onExportClip(clip);
+  const handleExportClip = (clipData: GameData | SavedClip) => {
+    onExportClip(clipData);
   };
 
   // Mock data for stats components
@@ -233,8 +233,8 @@ const AnalyzerTabs: React.FC<AnalyzerTabsProps> = ({
         <div className="border rounded-lg p-4">
           <h3 className="text-lg font-medium mb-4">Clip Gallery</h3>
           <ClipThumbnailGrid
-            clips={savedClips}
-            onPlayClip={onPlayClip}
+            clips={savedClips.map(clip => ({...clip}))} // Make sure we're passing SavedClip objects
+            onPlayClip={(clip) => onPlayClip(clip as SavedClip)} // Ensure correct type is passed
             bucketFilter="clips"
           />
         </div>
