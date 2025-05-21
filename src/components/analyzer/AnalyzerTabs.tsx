@@ -85,18 +85,30 @@ const AnalyzerTabs: React.FC<AnalyzerTabsProps> = ({
     onPlayClip(savedClip);
   };
 
-  // Adapter for MarkersList to handle string ids vs number indices
-  const handleRemoveMarker = (id: string) => {
-    onRemoveMarker(id);
-  };
-
-  const handleMarkerNotesChange = (id: string, notes: string) => {
-    onMarkerNotesChange(id, notes);
-  };
-
-  // Adapter for handling clip export to properly convert GameData to SavedClip
+  // Handle export for both GameData and SavedClip types
   const handleExportClip = (clip: GameData | SavedClip) => {
-    onExportClip(clip);
+    // Check if it's a SavedClip or GameData
+    if ('startTime' in clip) {
+      // It's already a SavedClip
+      onExportClip(clip);
+    } else {
+      // Convert GameData to SavedClip for export
+      const startTime = parseFloat(clip["Start time"] || "0");
+      const duration = parseFloat(clip["Duration"] || "0");
+      
+      const savedClip: SavedClip = {
+        id: `temp-${Date.now()}`,
+        startTime: startTime,
+        duration: duration,
+        label: clip["Play Name"] || "Untitled",
+        notes: clip["Notes"] || "",
+        timeline: clip["Timeline"] || "",
+        saved: new Date().toISOString(),
+        situation: clip["Situation"] || "other"
+      };
+      
+      onExportClip(savedClip);
+    }
   };
 
   return (
@@ -124,8 +136,8 @@ const AnalyzerTabs: React.FC<AnalyzerTabsProps> = ({
         <MarkersList 
           markers={markers}
           onSeekToMarker={onSeekToMarker}
-          onRemoveMarker={handleRemoveMarker}
-          onMarkerNotesChange={handleMarkerNotesChange}
+          onRemoveMarker={onRemoveMarker}
+          onMarkerNotesChange={onMarkerNotesChange}
           onExportAllMarkers={onExportAllMarkers}
         />
       </TabsContent>

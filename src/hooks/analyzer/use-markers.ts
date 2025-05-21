@@ -2,120 +2,90 @@
 import { useState } from "react";
 import { Marker } from "@/types/analyzer";
 import { toast } from "sonner";
-import { downloadJSON } from "@/components/video/utils";
+import { v4 as uuidv4 } from "uuid";
 
 export const useMarkers = (currentTime: number) => {
   const [markers, setMarkers] = useState<Marker[]>([]);
   const [newMarkerLabel, setNewMarkerLabel] = useState("");
 
   const addMarker = () => {
-    if (!newMarkerLabel.trim()) {
+    if (!newMarkerLabel) {
       toast.error("Please enter a marker label");
       return;
     }
-    
-    const colors = ["#3b82f6", "#ef4444", "#22c55e", "#f59e0b", "#8b5cf6"];
-    const randomColor = colors[Math.floor(Math.random() * colors.length)];
-    
+
+    // Create a new marker with a unique ID
     const newMarker: Marker = {
+      id: uuidv4(),
       time: currentTime,
-      label: newMarkerLabel.trim(),
-      color: randomColor,
+      label: newMarkerLabel,
+      color: getRandomColor(),
       notes: ""
     };
-    
-    setMarkers(prev => {
-      // Check if this marker already exists at approximately the same time
-      const markerExists = prev.some(m => 
-        Math.abs(m.time - currentTime) < 0.1 && 
-        m.label === newMarkerLabel.trim()
-      );
-      
-      if (markerExists) {
-        return prev;
-      }
-      
-      return [...prev, newMarker];
-    });
-    
+
+    setMarkers(prevMarkers => [...prevMarkers, newMarker]);
     setNewMarkerLabel("");
-    
-    const minutes = Math.floor(currentTime / 60);
-    const seconds = Math.floor(currentTime % 60);
-    const formattedTime = `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
-    
-    toast.success(`Marker "${newMarkerLabel.trim()}" added at ${formattedTime}`);
+    toast.success(`Marker "${newMarkerLabel}" added at ${formatTime(currentTime)}`);
+    return newMarker;
   };
 
-  const removeMarker = (index: number) => {
-    const newMarkers = [...markers];
-    newMarkers.splice(index, 1);
-    setMarkers(newMarkers);
+  const removeMarker = (id: string) => {
+    setMarkers(prevMarkers => prevMarkers.filter(marker => marker.id !== id));
+    toast.success("Marker removed");
   };
 
-  const updateMarkerNotes = (index: number, notes: string) => {
-    const newMarkers = [...markers];
-    newMarkers[index].notes = notes;
-    setMarkers(newMarkers);
+  const updateMarkerNotes = (id: string, notes: string) => {
+    setMarkers(prevMarkers => 
+      prevMarkers.map(marker => 
+        marker.id === id ? { ...marker, notes } : marker
+      )
+    );
   };
 
-  const addMarkersFromData = (processedData: any[]) => {
-    if (!processedData || processedData.length === 0) return [];
+  // Add markers from game data
+  const addMarkersFromData = (gameData: any[]) => {
+    const createdMarkers: Marker[] = [];
     
-    const colors = ["#3b82f6", "#ef4444", "#22c55e", "#f59e0b", "#8b5cf6"];
-    
-    const newMarkers = processedData.map((item: any, index: number) => {
-      const startTime = parseFloat(item["Start time"] || "0");
-      const randomColor = colors[index % colors.length];
-      
-      // Create meaningful labels from the data
-      let label = item["Play Name"] || "";
-      if (!label && item["Notes"]) {
-        label = item["Notes"];
+    gameData.forEach(play => {
+      if (play["Start time"] && play["Play Name"]) {
+        const startTime = parseFloat(play["Start time"]);
+        const newMarker: Marker = {
+          id: uuidv4(),
+          time: startTime,
+          label: play["Play Name"] || "Untitled Play",
+          color: getRandomColor(),
+          notes: play["Notes"] || ""
+        };
+        
+        createdMarkers.push(newMarker);
       }
-      if (!label) {
-        label = `Clip ${index + 1}`;
-      }
-      
-      return {
-        time: startTime,
-        label: label,
-        color: randomColor,
-        notes: item.Notes || ""
-      };
     });
     
-    console.log("Adding", newMarkers.length, "markers from data");
+    if (createdMarkers.length > 0) {
+      setMarkers(prev => [...prev, ...createdMarkers]);
+    }
     
-    setMarkers(prev => {
-      // Filter out duplicates by checking if a marker already exists at approximately the same time
-      const filteredNewMarkers = newMarkers.filter(newMarker => 
-        !prev.some(existingMarker => 
-          Math.abs(existingMarker.time - newMarker.time) < 0.1 && 
-          existingMarker.label === newMarker.label
-        )
-      );
-      
-      return [...prev, ...filteredNewMarkers];
-    });
-    
-    return newMarkers;
+    return createdMarkers;
   };
 
+  // Export all markers as JSON file
   const exportAllMarkers = () => {
     if (markers.length === 0) {
       toast.error("No markers to export");
       return;
     }
     
-    const exportData = {
-      markers,
-      exportedAt: new Date().toISOString(),
-      totalMarkers: markers.length
-    };
+    const markersData = JSON.stringify(markers, null, 2);
+    const blob = new Blob([markersData], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
     
-    downloadJSON(exportData, "video-markers.json");
-    toast.success("All markers exported as JSON");
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `video-markers-${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    
+    URL.revokeObjectURL(url);
+    toast.success(`Exported ${markers.length} markers`);
   };
 
   return {
@@ -128,4 +98,16 @@ export const useMarkers = (currentTime: number) => {
     addMarkersFromData,
     exportAllMarkers
   };
+};
+
+// Helper functions
+const getRandomColor = () => {
+  const colors = ["#FF5733", "#33FF57", "#3357FF", "#F033FF", "#FF33F0", "#33FFF0"];
+  return colors[Math.floor(Math.random() * colors.length)];
+};
+
+const formatTime = (seconds: number) => {
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
 };

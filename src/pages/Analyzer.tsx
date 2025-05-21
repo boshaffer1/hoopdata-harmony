@@ -55,7 +55,7 @@ const Analyzer = () => {
     exportAllMarkers,
     handlePlaySavedClip,
     autoOrganizeClips,
-    saveClip // Make sure we get the saveClip function
+    saveClip
   } = useAnalyzer();
 
   const {
@@ -86,7 +86,7 @@ const Analyzer = () => {
     };
   };
   
-  // Adapter function to convert SavedClip to GameData
+  // Adapter function to handle playing saved clips
   const handleLibrarySavedClipPlay = (clip: SavedClip) => {
     console.log("handleLibrarySavedClipPlay called with clip:", clip);
     
@@ -131,6 +131,8 @@ const Analyzer = () => {
     
     if (saveClip) {
       saveClip(startTime, duration, label);
+    } else {
+      toast.error("Save clip function not available");
     }
   };
 

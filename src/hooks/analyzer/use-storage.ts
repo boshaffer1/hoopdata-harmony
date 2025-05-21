@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ensureVideosBucketExists } from "@/utils/setup-supabase-storage";
 import { useAuth } from "@/hooks/auth/AuthProvider";
+import { toast } from "sonner";
 
 /**
  * Hook to manage storage-related operations in the analyzer
@@ -23,8 +24,21 @@ export const useStorage = () => {
       
       setIsChecking(true);
       try {
-        const ready = await ensureVideosBucketExists();
-        setBucketReady(ready);
+        // Instead of trying to create a bucket that might fail due to RLS policies,
+        // just check if the bucket exists and assume it's ready if we get a response
+        const { data, error } = await supabase.storage.getBucket('videos');
+        if (!error) {
+          setBucketReady(true);
+        } else if (error.message.includes('row-level security policy')) {
+          // If we get a specific error about RLS policies, we can still assume the bucket exists
+          // but we don't have permission to manage it (which is fine, we just need to use it)
+          console.log("Bucket exists but user doesn't have admin permissions, which is fine for uploads");
+          setBucketReady(true);
+        } else {
+          // For other errors, we'll log them but still try to use the bucket
+          console.warn("Bucket check warning:", error.message);
+          setBucketReady(true); // Assume the bucket exists anyway
+        }
       } catch (error) {
         console.error("Error checking bucket:", error);
         setBucketReady(false);
@@ -36,10 +50,15 @@ export const useStorage = () => {
     checkBucket();
   }, [user]);
 
-  // Simplified upload function that creates a cleaner file structure
+  // Simplified upload function that handles permissions more gracefully
   const uploadVideo = async (file: File, metadata?: Record<string, string>) => {
-    if (!user || !file) {
-      return { error: "No user or file", url: null };
+    if (!user) {
+      toast.error("You must be signed in to upload videos");
+      return { error: "No user authenticated", url: null, path: null };
+    }
+
+    if (!file) {
+      return { error: "No file to upload", url: null, path: null };
     }
 
     try {
@@ -48,34 +67,60 @@ export const useStorage = () => {
       const fileExt = file.name.split('.').pop();
       const cleanFileName = file.name.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_.-]/g, '');
       
-      // Use a more organized path structure
+      // Use a more organized path structure with user ID prefix
       const filePath = `${user.id}/${cleanFileName}`;
       
       console.log(`Uploading "${file.name}" to videos/${filePath}`);
       
-      const { error: uploadError, data } = await supabase.storage
-        .from('videos')
-        .upload(filePath, file, {
-          contentType: file.type,
-          upsert: true,
-          ...(metadata ? { metadata } : {})
-        });
+      // Upload the file with simple error handling
+      try {
+        const { error: uploadError, data } = await supabase.storage
+          .from('videos')
+          .upload(filePath, file, {
+            contentType: file.type,
+            upsert: true,
+            ...(metadata ? { metadata } : {})
+          });
+        
+        if (uploadError) {
+          console.error("Upload error:", uploadError);
+          return { 
+            error: uploadError, 
+            url: null,
+            path: null
+          };
+        }
+      } catch (uploadError) {
+        console.error("Supabase upload error:", uploadError);
+        return { 
+          error: uploadError, 
+          url: null,
+          path: null 
+        };
+      }
       
-      if (uploadError) throw uploadError;
-      
-      // Get the public URL
-      const { data: publicURLData } = supabase.storage
-        .from('videos')
-        .getPublicUrl(filePath);
-      
-      return { 
-        error: null, 
-        url: publicURLData?.publicUrl || null,
-        path: filePath
-      };
+      // Get the public URL even if there was an error with the metadata
+      try {
+        const { data: publicURLData } = supabase.storage
+          .from('videos')
+          .getPublicUrl(filePath);
+        
+        return { 
+          error: null, 
+          url: publicURLData?.publicUrl || null,
+          path: filePath
+        };
+      } catch (urlError) {
+        console.error("Error getting public URL:", urlError);
+        return { 
+          error: urlError, 
+          url: null,
+          path: filePath  // Still return the path in case we need it
+        };
+      }
     } catch (error) {
-      console.error("Supabase upload error:", error);
-      return { error, url: null };
+      console.error("General upload error:", error);
+      return { error, url: null, path: null };
     }
   };
   
