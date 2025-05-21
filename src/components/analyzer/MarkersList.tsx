@@ -11,8 +11,8 @@ import { formatVideoTime } from "@/components/video/utils";
 interface MarkersListProps {
   markers: Marker[];
   onSeekToMarker: (time: number) => void;
-  onRemoveMarker: (id: string) => void;
-  onMarkerNotesChange: (id: string, notes: string) => void;
+  onRemoveMarker: (index: number) => void;
+  onMarkerNotesChange: (index: number, notes: string) => void;
   onExportAllMarkers: () => void;
 }
 
@@ -49,9 +49,9 @@ const MarkersList: React.FC<MarkersListProps> = ({
           </div>
         ) : (
           <ul className="space-y-3">
-            {markers.map((marker) => (
+            {markers.map((marker, index) => (
               <li 
-                key={marker.id} 
+                key={index} 
                 className="border rounded-lg p-3 hover:bg-muted/50 cursor-pointer"
                 onClick={() => onSeekToMarker(marker.time)}
               >
@@ -73,7 +73,7 @@ const MarkersList: React.FC<MarkersListProps> = ({
                     size="icon" 
                     onClick={(e) => {
                       e.stopPropagation();
-                      onRemoveMarker(marker.id);
+                      onRemoveMarker(index);
                     }}
                   >
                     <Trash2 className="h-4 w-4" />
@@ -85,7 +85,7 @@ const MarkersList: React.FC<MarkersListProps> = ({
                   value={marker.notes || ""}
                   onClick={(e) => e.stopPropagation()}
                   onChange={(e) => {
-                    onMarkerNotesChange(marker.id, e.target.value);
+                    onMarkerNotesChange(index, e.target.value);
                   }}
                 />
               </li>
