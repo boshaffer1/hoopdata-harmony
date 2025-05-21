@@ -386,6 +386,39 @@ export type Database = {
         }
         Relationships: []
       }
+      "Video upload": {
+        Row: {
+          away_team: string | null
+          created_at: string
+          file_name: string | null
+          game_date: string | null
+          home_team: string | null
+          id: number
+          user_id: string | null
+          video_url: string | null
+        }
+        Insert: {
+          away_team?: string | null
+          created_at?: string
+          file_name?: string | null
+          game_date?: string | null
+          home_team?: string | null
+          id?: number
+          user_id?: string | null
+          video_url?: string | null
+        }
+        Update: {
+          away_team?: string | null
+          created_at?: string
+          file_name?: string | null
+          game_date?: string | null
+          home_team?: string | null
+          id?: number
+          user_id?: string | null
+          video_url?: string | null
+        }
+        Relationships: []
+      }
       video_files: {
         Row: {
           content_type: string | null

@@ -47,6 +47,22 @@ export const useUpload = () => {
         });
       }, 500);
 
+      // Create a formatted file name for readability
+      let formattedFileName = videoFile.name;
+      
+      if (metadata?.homeTeam && metadata?.awayTeam) {
+        // Format date properly if provided
+        let dateString = "";
+        if (metadata.gameDate) {
+          // Format the date as YYYY-MM-DD
+          const dateObj = new Date(metadata.gameDate);
+          dateString = `, ${dateObj.toISOString().split('T')[0]}`;
+        }
+        // Create formatted filename: "HomeTeam vs AwayTeam, YYYY-MM-DD.mp4"
+        const fileExt = videoFile.name.split('.').pop() || 'mp4';
+        formattedFileName = `${metadata.homeTeam} vs ${metadata.awayTeam}${dateString}.${fileExt}`;
+      }
+
       // First, create and return a temporary object URL while upload happens in the background
       const tempUrl = URL.createObjectURL(videoFile);
       
@@ -67,7 +83,7 @@ export const useUpload = () => {
             event: "video_uploaded_with_local_url",
             timestamp: new Date().toISOString(),
             videoDetails: {
-              fileName: videoFile.name,
+              fileName: formattedFileName,
               fileSize: videoFile.size,
               tempUrl: tempUrl, // Send the local blob URL
               metadata
@@ -81,15 +97,16 @@ export const useUpload = () => {
         
         // If upload was successful, save video metadata to database
         if (url && path) {
+          // Save to video_files table (existing functionality)
           supabase
             .from('video_files')
             .insert({
               user_id: user.id,
-              filename: videoFile.name,
+              filename: formattedFileName,
               file_path: path,
               file_size: videoFile.size,
               content_type: videoFile.type,
-              title: metadata?.title || videoFile.name,
+              title: metadata?.title || formattedFileName,
               team_id: metadata?.homeTeam || '',
               description: `Game: ${metadata?.homeTeam || ''} vs ${metadata?.awayTeam || ''}, ${metadata?.gameDate || ''}`,
               video_url: url
@@ -100,12 +117,31 @@ export const useUpload = () => {
               }
             });
           
+          // Also save to "Video upload" table (new functionality)
+          supabase
+            .from('Video upload')
+            .insert({
+              user_id: user.id,
+              file_name: formattedFileName,
+              home_team: metadata?.homeTeam || '',
+              away_team: metadata?.awayTeam || '',
+              game_date: metadata?.gameDate ? new Date(metadata.gameDate) : null,
+              video_url: url
+            })
+            .then(({ error: uploadError }) => {
+              if (uploadError) {
+                console.warn("Error saving to Video upload table:", uploadError);
+              } else {
+                console.log("Successfully saved to Video upload table");
+              }
+            });
+          
           // Trigger webhook with the Supabase URL
           triggerWebhook({
             event: "video_uploaded_to_supabase",
             timestamp: new Date().toISOString(),
             videoDetails: {
-              fileName: videoFile.name,
+              fileName: formattedFileName,
               fileSize: videoFile.size,
               filePath: path,
               publicUrl: url,

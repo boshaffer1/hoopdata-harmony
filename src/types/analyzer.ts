@@ -1,4 +1,5 @@
 export interface Marker {
+  id: string;
   time: number;
   label: string;
   color: string;

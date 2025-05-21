@@ -150,6 +150,28 @@ const Analyzer = () => {
     return result;
   };
   
+  // Adapter functions for markers with string IDs
+  const handleRemoveMarker = (id: string) => {
+    removeMarker(id);
+  };
+  
+  const handleUpdateMarkerNotes = (id: string, notes: string) => {
+    updateMarkerNotes(id, notes);
+  };
+  
+  // Adapter function to handle game data to saved clip conversion for AnalyzerTabs
+  const handleOnPlayClip = (clip: SavedClip | GameData) => {
+    // Check if this is a GameData object
+    if ('Play Name' in clip) {
+      // Convert GameData to SavedClip before playing
+      const convertedClip = convertGameDataToSavedClip(clip as GameData);
+      handleLibrarySavedClipPlay(convertedClip);
+    } else {
+      // It's already a SavedClip
+      handleLibrarySavedClipPlay(clip as SavedClip);
+    }
+  };
+  
   // If loading or unauthenticated, show a loading state
   if (isLoading) {
     return (
@@ -206,14 +228,14 @@ const Analyzer = () => {
               isPlayingClip={isPlayingClip}
               rosters={rosters}
               onSeekToMarker={seekToMarker}
-              onRemoveMarker={removeMarker}
-              onMarkerNotesChange={updateMarkerNotes}
+              onRemoveMarker={handleRemoveMarker}
+              onMarkerNotesChange={handleUpdateMarkerNotes}
               onPlayLabelChange={setPlayLabel}
               onSaveClip={handleSaveClip}
               onRemoveClip={removeSavedClip}
               onExportClip={handleExportClip}
               onExportLibrary={exportLibrary}
-              onPlayClip={handleLibrarySavedClipPlay}
+              onPlayClip={handleOnPlayClip}
               onStopClip={stopClip}
               onAutoOrganize={autoOrganizeClips}
               onExportAllMarkers={exportAllMarkers}
