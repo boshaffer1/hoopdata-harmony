@@ -143,20 +143,30 @@ const VideoSection: React.FC<VideoSectionProps> = ({
     setIsUploading(true);
     setAnalysisResults("");
     
-    // Create form data for the webhook
-    const formData = new FormData();
-    formData.append("videoInput", videoFile);
-    formData.append("homeTeam", data.homeTeam);
-    formData.append("awayTeam", data.awayTeam);
-    formData.append("gameDate", data.gameDate);
-    
     try {
       toast.loading("Uploading video and waiting for analysis...");
       
-      const response = await fetch("https://playswise.app.n8n.cloud/webhook-test/analyze", {
+      // Create multipart form data with all fields
+      const formData = new FormData();
+      formData.append("video", videoFile);
+      formData.append("homeTeam", data.homeTeam);
+      formData.append("awayTeam", data.awayTeam);
+      formData.append("gameDate", data.gameDate);
+      
+      // Log what we're sending to help with debugging
+      console.log("Sending form data:", {
+        video: videoFile.name,
+        homeTeam: data.homeTeam,
+        awayTeam: data.awayTeam,
+        gameDate: data.gameDate
+      });
+      
+      // Send direct POST request to n8n webhook
+      const webhookUrl = "https://playswise.app.n8n.cloud/webhook-test/analyze";
+      const response = await fetch(webhookUrl, {
         method: "POST",
         body: formData,
-        // Note: We don't set Content-Type header as it's automatically set with the correct boundary for multipart/form-data
+        // No need to set Content-Type header as the browser will set it correctly with boundary
       });
       
       toast.dismiss();
@@ -175,7 +185,7 @@ const VideoSection: React.FC<VideoSectionProps> = ({
         
         toast.success("Video uploaded and analyzed successfully!");
         
-        // Trigger webhook with the analysis data
+        // Also trigger the webhook to notify about successful analysis
         triggerWebhook({
           event: "video_analyzed",
           timestamp: new Date().toISOString(),
@@ -187,7 +197,6 @@ const VideoSection: React.FC<VideoSectionProps> = ({
             gameDate: data.gameDate
           }
         });
-        
       } else {
         const errorText = await response.text();
         console.error("Error from webhook:", errorText);
