@@ -93,7 +93,7 @@ const AnalyzerTabs: React.FC<AnalyzerTabsProps> = ({
       onPlayClip(savedClip);
     } else {
       // It's already a SavedClip
-      onPlayClip(clip);
+      onPlayClip(clip as SavedClip);
     }
   };
 

@@ -46,13 +46,35 @@ export const triggerWebhook = async (data: any): Promise<boolean> => {
     console.log(`Triggering n8n webhook: ${config.url}`);
     console.log("Webhook payload:", data);
     
+    // Clone the data to avoid modifying the original object
+    const payloadData = { ...data };
+    
+    // If this is a video upload, include all row information
+    if (payloadData.event?.includes('video_uploaded')) {
+      // Include all available row information in the videoDetails
+      if (payloadData.videoDetails) {
+        payloadData.completeRowData = {
+          ...payloadData.videoDetails,
+          uploadTimestamp: new Date().toISOString(),
+          rawData: payloadData.videoDetails
+        };
+      }
+    } else if (payloadData.event?.includes('video_analyzed')) {
+      // Include all analysis data
+      payloadData.completeRowData = {
+        ...payloadData.videoDetails,
+        analysisTimestamp: new Date().toISOString(),
+        rawAnalysisData: payloadData.videoDetails
+      };
+    }
+    
     const response = await fetch(config.url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       mode: "no-cors", // To avoid CORS issues with n8n webhooks
-      body: JSON.stringify(data),
+      body: JSON.stringify(payloadData),
     });
     
     // Since we're using no-cors mode, we won't get a proper response

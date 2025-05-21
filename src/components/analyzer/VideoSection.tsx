@@ -168,6 +168,32 @@ const VideoSection: React.FC<VideoSectionProps> = ({
       toast.success("Video uploaded to Supabase successfully!");
       toast.loading("Now sending to analysis service...");
       
+      // Complete payload with all row information
+      const analysisPayload = {
+        videoUrl: publicUrl,
+        homeTeam: formData.homeTeam,
+        awayTeam: formData.awayTeam,
+        gameDate: formData.gameDate,
+        userId: user?.id,
+        fileName: videoFile.name,
+        fileSize: videoFile.size,
+        fileType: videoFile.type,
+        contentType: videoFile.type,
+        submittedAt: new Date().toISOString(),
+        completeRowData: {
+          video: {
+            name: videoFile.name,
+            size: videoFile.size,
+            type: videoFile.type,
+            lastModified: new Date(videoFile.lastModified).toISOString(),
+            url: publicUrl
+          },
+          formData: formData,
+          user: { id: user.id },
+          timestamp: new Date().toISOString()
+        }
+      };
+      
       // Send only the public URL to the analysis webhook to avoid re-uploading the file
       const webhookUrl = "https://playswise.app.n8n.cloud/webhook-test/analyze";
       const response = await fetch(webhookUrl, {
@@ -175,12 +201,7 @@ const VideoSection: React.FC<VideoSectionProps> = ({
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          videoUrl: publicUrl,
-          homeTeam: formData.homeTeam,
-          awayTeam: formData.awayTeam,
-          gameDate: formData.gameDate
-        }),
+        body: JSON.stringify(analysisPayload),
       });
       
       toast.dismiss();
@@ -199,7 +220,7 @@ const VideoSection: React.FC<VideoSectionProps> = ({
         
         toast.success("Video analysis completed!");
         
-        // Log successful analysis
+        // Log successful analysis with complete row data
         triggerWebhook({
           event: "video_analyzed",
           timestamp: new Date().toISOString(),
@@ -210,6 +231,19 @@ const VideoSection: React.FC<VideoSectionProps> = ({
             awayTeam: formData.awayTeam,
             gameDate: formData.gameDate,
             publicUrl: publicUrl
+          },
+          completeRowData: {
+            video: {
+              name: videoFile.name,
+              size: videoFile.size,
+              type: videoFile.type,
+              lastModified: new Date(videoFile.lastModified).toISOString(),
+              url: publicUrl
+            },
+            analysis: result || "Analysis completed successfully",
+            formData: formData,
+            user: { id: user.id },
+            timestamp: new Date().toISOString()
           }
         });
       } else {

@@ -86,7 +86,11 @@ export const useUpload = () => {
               fileName: formattedFileName,
               fileSize: videoFile.size,
               tempUrl: tempUrl, // Send the local blob URL
-              metadata
+              metadata: metadata || {},
+              user: user ? { id: user.id } : null,
+              fileType: videoFile.type,
+              uploadMethod: "temporary_local",
+              allMetadata: metadata
             }
           });
           
@@ -100,48 +104,56 @@ export const useUpload = () => {
           // Parse the game date into ISO format for database storage
           const gameDate = metadata?.gameDate ? new Date(metadata.gameDate).toISOString().split('T')[0] : null;
           
+          // Complete row data we'll save to database
+          const videoFileData = {
+            user_id: user.id,
+            filename: formattedFileName,
+            file_path: path,
+            file_size: videoFile.size,
+            content_type: videoFile.type,
+            title: metadata?.title || formattedFileName,
+            team_id: metadata?.homeTeam || '',
+            away_team_id: metadata?.awayTeam || '', 
+            description: `Game: ${metadata?.homeTeam || ''} vs ${metadata?.awayTeam || ''}, ${metadata?.gameDate || ''}`,
+            video_url: url,
+            game_date: gameDate
+          };
+          
+          // Video upload data
+          const videoUploadData = {
+            user_id: user.id,
+            file_name: formattedFileName,
+            home_team: metadata?.homeTeam || '',
+            away_team: metadata?.awayTeam || '',
+            game_date: gameDate,
+            video_url: url
+          };
+          
           // Save to video_files table (existing functionality)
           supabase
             .from('video_files')
-            .insert({
-              user_id: user.id,
-              filename: formattedFileName,
-              file_path: path,
-              file_size: videoFile.size,
-              content_type: videoFile.type,
-              title: metadata?.title || formattedFileName,
-              team_id: metadata?.homeTeam || '',
-              away_team_id: metadata?.awayTeam || '', 
-              description: `Game: ${metadata?.homeTeam || ''} vs ${metadata?.awayTeam || ''}, ${metadata?.gameDate || ''}`,
-              video_url: url,
-              game_date: gameDate // Use the renamed field here
-            })
-            .then(({ error: videoError }) => {
+            .insert(videoFileData)
+            .then(({ error: videoError, data: videoData }) => {
               if (videoError) {
                 console.warn("Error saving video metadata (continuing anyway):", videoError);
+              } else {
+                console.log("Successfully saved to video_files table:", videoData);
               }
             });
           
           // Also save to "Video upload" table (new functionality)
           supabase
             .from('Video upload')
-            .insert({
-              user_id: user.id,
-              file_name: formattedFileName,
-              home_team: metadata?.homeTeam || '',
-              away_team: metadata?.awayTeam || '',
-              game_date: gameDate, // Use the renamed field here
-              video_url: url
-            })
-            .then(({ error: uploadError }) => {
+            .insert(videoUploadData)
+            .then(({ error: uploadError, data: uploadData }) => {
               if (uploadError) {
                 console.warn("Error saving to Video upload table:", uploadError);
               } else {
-                console.log("Successfully saved to Video upload table");
+                console.log("Successfully saved to Video upload table:", uploadData);
               }
             });
           
-          // Trigger webhook with the Supabase URL
+          // Trigger webhook with the Supabase URL and complete row data
           triggerWebhook({
             event: "video_uploaded_to_supabase",
             timestamp: new Date().toISOString(),
@@ -150,7 +162,13 @@ export const useUpload = () => {
               fileSize: videoFile.size,
               filePath: path,
               publicUrl: url,
-              metadata
+              metadata: metadata || {}
+            },
+            completeRowData: {
+              videoFile: videoFileData,
+              videoUpload: videoUploadData,
+              user: { id: user.id },
+              uploadTimestamp: new Date().toISOString()
             }
           });
           

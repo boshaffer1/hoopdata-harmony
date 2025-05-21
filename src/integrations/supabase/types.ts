@@ -253,6 +253,35 @@ export type Database = {
         }
         Relationships: []
       }
+      Organizations: {
+        Row: {
+          created_at: string
+          id: number
+          name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: never
+          name: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: never
+          name?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organizations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "Profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       Players: {
         Row: {
           height: string | null
