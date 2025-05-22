@@ -63,9 +63,9 @@ export const useUpload = () => {
         formattedFileName = `${metadata.homeTeam} vs ${metadata.awayTeam}${dateString}.${fileExt}`;
       }
       
-      // First, create and return a temporary object URL while upload happens in the background
-      // Don't return the blob URL anymore, instead wait for the actual Supabase upload
       try {
+        console.log("Starting Supabase upload for:", formattedFileName);
+        
         // Try to upload to Supabase immediately and get a real URL
         const { error, url, path } = await uploadVideo(videoFile, {
           homeTeam: metadata?.homeTeam || '',
@@ -82,6 +82,8 @@ export const useUpload = () => {
           toast.error("Failed to upload video to storage");
           return null;
         }
+        
+        console.log("Supabase upload successful, URL:", url);
         
         // If upload was successful, save video metadata to database
         if (url && path) {
@@ -157,6 +159,8 @@ export const useUpload = () => {
           
           toast.success(`Video uploaded successfully`);
           setIsUploading(false);
+          
+          console.log("Returning Supabase URL:", url);
           return url;  // Return the actual Supabase URL
         }
         

@@ -44,61 +44,89 @@ export const triggerWebhook = async (data: any): Promise<boolean> => {
   
   try {
     console.log(`Triggering n8n webhook: ${config.url}`);
-    console.log("Webhook payload:", data);
+    console.log("Original webhook payload:", data);
     
     // Clone the data to avoid modifying the original object
     const payloadData = { ...data };
     
-    // Check for and handle blob URLs
-    if (payloadData.videoDetails?.publicUrl && !payloadData.videoDetails.publicUrl.startsWith('http')) {
-      console.warn("Invalid URL format detected, this might be a blob URL");
-      // Don't send blob URLs, use the stored URL from Supabase if available
-      if (payloadData.videoDetails?.storedUrl) {
-        payloadData.videoDetails.publicUrl = payloadData.videoDetails.storedUrl;
+    // BLOB URL FIX: Check for and handle blob URLs in all possible locations
+    const fixBlobUrl = (obj: any, propPath: string) => {
+      const props = propPath.split('.');
+      let current = obj;
+      
+      // Navigate to the nested property
+      for (let i = 0; i < props.length - 1; i++) {
+        if (current && typeof current === 'object' && props[i] in current) {
+          current = current[props[i]];
+        } else {
+          return; // Path doesn't exist
+        }
       }
-    }
+      
+      // Get the final property name
+      const finalProp = props[props.length - 1];
+      
+      // Check if property exists and starts with 'blob:'
+      if (current && typeof current === 'object' && finalProp in current && 
+          typeof current[finalProp] === 'string' && current[finalProp].startsWith('blob:')) {
+        
+        console.warn(`Found blob URL in ${propPath}, replacing with stored URL if available`);
+        
+        // First try to use an available storedUrl
+        if (current.storedUrl && typeof current.storedUrl === 'string' && 
+            current.storedUrl.startsWith('http')) {
+          console.log(`Replacing blob URL with storedUrl: ${current.storedUrl}`);
+          current[finalProp] = current.storedUrl;
+        } 
+        // Then try to use video_url from completeRowData if available
+        else if (obj.completeRowData?.videoFile?.video_url) {
+          console.log(`Replacing blob URL with videoFile.video_url: ${obj.completeRowData.videoFile.video_url}`);
+          current[finalProp] = obj.completeRowData.videoFile.video_url;
+        }
+        // If no proper URL is available, remove the blob URL
+        else {
+          console.warn(`No valid URL found to replace blob URL in ${propPath}, removing it`);
+          delete current[finalProp];
+          current.urlRemoved = true;
+        }
+      }
+    };
     
-    // Check for blob URLs in tempUrl
-    if (payloadData.videoDetails?.tempUrl && payloadData.videoDetails.tempUrl.startsWith('blob:')) {
-      console.warn("Blob URL detected in tempUrl, removing it");
-      // If we have a storedUrl or publicUrl, use that instead
-      if (payloadData.videoDetails?.publicUrl && payloadData.videoDetails.publicUrl.startsWith('http')) {
-        payloadData.videoDetails.tempUrl = payloadData.videoDetails.publicUrl;
-      } else if (payloadData.videoDetails?.storedUrl) {
-        payloadData.videoDetails.tempUrl = payloadData.videoDetails.storedUrl;
-      } else {
-        // If no valid URL is available, remove the blob URL
-        delete payloadData.videoDetails.tempUrl;
-        payloadData.videoDetails.urlUnavailable = true;
+    // Check all common places for blob URLs
+    if (payloadData.videoDetails) {
+      fixBlobUrl(payloadData, 'videoDetails.publicUrl');
+      fixBlobUrl(payloadData, 'videoDetails.tempUrl');
+      
+      // Ensure we're using the stored URL as the main URL
+      if (payloadData.videoDetails.storedUrl && 
+          typeof payloadData.videoDetails.storedUrl === 'string' && 
+          payloadData.videoDetails.storedUrl.startsWith('http')) {
+        payloadData.videoDetails.publicUrl = payloadData.videoDetails.storedUrl;
       }
     }
     
     // If this is a video upload, include all row information and ensure proper URLs
     if (payloadData.event?.includes('video_uploaded')) {
       // Include all available row information in the videoDetails
-      if (payloadData.videoDetails) {
+      if (payloadData.completeRowData?.videoFile?.video_url) {
         // Ensure we're using the Supabase URL, not a blob URL
-        if (payloadData.completeRowData?.videoFile?.video_url) {
-          payloadData.videoDetails.publicUrl = payloadData.completeRowData.videoFile.video_url;
+        const supabaseUrl = payloadData.completeRowData.videoFile.video_url;
+        
+        if (payloadData.videoDetails) {
+          payloadData.videoDetails.publicUrl = supabaseUrl;
+          payloadData.videoDetails.storedUrl = supabaseUrl;
         }
         
         // Include timestamp and make sure any URLs are actual URLs, not blob references
         payloadData.completeRowData = {
-          ...payloadData.videoDetails,
+          ...payloadData.completeRowData,
           uploadTimestamp: new Date().toISOString(),
-          rawData: payloadData.videoDetails,
-          // Ensure we're using a valid URL
-          videoUrl: payloadData.completeRowData?.videoFile?.video_url || payloadData.videoDetails.publicUrl
+          videoUrl: supabaseUrl
         };
       }
-    } else if (payloadData.event?.includes('video_analyzed')) {
-      // Include all analysis data
-      payloadData.completeRowData = {
-        ...payloadData.videoDetails,
-        analysisTimestamp: new Date().toISOString(),
-        rawAnalysisData: payloadData.videoDetails
-      };
     }
+    
+    console.log("Processed webhook payload:", payloadData);
     
     const response = await fetch(config.url, {
       method: "POST",
