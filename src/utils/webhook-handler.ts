@@ -49,14 +49,46 @@ export const triggerWebhook = async (data: any): Promise<boolean> => {
     // Clone the data to avoid modifying the original object
     const payloadData = { ...data };
     
-    // If this is a video upload, include all row information
+    // Check for and handle blob URLs
+    if (payloadData.videoDetails?.publicUrl && !payloadData.videoDetails.publicUrl.startsWith('http')) {
+      console.warn("Invalid URL format detected, this might be a blob URL");
+      // Don't send blob URLs, use the stored URL from Supabase if available
+      if (payloadData.videoDetails?.storedUrl) {
+        payloadData.videoDetails.publicUrl = payloadData.videoDetails.storedUrl;
+      }
+    }
+    
+    // Check for blob URLs in tempUrl
+    if (payloadData.videoDetails?.tempUrl && payloadData.videoDetails.tempUrl.startsWith('blob:')) {
+      console.warn("Blob URL detected in tempUrl, removing it");
+      // If we have a storedUrl or publicUrl, use that instead
+      if (payloadData.videoDetails?.publicUrl && payloadData.videoDetails.publicUrl.startsWith('http')) {
+        payloadData.videoDetails.tempUrl = payloadData.videoDetails.publicUrl;
+      } else if (payloadData.videoDetails?.storedUrl) {
+        payloadData.videoDetails.tempUrl = payloadData.videoDetails.storedUrl;
+      } else {
+        // If no valid URL is available, remove the blob URL
+        delete payloadData.videoDetails.tempUrl;
+        payloadData.videoDetails.urlUnavailable = true;
+      }
+    }
+    
+    // If this is a video upload, include all row information and ensure proper URLs
     if (payloadData.event?.includes('video_uploaded')) {
       // Include all available row information in the videoDetails
       if (payloadData.videoDetails) {
+        // Ensure we're using the Supabase URL, not a blob URL
+        if (payloadData.completeRowData?.videoFile?.video_url) {
+          payloadData.videoDetails.publicUrl = payloadData.completeRowData.videoFile.video_url;
+        }
+        
+        // Include timestamp and make sure any URLs are actual URLs, not blob references
         payloadData.completeRowData = {
           ...payloadData.videoDetails,
           uploadTimestamp: new Date().toISOString(),
-          rawData: payloadData.videoDetails
+          rawData: payloadData.videoDetails,
+          // Ensure we're using a valid URL
+          videoUrl: payloadData.completeRowData?.videoFile?.video_url || payloadData.videoDetails.publicUrl
         };
       }
     } else if (payloadData.event?.includes('video_analyzed')) {

@@ -170,7 +170,7 @@ const VideoSection: React.FC<VideoSectionProps> = ({
       
       // Complete payload with all row information
       const analysisPayload = {
-        videoUrl: publicUrl,
+        videoUrl: publicUrl, // This is now a real Supabase URL, not a blob
         homeTeam: formData.homeTeam,
         awayTeam: formData.awayTeam,
         gameDate: formData.gameDate,
@@ -186,7 +186,7 @@ const VideoSection: React.FC<VideoSectionProps> = ({
             size: videoFile.size,
             type: videoFile.type,
             lastModified: new Date(videoFile.lastModified).toISOString(),
-            url: publicUrl
+            url: publicUrl // Real URL from Supabase
           },
           formData: formData,
           user: { id: user.id },
@@ -194,7 +194,7 @@ const VideoSection: React.FC<VideoSectionProps> = ({
         }
       };
       
-      // Send only the public URL to the analysis webhook to avoid re-uploading the file
+      // Send the public URL to the analysis webhook
       const webhookUrl = "https://playswise.app.n8n.cloud/webhook-test/analyze";
       const response = await fetch(webhookUrl, {
         method: "POST",
@@ -230,7 +230,8 @@ const VideoSection: React.FC<VideoSectionProps> = ({
             homeTeam: formData.homeTeam,
             awayTeam: formData.awayTeam,
             gameDate: formData.gameDate,
-            publicUrl: publicUrl
+            publicUrl: publicUrl,
+            storedUrl: publicUrl // Make sure we have a proper URL
           },
           completeRowData: {
             video: {

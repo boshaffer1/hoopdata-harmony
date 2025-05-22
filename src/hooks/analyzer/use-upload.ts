@@ -62,42 +62,26 @@ export const useUpload = () => {
         const fileExt = videoFile.name.split('.').pop() || 'mp4';
         formattedFileName = `${metadata.homeTeam} vs ${metadata.awayTeam}${dateString}.${fileExt}`;
       }
-
-      // First, create and return a temporary object URL while upload happens in the background
-      const tempUrl = URL.createObjectURL(videoFile);
       
-      // Try to upload to Supabase in the background, but don't wait for completion
-      uploadVideo(videoFile, {
-        homeTeam: metadata?.homeTeam || '',
-        awayTeam: metadata?.awayTeam || '',
-        gameDate: metadata?.gameDate || ''
-      }).then(({ error, url, path }) => {
+      // First, create and return a temporary object URL while upload happens in the background
+      // Don't return the blob URL anymore, instead wait for the actual Supabase upload
+      try {
+        // Try to upload to Supabase immediately and get a real URL
+        const { error, url, path } = await uploadVideo(videoFile, {
+          homeTeam: metadata?.homeTeam || '',
+          awayTeam: metadata?.awayTeam || '',
+          gameDate: metadata?.gameDate || ''
+        });
+        
         clearInterval(progressInterval);
+        setUploadProgress(100);
         
         if (error) {
-          console.warn("Upload warning - will continue with temporary URL:", error);
-          setUploadProgress(100); // Still show as complete
-          
-          // We'll trigger the webhook with the temporary URL instead
-          triggerWebhook({
-            event: "video_uploaded_with_local_url",
-            timestamp: new Date().toISOString(),
-            videoDetails: {
-              fileName: formattedFileName,
-              fileSize: videoFile.size,
-              tempUrl: tempUrl, // Send the local blob URL
-              metadata: metadata || {},
-              user: user ? { id: user.id } : null,
-              fileType: videoFile.type,
-              uploadMethod: "temporary_local",
-              allMetadata: metadata
-            }
-          });
-          
-          return;
+          console.warn("Upload error:", error);
+          setIsUploading(false);
+          toast.error("Failed to upload video to storage");
+          return null;
         }
-        
-        setUploadProgress(100);
         
         // If upload was successful, save video metadata to database
         if (url && path) {
@@ -129,29 +113,27 @@ export const useUpload = () => {
             video_url: url
           };
           
-          // Save to video_files table (existing functionality)
-          supabase
+          // Save to video_files table
+          const { error: videoError, data: videoData } = await supabase
             .from('video_files')
-            .insert(videoFileData)
-            .then(({ error: videoError, data: videoData }) => {
-              if (videoError) {
-                console.warn("Error saving video metadata (continuing anyway):", videoError);
-              } else {
-                console.log("Successfully saved to video_files table:", videoData);
-              }
-            });
+            .insert(videoFileData);
+            
+          if (videoError) {
+            console.warn("Error saving video metadata (continuing anyway):", videoError);
+          } else {
+            console.log("Successfully saved to video_files table:", videoData);
+          }
           
-          // Also save to "Video upload" table (new functionality)
-          supabase
+          // Also save to "Video upload" table
+          const { error: uploadError, data: uploadData } = await supabase
             .from('Video upload')
-            .insert(videoUploadData)
-            .then(({ error: uploadError, data: uploadData }) => {
-              if (uploadError) {
-                console.warn("Error saving to Video upload table:", uploadError);
-              } else {
-                console.log("Successfully saved to Video upload table:", uploadData);
-              }
-            });
+            .insert(videoUploadData);
+            
+          if (uploadError) {
+            console.warn("Error saving to Video upload table:", uploadError);
+          } else {
+            console.log("Successfully saved to Video upload table:", uploadData);
+          }
           
           // Trigger webhook with the Supabase URL and complete row data
           triggerWebhook({
@@ -162,6 +144,7 @@ export const useUpload = () => {
               fileSize: videoFile.size,
               filePath: path,
               publicUrl: url,
+              storedUrl: url, // Add an explicit stored URL field
               metadata: metadata || {}
             },
             completeRowData: {
@@ -173,15 +156,20 @@ export const useUpload = () => {
           });
           
           toast.success(`Video uploaded successfully`);
+          setIsUploading(false);
+          return url;  // Return the actual Supabase URL
         }
-      }).catch(error => {
-        console.error("Background upload error:", error);
-      }).finally(() => {
+        
         setIsUploading(false);
-      });
-      
-      // Return the temporary URL immediately so the user can continue working
-      return tempUrl;
+        return null;
+      } catch (uploadError) {
+        console.error("Upload error:", uploadError);
+        clearInterval(progressInterval);
+        setIsUploading(false);
+        setUploadProgress(0);
+        toast.error("Failed to upload video");
+        return null;
+      }
     } catch (error) {
       console.error("Error in upload process:", error);
       toast.error("Failed to upload video");

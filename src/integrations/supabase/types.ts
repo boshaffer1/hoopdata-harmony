@@ -629,6 +629,10 @@ export type Database = {
           table_name: string
         }[]
       }
+      send_to_webhook: {
+        Args: { data: Json }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
