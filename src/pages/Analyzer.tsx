@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { useAnalyzer } from "@/hooks/analyzer/use-analyzer";
@@ -58,6 +57,8 @@ const Analyzer = () => {
     saveClip
   } = useAnalyzer();
 
+  // We're no longer using the roster functionality in this component
+  // The hooks are left for potential future use elsewhere
   const {
     rosters,
     addTeam,
@@ -136,7 +137,8 @@ const Analyzer = () => {
     }
   };
 
-  // Create an adapter for adding teams
+  // Create an adapter for adding teams - keeping this function in case
+  // it's needed for other parts of the app, but it's not used in the UI anymore
   const handleAddTeam = (teamName: string) => {
     const result = addTeam(teamName);
     // Convert void return to empty roster if needed
@@ -219,14 +221,13 @@ const Analyzer = () => {
             onExportClip={handleExportClip}
           />
           
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-2">
             <AnalyzerTabs 
               markers={markers}
               savedClips={savedClips}
               playLabel={playLabel}
               selectedClip={selectedClip}
               isPlayingClip={isPlayingClip}
-              rosters={rosters}
               onSeekToMarker={seekToMarker}
               onRemoveMarker={handleRemoveMarker}
               onMarkerNotesChange={handleUpdateMarkerNotes}
@@ -239,10 +240,7 @@ const Analyzer = () => {
               onStopClip={stopClip}
               onAutoOrganize={autoOrganizeClips}
               onExportAllMarkers={exportAllMarkers}
-              onAddTeam={handleAddTeam}
-              onRemoveTeam={removeTeam}
-              onAddPlayer={addPlayer}
-              onRemovePlayer={removePlayer}
+              // Remove roster props as they won't be displayed anymore
             />
           </div>
         </div>
