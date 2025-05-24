@@ -1,28 +1,25 @@
 
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { useAuthState } from "@/hooks/auth/use-auth-state";
+import { useAuth } from "@/hooks/auth/AuthProvider";
 import { toast } from "sonner";
 
 const Auth = () => {
   const navigate = useNavigate();
-  const { user, isLoading, signIn, signUp } = useAuthState();
+  const location = useLocation();
+  const { user, isLoading, signIn, signUp } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  useEffect(() => {
-    // Redirect if already authenticated
-    if (user && !isLoading) {
-      navigate("/analyzer");
-    }
-  }, [user, isLoading, navigate]);
+  
+  // Get the page they were trying to access before being redirected
+  const from = location.state?.from?.pathname || "/dashboard";
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,7 +32,7 @@ const Auth = () => {
         toast.error(error.message || "Failed to sign in");
       } else {
         toast.success("Signed in successfully");
-        navigate("/analyzer");
+        navigate(from);
       }
     } catch (error: any) {
       toast.error(error.message || "An error occurred during sign in");
@@ -68,16 +65,6 @@ const Auth = () => {
       setIsSubmitting(false);
     }
   };
-
-  if (isLoading) {
-    return (
-      <Layout className="py-6">
-        <div className="flex items-center justify-center h-[60vh]">
-          <div className="text-center">Loading...</div>
-        </div>
-      </Layout>
-    );
-  }
 
   return (
     <Layout className="py-6">

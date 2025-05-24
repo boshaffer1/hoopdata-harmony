@@ -3,6 +3,7 @@ import React from 'react';
 import {
   createBrowserRouter,
   RouterProvider,
+  Navigate,
 } from "react-router-dom";
 import Index from "@/pages/Index";
 import Dashboard from "@/pages/Dashboard";
@@ -20,6 +21,7 @@ import NotFound from "@/pages/NotFound";
 import Settings from "@/pages/Settings";
 import Auth from "@/pages/Auth";
 import { AuthProvider } from "@/hooks/auth/AuthProvider";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
 
 function App() {
   return (
@@ -28,55 +30,107 @@ function App() {
         router={createBrowserRouter([
           {
             path: "/",
-            element: <Index />
+            element: (
+              <ProtectedRoute>
+                <Index />
+              </ProtectedRoute>
+            ),
           },
           {
             path: "/dashboard",
-            element: <Dashboard />
+            element: (
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            ),
           },
           {
             path: "/analyzer",
-            element: <Analyzer />
+            element: (
+              <ProtectedRoute>
+                <Analyzer />
+              </ProtectedRoute>
+            ),
           },
           {
             path: "/library",
-            element: <ClipLibrary />
+            element: (
+              <ProtectedRoute>
+                <ClipLibrary />
+              </ProtectedRoute>
+            ),
           },
           {
             path: "/stats",
-            element: <Stats />
+            element: (
+              <ProtectedRoute>
+                <Stats />
+              </ProtectedRoute>
+            ),
           },
           {
             path: "/insights",
-            element: <Insights />
+            element: (
+              <ProtectedRoute>
+                <Insights />
+              </ProtectedRoute>
+            ),
           },
           {
             path: "/myteam",
-            element: <MyTeam />
+            element: (
+              <ProtectedRoute>
+                <MyTeam />
+              </ProtectedRoute>
+            ),
           },
           {
             path: "/player/:id",
-            element: <PlayerDetail />
+            element: (
+              <ProtectedRoute>
+                <PlayerDetail />
+              </ProtectedRoute>
+            ),
           },
           {
             path: "/scouting",
-            element: <Scouting />
+            element: (
+              <ProtectedRoute>
+                <Scouting />
+              </ProtectedRoute>
+            ),
           },
           {
             path: "/report/:id",
-            element: <ScoutingReport />
+            element: (
+              <ProtectedRoute>
+                <ScoutingReport />
+              </ProtectedRoute>
+            ),
           },
           {
             path: "/assistant",
-            element: <Assistant />
+            element: (
+              <ProtectedRoute>
+                <Assistant />
+              </ProtectedRoute>
+            ),
           },
           {
             path: "/supabase-debug",
-            element: <SupabaseDebug />
+            element: (
+              <ProtectedRoute>
+                <SupabaseDebug />
+              </ProtectedRoute>
+            ),
           },
           {
             path: "/settings",
-            element: <Settings />
+            element: (
+              <ProtectedRoute>
+                <Settings />
+              </ProtectedRoute>
+            ),
           },
           {
             path: "/auth",
@@ -84,7 +138,11 @@ function App() {
           },
           {
             path: "*",
-            element: <NotFound />
+            element: (
+              <ProtectedRoute>
+                <NotFound />
+              </ProtectedRoute>
+            ),
           }
         ])} 
       />
