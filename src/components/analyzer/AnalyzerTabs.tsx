@@ -12,6 +12,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -25,7 +26,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  CaretSort,
   Import,
   Scissors,
   Download,
@@ -42,10 +42,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/use-toast";
-import { useSortableData } from "@/hooks/use-sortable-data";
-import { TeamRosterList } from "@/components/analyzer/teams/TeamRosterList";
-import { GameData, Marker, SavedClip } from "@/types/analyzer";
-import { Roster } from "@/types/roster";
+import TeamRosterList from "@/components/analyzer/teams/TeamRosterList";
+import { GameData, Marker, SavedClip, TeamRoster } from "@/types/analyzer";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -78,7 +76,7 @@ interface AnalyzerTabsProps {
   playLabel: string;
   selectedClip: SavedClip | null;
   isPlayingClip: boolean;
-  rosters: Roster[];
+  rosters?: TeamRoster[]; // Make rosters optional
   onSeekToMarker: (time: number) => void;
   onRemoveMarker: (id: string) => void;
   onMarkerNotesChange: (id: string, notes: string) => void;
@@ -91,10 +89,10 @@ interface AnalyzerTabsProps {
   onStopClip: () => void;
   onAutoOrganize: () => void;
   onExportAllMarkers: () => void;
-  onAddTeam: (teamName: string) => Roster | void;
-  onRemoveTeam: (teamId: string) => void;
-  onAddPlayer: (teamId: string, playerName: string, playerNumber: string, playerPosition: string) => void;
-  onRemovePlayer: (teamId: string, playerId: string) => void;
+  onAddTeam?: (teamName: string) => TeamRoster | void;
+  onRemoveTeam?: (teamId: string) => void;
+  onAddPlayer?: (teamId: string, playerName: string, playerNumber: string, playerPosition: string) => void;
+  onRemovePlayer?: (teamId: string, playerId: string) => void;
 }
 
 const AnalyzerTabs: React.FC<AnalyzerTabsProps> = ({
@@ -103,7 +101,7 @@ const AnalyzerTabs: React.FC<AnalyzerTabsProps> = ({
   playLabel,
   selectedClip,
   isPlayingClip,
-  rosters,
+  rosters = [], // Provide default empty array
   onSeekToMarker,
   onRemoveMarker,
   onMarkerNotesChange,
@@ -644,7 +642,6 @@ const AnalyzerTabs: React.FC<AnalyzerTabsProps> = ({
                       <span>Export Library</span>
                     </div>
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleExportAllSavedClips}>
                     <div className="flex items-center">
                       <Download className="mr-2 h-4 w-4" />
@@ -841,13 +838,13 @@ const AnalyzerTabs: React.FC<AnalyzerTabsProps> = ({
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold">Teams</h2>
           </div>
-          <TeamRosterList
-            rosters={rosters}
-            onAddTeam={handleAddTeam}
-            onRemoveTeam={handleRemoveTeam}
-            onAddPlayer={handleAddPlayer}
-            onRemovePlayer={handleRemovePlayer}
-          />
+          {rosters && onAddTeam && onRemoveTeam && onAddPlayer && onRemovePlayer ? (
+            <TeamRosterList
+              rosters={rosters}
+            />
+          ) : (
+            <p className="text-muted-foreground">Team functionality is currently disabled.</p>
+          )}
         </div>
       </TabsContent>
 
