@@ -5,6 +5,7 @@ import ExistingVideosSection from "./ExistingVideosSection";
 import UploadProgressIndicator from "./UploadProgressIndicator";
 import ClipPlaybackControl from "./ClipPlaybackControl";
 import GameDataSection from "./GameDataSection";
+import RealTimeStats from "./RealTimeStats";
 import { GameData, Marker, SavedClip } from "@/types/analyzer";
 
 interface VideoPlayerSectionProps {
@@ -77,6 +78,14 @@ const VideoPlayerSection: React.FC<VideoPlayerSectionProps> = ({
         isPlayingClip={isPlayingClip}
         selectedClip={selectedClip}
         onStopClip={onStopClip}
+      />
+
+      {/* Real-Time Analysis Stats */}
+      <RealTimeStats 
+        isAnalyzing={isUploading || (videoUrl !== null && data.length > 0)}
+        onDetectionUpdate={(detection) => {
+          console.log('New detection:', detection);
+        }}
       />
       
       <GameDataSection 

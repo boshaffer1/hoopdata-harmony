@@ -163,8 +163,8 @@ const Analyzer = () => {
   
   // Adapter function to handle game data to saved clip conversion for AnalyzerTabs
   const handleOnPlayClip = (clip: SavedClip | GameData) => {
-    // Check if this is a GameData object
-    if ('Play Name' in clip) {
+    // Check if this is a GameData object by looking for GameData-specific properties
+    if ('Play Name' in clip && 'Start time' in clip) {
       // Convert GameData to SavedClip before playing
       const convertedClip = convertGameDataToSavedClip(clip as GameData);
       handleLibrarySavedClipPlay(convertedClip);
@@ -221,7 +221,7 @@ const Analyzer = () => {
             onExportClip={handleExportClip}
           />
           
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-1">
             <AnalyzerTabs 
               markers={markers}
               savedClips={savedClips}
@@ -240,7 +240,6 @@ const Analyzer = () => {
               onStopClip={stopClip}
               onAutoOrganize={autoOrganizeClips}
               onExportAllMarkers={exportAllMarkers}
-              // Remove roster props as they won't be displayed anymore
             />
           </div>
         </div>
