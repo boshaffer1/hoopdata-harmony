@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { useAnalyzer } from "@/hooks/analyzer/use-analyzer";
@@ -173,6 +174,12 @@ const Analyzer = () => {
       handleLibrarySavedClipPlay(convertedClip);
     }
   };
+
+  // Fix the onPlayClip function to handle GameData properly
+  const handleGameDataPlayClip = (gameData: GameData) => {
+    const convertedClip = convertGameDataToSavedClip(gameData);
+    playClip(convertedClip);
+  };
   
   // If loading or unauthenticated, show a loading state
   if (isLoading) {
@@ -216,7 +223,7 @@ const Analyzer = () => {
             onFileLoaded={handleFileLoaded}
             onNewMarkerLabelChange={setNewMarkerLabel}
             onAddMarker={addMarker}
-            onPlayClip={playClip}
+            onPlayClip={handleGameDataPlayClip}
             onStopClip={stopClip}
             onExportClip={handleExportClip}
           />

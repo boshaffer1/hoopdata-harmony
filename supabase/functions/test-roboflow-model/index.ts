@@ -23,22 +23,32 @@ serve(async (req) => {
       );
     }
 
+    // Clean the base64 string - remove data URL prefix if present
+    const cleanBase64 = imageBase64.replace(/^data:image\/[a-z]+;base64,/, '');
+
     // Roboflow API endpoint
     const roboflowUrl = `https://detect.roboflow.com/${modelId}?api_key=${apiKey}`;
+
+    console.log('Making request to Roboflow with model:', modelId);
 
     const response = await fetch(roboflowUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: imageBase64,
+      body: cleanBase64,
     });
 
+    console.log('Roboflow response status:', response.status);
+
     if (!response.ok) {
-      throw new Error(`Roboflow API error: ${response.statusText}`);
+      const errorText = await response.text();
+      console.error('Roboflow API error:', errorText);
+      throw new Error(`Roboflow API error: ${response.status} - ${errorText}`);
     }
 
     const detections = await response.json();
+    console.log('Roboflow detections received:', detections);
 
     return new Response(
       JSON.stringify({
