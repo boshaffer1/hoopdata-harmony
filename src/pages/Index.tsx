@@ -18,7 +18,7 @@ const Index = () => {
       <Section className="bg-background">
         <div className="max-w-3xl mx-auto text-center mb-16">
           <h2 className="text-3xl md:text-4xl font-display font-bold mb-4">
-            How HoopData Works
+            How PlaysWise Works
           </h2>
           <p className="text-xl text-muted-foreground">
             A simple three-step process to transform your basketball analysis
@@ -65,7 +65,7 @@ const Index = () => {
             Ready to Transform Your Basketball Analytics?
           </h2>
           <p className="text-xl opacity-90 mb-8 max-w-2xl mx-auto">
-            Get started with HoopData today and unlock powerful insights for your team.
+            Get started with PlaysWise today and unlock powerful insights for your team.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <Link to="/dashboard">

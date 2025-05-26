@@ -20,7 +20,7 @@ const Hero = () => {
           </div>
           
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-display font-bold tracking-tight mb-6 animate-slide-down" style={{ animationDelay: "100ms" }}>
-            Transform your basketball analytics with <span className="bg-gradient-to-r from-primary to-blue-500 bg-clip-text text-transparent">HoopData</span>
+            Transform your basketball analytics with <span className="bg-gradient-to-r from-primary to-blue-500 bg-clip-text text-transparent">PlaysWise</span>
           </h1>
           
           <p className="text-xl text-muted-foreground mb-10 max-w-2xl mx-auto animate-slide-down" style={{ animationDelay: "200ms" }}>

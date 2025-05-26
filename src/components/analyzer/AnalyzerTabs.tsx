@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import {
   Tabs,
@@ -425,7 +426,7 @@ const AnalyzerTabs: React.FC<AnalyzerTabsProps> = ({
   };
 
   // Function to handle exporting a team
-  const handleExportTeam = (team: Roster) => {
+  const handleExportTeam = (team: TeamRoster) => {
     const json = JSON.stringify(team, null, 2);
     const blob = new Blob([json], { type: "application/json" });
     const url = URL.createObjectURL(blob);
