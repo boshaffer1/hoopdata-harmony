@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { useAnalyzer } from "@/hooks/analyzer/use-analyzer";
@@ -178,7 +177,7 @@ const Analyzer = () => {
   // Fix the onPlayClip function to handle GameData properly
   const handleGameDataPlayClip = (gameData: GameData) => {
     const convertedClip = convertGameDataToSavedClip(gameData);
-    playClip(convertedClip);
+    handleLibrarySavedClipPlay(convertedClip);
   };
   
   // If loading or unauthenticated, show a loading state
