@@ -6,6 +6,7 @@ import UploadProgressIndicator from "./UploadProgressIndicator";
 import ClipPlaybackControl from "./ClipPlaybackControl";
 import GameDataSection from "./GameDataSection";
 import RealTimeStats from "./RealTimeStats";
+import ModelTester from "./ModelTester";
 import { GameData, Marker, SavedClip } from "@/types/analyzer";
 
 interface VideoPlayerSectionProps {
@@ -87,6 +88,9 @@ const VideoPlayerSection: React.FC<VideoPlayerSectionProps> = ({
           console.log('New detection:', detection);
         }}
       />
+
+      {/* Model Tester */}
+      <ModelTester videoPlayerRef={videoPlayerRef} />
       
       <GameDataSection 
         data={data}

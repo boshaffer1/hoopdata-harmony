@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { useAnalyzer } from "@/hooks/analyzer/use-analyzer";
@@ -161,16 +162,16 @@ const Analyzer = () => {
     updateMarkerNotes(id, notes);
   };
   
-  // Adapter function to handle game data to saved clip conversion for AnalyzerTabs
+  // Fix the adapter function to handle conversion properly
   const handleOnPlayClip = (clip: SavedClip | GameData) => {
-    // Check if this is a GameData object by looking for GameData-specific properties
-    if ('Play Name' in clip && 'Start time' in clip) {
-      // Convert GameData to SavedClip before playing
-      const convertedClip = convertGameDataToSavedClip(clip as GameData);
-      handleLibrarySavedClipPlay(convertedClip);
-    } else {
+    // Check if this is a SavedClip by looking for SavedClip-specific properties
+    if ('id' in clip && 'startTime' in clip && 'saved' in clip) {
       // It's already a SavedClip
       handleLibrarySavedClipPlay(clip as SavedClip);
+    } else {
+      // It's a GameData object, convert it first
+      const convertedClip = convertGameDataToSavedClip(clip as GameData);
+      handleLibrarySavedClipPlay(convertedClip);
     }
   };
   
