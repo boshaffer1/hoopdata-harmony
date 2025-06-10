@@ -16,7 +16,29 @@ export const useVideo = () => {
       // Direct File object
       fileOrUrl = fileOrEvent;
     } else if (typeof fileOrEvent === 'string') {
-      // Direct URL string
+      // Direct URL string - check if it's a Supabase URL or external URL
+      if (fileOrEvent.includes('supabase.co') || fileOrEvent.startsWith('http')) {
+        // This is already a proper URL, use it directly
+        setVideoUrl(fileOrEvent);
+        toast.success("Video loaded from URL");
+        
+        // Reset current time
+        setCurrentTime(0);
+        
+        // Trigger webhook with URL information
+        triggerWebhook({
+          event: "video_loaded",
+          timestamp: new Date().toISOString(),
+          videoDetails: {
+            url: fileOrEvent,
+            fileName: fileOrEvent.split('/').pop() || "video",
+            fileSize: 0,
+            source: "url"
+          }
+        });
+        
+        return fileOrEvent;
+      }
       fileOrUrl = fileOrEvent;
     } else if (fileOrEvent?.target?.files?.length) {
       // Event from input[type=file]
@@ -29,41 +51,40 @@ export const useVideo = () => {
     }
 
     try {
-      let newVideoUrl;
-      let fileName = "";
-      let fileSize = 0;
-      
       if (typeof fileOrUrl === 'string') {
         // This is already a URL
-        newVideoUrl = fileOrUrl;
+        setVideoUrl(fileOrUrl);
         console.log("Setting video URL from string:", fileOrUrl);
-        fileName = fileOrUrl.split('/').pop() || "video";
       } else {
-        // This is a File object
-        newVideoUrl = URL.createObjectURL(fileOrUrl);
-        console.log("Created object URL for file:", fileOrUrl.name);
-        fileName = fileOrUrl.name;
-        fileSize = fileOrUrl.size;
+        // This is a File object - create blob URL temporarily but warn user
+        const newVideoUrl = URL.createObjectURL(fileOrUrl);
+        console.log("Created temporary blob URL for file:", fileOrUrl.name);
+        console.warn("Using blob URL - file needs to be uploaded to Supabase for permanent access");
+        
+        setVideoUrl(newVideoUrl);
+        
+        // Show warning about temporary nature of blob URL
+        toast.warning("File loaded temporarily - please upload to Supabase for permanent access", {
+          duration: 5000
+        });
       }
-      
-      setVideoUrl(newVideoUrl);
-      toast.success("Video loaded successfully");
       
       // Reset current time
       setCurrentTime(0);
       
-      // Trigger n8n webhook with video information
+      // Trigger webhook with video information
       triggerWebhook({
-        event: "video_uploaded",
+        event: "video_loaded_locally",
         timestamp: new Date().toISOString(),
         videoDetails: {
-          url: newVideoUrl,
-          fileName: fileName,
-          fileSize: fileSize
+          url: typeof fileOrUrl === 'string' ? fileOrUrl : 'blob-url-temporary',
+          fileName: typeof fileOrUrl === 'string' ? fileOrUrl.split('/').pop() || "video" : fileOrUrl.name,
+          fileSize: typeof fileOrUrl === 'string' ? 0 : fileOrUrl.size,
+          source: typeof fileOrUrl === 'string' ? 'url' : 'local-file'
         }
       });
       
-      return newVideoUrl;
+      return typeof fileOrUrl === 'string' ? fileOrUrl : URL.createObjectURL(fileOrUrl);
     } catch (error) {
       console.error("Error processing video file:", error);
       toast.error("Failed to load video file");

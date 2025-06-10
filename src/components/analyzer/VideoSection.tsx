@@ -61,9 +61,17 @@ const VideoSection: React.FC<VideoSectionProps> = ({
     }
   });
 
-  // Log when videoUrl changes
+  // Log when videoUrl changes and check if it's a blob URL
   useEffect(() => {
     console.log("VideoSection received videoUrl:", videoUrl);
+    
+    if (videoUrl?.startsWith('blob:')) {
+      console.warn("⚠️ Using blob URL - this is temporary and won't work after page refresh");
+      toast.warning("Video is loaded temporarily - upload to Supabase for permanent access", {
+        duration: 3000
+      });
+    }
+    
     if (videoUrl && videoPlayerRef.current) {
       // Attempt to play the video when the URL changes and the player is available
       // Mute by default for autoplay policies, then unmute
@@ -110,21 +118,20 @@ const VideoSection: React.FC<VideoSectionProps> = ({
       const file = e.dataTransfer.files[0];
       if (file.type.startsWith('video/')) {
         setVideoFile(file);
-        const fileUrl = URL.createObjectURL(file);
-        onVideoFileChange(fileUrl);
-        toast.success(`Video "${file.name}" loaded successfully`);
+        // Don't create blob URL here - let the user upload to Supabase instead
+        toast.info(`Video "${file.name}" selected. Please fill out the form and click "Upload and Analyze" to upload to Supabase.`);
       } else {
         toast.error("Please drop a valid video file");
       }
     }
-  }, [onVideoFileChange]);
+  }, []);
 
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
       setVideoFile(file);
-      const fileUrl = URL.createObjectURL(file);
-      onVideoFileChange(fileUrl);
+      // Don't create blob URL here - encourage proper upload
+      toast.info(`Video "${file.name}" selected. Please fill out the form and click "Upload and Analyze" to upload to Supabase.`);
     }
   };
 
@@ -133,6 +140,11 @@ const VideoSection: React.FC<VideoSectionProps> = ({
       toast.error("Please upload a video first");
       return;
     }
+    
+    if (videoUrl.startsWith('blob:')) {
+      toast.warning("Markers on blob URLs are temporary - upload video to Supabase first");
+    }
+    
     onAddMarker();
   };
 
@@ -152,7 +164,7 @@ const VideoSection: React.FC<VideoSectionProps> = ({
     try {
       toast.loading("Uploading video to Supabase...");
       
-      // First upload to Supabase - getting a direct URL
+      // Upload to Supabase - this will return a proper Supabase URL, not a blob URL
       const publicUrl = await uploadVideoToSupabase(videoFile, {
         homeTeam: formData.homeTeam,
         awayTeam: formData.awayTeam,
@@ -165,10 +177,13 @@ const VideoSection: React.FC<VideoSectionProps> = ({
         return;
       }
       
+      // Update the video URL to use the Supabase URL instead of any blob URL
+      onVideoFileChange(publicUrl);
+      
       toast.success("Video uploaded to Supabase successfully!");
       toast.loading("Now sending to analysis service...");
       
-      // Complete payload with all row information
+      // Complete payload with the real Supabase URL
       const analysisPayload = {
         videoUrl: publicUrl, // This is now a real Supabase URL, not a blob
         homeTeam: formData.homeTeam,
@@ -273,12 +288,19 @@ const VideoSection: React.FC<VideoSectionProps> = ({
       <Card className="overflow-hidden">
         <CardContent className="p-0">
           {videoUrl ? (
-            <VideoPlayer 
-              ref={videoPlayerRef}
-              src={videoUrl} 
-              onTimeUpdate={onTimeUpdate}
-              markers={formattedMarkers}
-            />
+            <div className="relative">
+              {videoUrl.startsWith('blob:') && (
+                <div className="absolute top-2 left-2 z-10 bg-yellow-500 text-black px-2 py-1 rounded text-xs">
+                  ⚠️ Temporary - Upload to Supabase for permanent access
+                </div>
+              )}
+              <VideoPlayer 
+                ref={videoPlayerRef}
+                src={videoUrl} 
+                onTimeUpdate={onTimeUpdate}
+                markers={formattedMarkers}
+              />
+            </div>
           ) : (
             <div 
               className={`aspect-video flex items-center justify-center bg-muted transition-colors ${isDragging ? 'bg-primary/10 border-2 border-dashed border-primary' : ''}`}
@@ -291,6 +313,9 @@ const VideoSection: React.FC<VideoSectionProps> = ({
                 <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <p className="text-muted-foreground mb-4">
                   Drag and drop a video file here, or click to browse
+                </p>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Files will be uploaded to Supabase for permanent storage
                 </p>
                 <Input
                   type="file"
@@ -356,12 +381,18 @@ const VideoSection: React.FC<VideoSectionProps> = ({
                 className="w-full"
                 disabled={isUploading || !videoFile || !user}
               >
-                {isUploading ? `Uploading... ${uploadProgress}%` : 'Upload and Analyze'}
+                {isUploading ? `Uploading... ${uploadProgress}%` : 'Upload and Analyze (Saves to Supabase)'}
               </Button>
               
               {!user && (
                 <p className="text-sm text-yellow-500 text-center">
                   Please sign in to upload videos
+                </p>
+              )}
+              
+              {videoFile && (
+                <p className="text-sm text-blue-500 text-center">
+                  Selected: {videoFile.name} - Ready to upload to Supabase
                 </p>
               )}
             </form>
